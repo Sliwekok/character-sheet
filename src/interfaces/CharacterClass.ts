@@ -14,7 +14,7 @@ export interface CharacterClass {
         spellSaveDC?: (abilityScores: AbilityScores) => number;
         spellAttackBonus?: (abilityScores: AbilityScores) => number;
     };
-    casterProgression: 'full' | 'half' | 'third';
+    casterProgression: 'full' | 'half' | 'third' | 'none';
 }
 
 function getSpellSlots(
