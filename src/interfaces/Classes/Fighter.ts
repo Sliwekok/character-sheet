@@ -1,5 +1,4 @@
 import { CharacterClass } from '../CharacterClass';
-import {fullCasterProgression} from "@/interfaces/Race/SpellSlotsProgression";
 
 export const Fighter: CharacterClass = {
     name: 'Fighter',
