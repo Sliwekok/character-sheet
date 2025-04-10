@@ -1,5 +1,6 @@
 import {Race} from "@/interfaces/Race";
 import {CharacterClass} from "@/interfaces/CharacterClass";
+import { Armor } from './Armor';
 
 export type AbilityScores = {
     strength: number;
@@ -16,4 +17,6 @@ export interface Character {
     race: Race;
     class: CharacterClass;
     abilityScores: AbilityScores;
+    equippedArmor?: Armor;
+    shield?: Armor;
 }
