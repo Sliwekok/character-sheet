@@ -4,4 +4,5 @@ export interface Race {
     name: string;
     traits: string[];
     abilityModifiers: Partial<AbilityScores>;
+    speed: number;
 }

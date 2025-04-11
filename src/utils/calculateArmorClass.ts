@@ -10,7 +10,7 @@ export function calculateArmorClass(character: Character): number {
         ac = armor.baseAC;
 
         if (armor.dexterityModifier?.enabled) {
-            const dexMod = character.abilityScores.dexterity;
+            const dexMod = character.getModifiers.dexterity;
             const dexCap = armor.dexterityModifier.max;
             ac += dexCap !== undefined ? Math.min(dexMod, dexCap) : dexMod;
         }
