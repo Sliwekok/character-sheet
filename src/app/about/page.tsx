@@ -2,6 +2,6 @@ import React from "react";
 
 export default function AboutPage() {
     return (
-        <div>home</div>
+        <div>about</div>
     )
 }
