@@ -10,5 +10,8 @@ export const Human: Race = {
         intelligence: 1,
         wisdom: 1,
         charisma: 1
-    }
+    },
+    speed: 30,
+    languages: ['Common'],
+
 };

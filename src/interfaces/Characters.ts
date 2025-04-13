@@ -28,4 +28,6 @@ export interface Character {
     currentHP: number;
     maxHP: number;
     getModifiers: () => AbilityModifiers;
+    edition: string;
+    languages: string[];
 }
