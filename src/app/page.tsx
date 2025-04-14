@@ -89,7 +89,7 @@ export default function Home() {
           </Link>
         </div>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center z-20">
+      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center z-20 mt-10">
         <Link
           className="flex items-center gap-2 hover:underline hover:underline-offset-4"
           href="/about"
