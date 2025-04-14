@@ -1,7 +1,14 @@
 import React from "react";
 
+import Image from "next/image";
+import Link from "next/link";
+import Nav from "../layout/nav";
+
 export default function HomePage() {
     return (
-        <div>home</div>
+        <>
+            <Nav/>
+            <div>home</div>
+        </>
     )
 }
