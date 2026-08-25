@@ -1,25 +1,61 @@
 @import "tailwindcss";
 
 :root {
-  --background: #102E50;
-  --background-darken: #0A1D2B;
-  --fontcolor: #F5C45E;
-  --fontcolor-secondary: #9b9b9b;
-  --foreground: #E78B48;
+  /* base surfaces */
+  --background: #102e50;
+  --background-darken: #0a1d2b;
+  --background-elevated: #17395f;
+
+  /* text */
+  --fontcolor: #f5c45e;
+  --fontcolor-secondary: #a9b6cc;
+
+  /* accent */
+  --foreground: #e78b48;
+  --foreground-hover: #f2a268;
+
+  /* structure */
+  --border: rgba(245, 196, 94, 0.16);
+  --border-strong: rgba(245, 196, 94, 0.35);
+  --radius-sm: 0.5rem;
+  --radius: 0.85rem;
+  --radius-lg: 1.25rem;
+
   --fontsize: 18px;
 }
 
-/* --font-geist-sans/mono imported in layout */
+/* --font-geist-sans/mono, --font-cinzel imported in layout */
 @theme inline {
   --color-background: var(--background);
+  --color-background-darken: var(--background-darken);
+  --color-background-elevated: var(--background-elevated);
   --color-foreground: var(--foreground);
+  --color-foreground-hover: var(--foreground-hover);
+  --color-fontcolor: var(--fontcolor);
+  --color-fontcolor-secondary: var(--fontcolor-secondary);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-cinzel);
 }
 
 body {
-  background: var(--background);
+  background: radial-gradient(
+    ellipse 120% 70% at 50% -10%,
+    var(--background-elevated) 0%,
+    var(--background) 55%,
+    var(--background-darken) 100%
+  );
+  background-attachment: fixed;
   color: var(--fontcolor);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   font-size: var(--fontsize);
+  min-height: 100vh;
+}
+
+::selection {
+  background: var(--foreground);
+  color: var(--background-darken);
 }
