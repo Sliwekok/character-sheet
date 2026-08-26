@@ -3,5 +3,5 @@ export interface Currency {
     silver: number;
     electrum: number;
     gold: number;
-    platinume: number;
+    platinum: number;
 }

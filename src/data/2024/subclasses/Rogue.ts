@@ -1,0 +1,75 @@
+import { Subclass } from "@/interfaces/Subclass";
+
+export const RogueSubclasses: Subclass[] = [
+    {
+        name: "Arcane Trickster",
+        parentClass: "Rogue",
+        edition: "2024",
+        grantedAtLevel: 3,
+        casterProgressionOverride: "third",
+        description: "Enhance Stealth with Arcane Spells",
+    },
+    {
+        name: "Assassin",
+        parentClass: "Rogue",
+        edition: "2024",
+        grantedAtLevel: 3,
+        description: "Practice the Grim Art of Death",
+    },
+    {
+        name: "Inquisitive",
+        parentClass: "Rogue",
+        edition: "2024",
+        grantedAtLevel: 3,
+        description: "As an archetypal Inquisitive, you excel at rooting out secrets and unraveling mysteries. You rely on your sharp eye for detail, but also on your finely honed ability to read the words and deeds of other creatures to determine their true intent.",
+    },
+    {
+        name: "Mastermind",
+        parentClass: "Rogue",
+        edition: "2024",
+        grantedAtLevel: 3,
+        description: "Your focus is on people and on the influence and secrets they have. Many spies, courtiers, and schemers follow this archetype, leading lives of intrigue.",
+    },
+    {
+        name: "Phantom",
+        parentClass: "Rogue",
+        edition: "2024",
+        grantedAtLevel: 3,
+        description: "Many rogues walk a fine line between life and death, risking their own lives and taking the lives of others. While adventuring on that line, some rogues discover a mystical connection to death itself.",
+    },
+    {
+        name: "Scion of the Three",
+        parentClass: "Rogue",
+        edition: "2024",
+        grantedAtLevel: 3,
+        description: "When an enemy you can see within 30 feet of yourself takes damage and is Bloodied after taking that damage but not killed outright, you can take a Reaction and Teleportation to an unoccupied space you can see within 5 feet of that enemy. You can then make one melee attack.",
+    },
+    {
+        name: "Scout",
+        parentClass: "Rogue",
+        edition: "2024",
+        grantedAtLevel: 3,
+        description: "You are skilled in stealth and surviving far from the streets of a city, allowing you to scout ahead of your companions during expeditions. Rogues who embrace this archetype are at home in the wilderness and among barbarians and rangers, and many Scouts serve as the eyes and ears of war bands.",
+    },
+    {
+        name: "Soulknife",
+        parentClass: "Rogue",
+        edition: "2024",
+        grantedAtLevel: 3,
+        description: "Strike Foes with Psionic Blades",
+    },
+    {
+        name: "Swashbuckler",
+        parentClass: "Rogue",
+        edition: "2024",
+        grantedAtLevel: 3,
+        description: "You focus your training on the art of the blade, relying on speed, elegance, and charm in equal parts. While some warriors are brutes clad in heavy armor, your method of fighting looks almost like a performance.",
+    },
+    {
+        name: "Thief",
+        parentClass: "Rogue",
+        edition: "2024",
+        grantedAtLevel: 3,
+        description: "As a Bonus Action, you can do one of the following.",
+    },
+];

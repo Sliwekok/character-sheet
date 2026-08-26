@@ -1,0 +1,46 @@
+import { CharacterClass } from "@/interfaces/CharacterClass";
+
+export const Rogue: CharacterClass = {
+    name: "Rogue",
+    edition: "2014",
+    hitDie: 8,
+    proficiencies: {
+        armor: ["Light armor"],
+        weapons: ["Simple weapons", "Hand crossbows", "Longswords", "Rapiers", "Shortswords"],
+        tools: ["Thieves' tools"],
+        savingThrows: ["dexterity", "intelligence"],
+        skills: { choose: 4, from: [
+            "Acrobatics",
+            "Athletics",
+            "Deception",
+            "Insight",
+            "Intimidation",
+            "Investigation",
+            "Perception",
+            "Performance",
+            "Persuasion",
+            "Sleight of Hand",
+            "Stealth",
+        ] },
+    },
+    multiclassProficiencies: {
+        armor: ["Light armor"],
+        tools: ["Thieves' tools"],
+        skills: { choose: 1, from: [
+            "Acrobatics",
+            "Athletics",
+            "Deception",
+            "Insight",
+            "Intimidation",
+            "Investigation",
+            "Perception",
+            "Performance",
+            "Persuasion",
+            "Sleight of Hand",
+            "Stealth",
+        ] },
+    },
+    primaryAbility: "dexterity",
+    casterProgression: "none",
+    subclassLevel: 3,
+};

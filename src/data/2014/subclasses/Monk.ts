@@ -1,0 +1,74 @@
+import { Subclass } from "@/interfaces/Subclass";
+
+export const MonkSubclasses: Subclass[] = [
+    {
+        name: "Way of Mercy",
+        parentClass: "Monk",
+        edition: "2014",
+        grantedAtLevel: 3,
+        description: "Monks of the Way of Mercy learn to manipulate the life force of others to bring aid to those in need. They are wandering physicians to the poor and hurt.",
+    },
+    {
+        name: "Way of Shadow",
+        parentClass: "Monk",
+        edition: "2014",
+        grantedAtLevel: 3,
+        description: "Monks of the Way of Shadow follow a tradition that values stealth and subterfuge. These monks might be called ninjas or shadow dancers, and they serve as spies and assassins.",
+    },
+    {
+        name: "Way of the Ascendant Dragon",
+        parentClass: "Monk",
+        edition: "2014",
+        grantedAtLevel: 3,
+        description: "The dragon god Bahamut is known to travel the Material Plane in the guise of a young monk, and legend says that he founded the first monastery of the Way of the Ascendant Dragon in this guise. The fundamental teaching of this tradition holds that by emulating dragons, a monk becomes a more integrated part of the world...",
+    },
+    {
+        name: "Way of the Astral Self",
+        parentClass: "Monk",
+        edition: "2014",
+        grantedAtLevel: 3,
+        description: "A monk who follows the Way of the Astral Self believes their body is an illusion. They see their ki as a representation of their true form, an astral self.",
+    },
+    {
+        name: "Way of the Drunken Master",
+        parentClass: "Monk",
+        edition: "2014",
+        grantedAtLevel: 3,
+        description: "The Way of the Drunken Master teaches its students to move with the jerky, unpredictable movements of a drunkard. A drunken master sways, tottering on unsteady feet, to present what seems like an incompetent combatant who proves frustrating to engage.",
+    },
+    {
+        name: "Way of the Four Elements",
+        parentClass: "Monk",
+        edition: "2014",
+        grantedAtLevel: 3,
+        description: "You follow a monastic tradition that teaches you to harness the elements. When you focus your ki, you can align yourself with the forces of creation and bend the four elements to your will, using them as an extension of your body.",
+    },
+    {
+        name: "Way of the Kensei",
+        parentClass: "Monk",
+        edition: "2014",
+        grantedAtLevel: 3,
+        description: "If you make an unarmed strike as part of the Attack action on your turn and are holding a kensei weapon, you can use it to defend yourself if it is a melee weapon. You gain a +2 bonus to AC until the start of your next turn, while the weapon is in your hand and you aren't incapacitated.",
+    },
+    {
+        name: "Way of the Long Death",
+        parentClass: "Monk",
+        edition: "2014",
+        grantedAtLevel: 3,
+        description: "Monks of the Way of the Long Death are obsessed with the meaning and mechanics of dying. They capture creatures and prepare elaborate experiments to capture, record, and understand the moments of their demise.",
+    },
+    {
+        name: "Way of the Open Hand",
+        parentClass: "Monk",
+        edition: "2014",
+        grantedAtLevel: 3,
+        description: "Monks of the Way of the Open Hand are the ultimate masters of martial arts combat, whether armed or unarmed. They learn techniques to push and trip their opponents, manipulate ki to heal damage to their bodies, and practice advanced meditation that can protect them from harm.",
+    },
+    {
+        name: "Way of the Sun Soul",
+        parentClass: "Monk",
+        edition: "2014",
+        grantedAtLevel: 3,
+        description: "Monks of the Way of the Sun Soul learn to channel their life energy into searing bolts of light. They teach that meditation can unlock the ability to unleash the indomitable light shed by the soul of every living creature.",
+    },
+];

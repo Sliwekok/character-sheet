@@ -1,0 +1,82 @@
+import { Subclass } from "@/interfaces/Subclass";
+
+export const FighterSubclasses: Subclass[] = [
+    {
+        name: "Arcane Archer",
+        parentClass: "Fighter",
+        edition: "2024",
+        grantedAtLevel: 3,
+        description: "An Arcane Archer studies a unique elven method of archery that weaves magic into attacks to produce supernatural effects. Arcane Archers are some of the most elite warriors among the elves.",
+    },
+    {
+        name: "Banneret",
+        parentClass: "Fighter",
+        edition: "2024",
+        grantedAtLevel: 3,
+        description: "Rally Fellow Heroes with Inspiring Leadership",
+    },
+    {
+        name: "Battle Master",
+        parentClass: "Fighter",
+        edition: "2024",
+        grantedAtLevel: 3,
+        description: "Master Sophisticated Battle Maneuvers",
+    },
+    {
+        name: "Cavalier",
+        parentClass: "Fighter",
+        edition: "2024",
+        grantedAtLevel: 3,
+        description: "The archetypal Cavalier excels at mounted combat. Usually born among the nobility and raised at court, a Cavalier is equally at home leading a cavalry charge or exchanging repartee at a state dinner.",
+    },
+    {
+        name: "Champion",
+        parentClass: "Fighter",
+        edition: "2024",
+        grantedAtLevel: 3,
+        description: "Pursue Physical Excellence in Combat",
+    },
+    {
+        name: "Echo Knight",
+        parentClass: "Fighter",
+        edition: "2024",
+        grantedAtLevel: 3,
+        description: "A mysterious and feared frontline warrior of the Kryn Dynasty, the Echo Knight has mastered the art of using dunamis to summon the fading shades of unrealized timelines to aid them in battle. Surrounded by echoes of their own might, they charge into the fray as a cycling swarm of shadows and strikes.",
+    },
+    {
+        name: "Eldritch Knight",
+        parentClass: "Fighter",
+        edition: "2024",
+        grantedAtLevel: 3,
+        casterProgressionOverride: "third",
+        description: "Support Combat Skills with Arcane Magic",
+    },
+    {
+        name: "Psi Warrior",
+        parentClass: "Fighter",
+        edition: "2024",
+        grantedAtLevel: 3,
+        description: "Augment Physical Might with Psionic Power",
+    },
+    {
+        name: "Purple Dragon Knight (Banneret)",
+        parentClass: "Fighter",
+        edition: "2024",
+        grantedAtLevel: 3,
+        description: "Purple Dragon Knights are warriors who hail from the kingdom of Cormyr. Pledged to protect the crown, they take the fight against evil beyond the kingdom's borders.",
+    },
+    {
+        name: "Rune Knight",
+        parentClass: "Fighter",
+        edition: "2024",
+        grantedAtLevel: 3,
+        description: "Rune Knights enhance their martial prowess using the supernatural power of runes, an ancient practice that originated with giants. Rune cutters can be found among any family of giants, and you likely learned your methods first or second hand from such a mystical artisan.",
+    },
+    {
+        name: "Samurai",
+        parentClass: "Fighter",
+        edition: "2024",
+        grantedAtLevel: 3,
+        description: "The Samurai is a fighter who draws on an implacable fighting spirit to overcome enemies. A Samurai's resolve is nearly unbreakable, and the enemies in a Samurai's path have two choices: yield or die fighting.",
+    },
+];

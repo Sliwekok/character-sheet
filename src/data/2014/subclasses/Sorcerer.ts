@@ -1,0 +1,67 @@
+import { Subclass } from "@/interfaces/Subclass";
+
+export const SorcererSubclasses: Subclass[] = [
+    {
+        name: "Aberrant Mind",
+        parentClass: "Sorcerer",
+        edition: "2014",
+        grantedAtLevel: 1,
+        description: "An alien influence has wrapped its tendrils around your mind, giving you psionic power. You can now touch other minds with that power and alter the world around you by using it to control the magical energy of the multiverse.",
+    },
+    {
+        name: "Clockwork Soul",
+        parentClass: "Sorcerer",
+        edition: "2014",
+        grantedAtLevel: 1,
+        description: "The cosmic force of order has suffused you with magic. That power arises from Mechanus or a realm like it-a plane of existence shaped entirely by clockwork efficiency.",
+    },
+    {
+        name: "Divine Soul",
+        parentClass: "Sorcerer",
+        edition: "2014",
+        grantedAtLevel: 1,
+        description: "Sometimes the spark of magic that fuels a sorcerer comes from a divine source that glimmers within the soul. Having such a blessed soul is a sign that your innate magic might come from a distant but powerful familial connection to a divine being.",
+    },
+    {
+        name: "Draconic Bloodline",
+        parentClass: "Sorcerer",
+        edition: "2014",
+        grantedAtLevel: 1,
+        description: "Your innate magic comes from draconic magic that was mingled with your blood or that of your ancestors. Most often, sorcerers with this origin trace their descent back to a mighty sorcerer of ancient times who made a bargain with a dragon or who might even have claimed a dragon parent.",
+    },
+    {
+        name: "Lunar Sorcery",
+        parentClass: "Sorcerer",
+        edition: "2014",
+        grantedAtLevel: 1,
+        description: "On many worlds, the moon is a revered celestial body with magical properties. On Krynn, the gods of magic are associated with the world's three moons.",
+    },
+    {
+        name: "Pyromancer (PSK)",
+        parentClass: "Sorcerer",
+        edition: "2014",
+        grantedAtLevel: 1,
+        description: "Your innate magic manifests in fire. You are your fire, and your fire is you.",
+    },
+    {
+        name: "Shadow Magic",
+        parentClass: "Sorcerer",
+        edition: "2014",
+        grantedAtLevel: 1,
+        description: "You are a creature of shadow, for your innate magic comes from the Shadowfell itself. You might trace your lineage to an entity from that place, or perhaps you were exposed to its fell energy and transformed by it.",
+    },
+    {
+        name: "Storm Sorcery",
+        parentClass: "Sorcerer",
+        edition: "2014",
+        grantedAtLevel: 1,
+        description: "Your innate magic comes from the power of elemental air. Many with this power can trace their magic back to a near-death experience caused by the Great Rain, but perhaps you were born during a howling gale so powerful that folk still tell stories of it, or your lineage might include the influence of potent air...",
+    },
+    {
+        name: "Wild Magic",
+        parentClass: "Sorcerer",
+        edition: "2014",
+        grantedAtLevel: 1,
+        description: "Your innate magic comes from the wild forces of chaos that underlie the order of creation. You might have endured exposure to some form of raw magic, perhaps through a planar portal leading to Limbo, the Elemental Planes, or the mysterious Far Realm.",
+    },
+];

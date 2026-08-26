@@ -1,0 +1,75 @@
+import { Subclass } from "@/interfaces/Subclass";
+
+export const FighterSubclasses: Subclass[] = [
+    {
+        name: "Arcane Archer",
+        parentClass: "Fighter",
+        edition: "2014",
+        grantedAtLevel: 3,
+        description: "An Arcane Archer studies a unique elven method of archery that weaves magic into attacks to produce supernatural effects. Arcane Archers are some of the most elite warriors among the elves.",
+    },
+    {
+        name: "Battle Master",
+        parentClass: "Fighter",
+        edition: "2014",
+        grantedAtLevel: 3,
+        description: "Those who emulate the archetypal Battle Master employ martial techniques passed down through generations. To a Battle Master, combat is an academic field, sometimes including subjects beyond battle such as weaponsmithing and calligraphy.",
+    },
+    {
+        name: "Cavalier",
+        parentClass: "Fighter",
+        edition: "2014",
+        grantedAtLevel: 3,
+        description: "The archetypal Cavalier excels at mounted combat. Usually born among the nobility and raised at court, a Cavalier is equally at home leading a cavalry charge or exchanging repartee at a state dinner.",
+    },
+    {
+        name: "Champion",
+        parentClass: "Fighter",
+        edition: "2014",
+        grantedAtLevel: 3,
+        description: "The archetypal Champion focuses on the development of raw physical power honed to deadly perfection. Those who model themselves on this archetype combine rigorous training with physical excellence to deal devastating blows.",
+    },
+    {
+        name: "Echo Knight",
+        parentClass: "Fighter",
+        edition: "2014",
+        grantedAtLevel: 3,
+        description: "A mysterious and feared frontline warrior of the Kryn Dynasty, the Echo Knight has mastered the art of using dunamis to summon the fading shades of unrealized timelines to aid them in battle. Surrounded by echoes of their own might, they charge into the fray as a cycling swarm of shadows and strikes.",
+    },
+    {
+        name: "Eldritch Knight",
+        parentClass: "Fighter",
+        edition: "2014",
+        grantedAtLevel: 3,
+        casterProgressionOverride: "third",
+        description: "The archetypal Eldritch Knight combines the martial mastery common to all fighters with a careful study of magic. Eldritch Knights use magical techniques similar to those practiced by wizards.",
+    },
+    {
+        name: "Psi Warrior",
+        parentClass: "Fighter",
+        edition: "2014",
+        grantedAtLevel: 3,
+        description: "When you or another creature you can see within 30 feet of you takes damage, you can use your reaction to expend one Psionic Energy die, roll the die, and reduce the damage taken by the number rolled plus your Intelligence modifier (minimum reduction of 1), as you create a momentary shield of telekinetic force.",
+    },
+    {
+        name: "Purple Dragon Knight (Banneret)",
+        parentClass: "Fighter",
+        edition: "2014",
+        grantedAtLevel: 3,
+        description: "Purple Dragon Knights are warriors who hail from the kingdom of Cormyr. Pledged to protect the crown, they take the fight against evil beyond the kingdom's borders.",
+    },
+    {
+        name: "Rune Knight",
+        parentClass: "Fighter",
+        edition: "2014",
+        grantedAtLevel: 3,
+        description: "Rune Knights enhance their martial prowess using the supernatural power of runes, an ancient practice that originated with giants. Rune cutters can be found among any family of giants, and you likely learned your methods first or second hand from such a mystical artisan.",
+    },
+    {
+        name: "Samurai",
+        parentClass: "Fighter",
+        edition: "2014",
+        grantedAtLevel: 3,
+        description: "The Samurai is a fighter who draws on an implacable fighting spirit to overcome enemies. A Samurai's resolve is nearly unbreakable, and the enemies in a Samurai's path have two choices: yield or die fighting.",
+    },
+];
