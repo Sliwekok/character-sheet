@@ -15,5 +15,16 @@ export interface Subclass {
    * multiclass slot calculations - see utils/spellcasting.ts.
    */
   casterProgressionOverride?: CasterProgression;
+  /** Flavor-text summary of the subclass, shown at selection time. Individual mechanical benefits live in `features` below, not here. */
   description?: string;
+  /**
+   * Every named mechanical benefit this subclass grants, in the order a
+   * character gains them - e.g. Champion (Fighter) has "Improved Critical"
+   * at 3, "Remarkable Athlete" at 7, "Additional Fighting Style" at 10,
+   * "Superior Critical" at 15, "Survivor" at 18. `level` is the character's
+   * level in `parentClass` at which the feature is gained (not always the
+   * same as `grantedAtLevel`, which is only when the subclass itself is
+   * chosen).
+   */
+  features: { name: string; level: number; description: string }[];
 }

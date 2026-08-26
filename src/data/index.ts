@@ -7,6 +7,7 @@ import { Subclass } from "@/interfaces/Subclass";
 import { Weapon } from "@/interfaces/Weapon";
 import { Spell } from "@/interfaces/Spell";
 
+import { Human as Human2014 } from "./2014/races/Human";
 import { RACES_2014 } from "./2014/races/Races";
 import { BACKGROUNDS_2014 } from "./2014/backgrounds/Backgrounds";
 import { FEATS_2014 } from "./2014/feats/Feats";
@@ -39,10 +40,12 @@ import { SorcererSubclasses as SorcererSubclasses2014 } from "./2014/subclasses/
 import { WarlockSubclasses as WarlockSubclasses2014 } from "./2014/subclasses/Warlock";
 import { WizardSubclasses as WizardSubclasses2014 } from "./2014/subclasses/Wizard";
 
+import { Human as Human2024 } from "./2024/races/Human";
 import { RACES_2024 } from "./2024/races/Races";
 import { BACKGROUNDS_2024 } from "./2024/backgrounds/Backgrounds";
 import { FEATS_2024 } from "./2024/feats/Feats";
 
+import { Artificer as Artificer2024 } from "./2024/classes/Artificer";
 import { Barbarian as Barbarian2024 } from "./2024/classes/Barbarian";
 import { Bard as Bard2024 } from "./2024/classes/Bard";
 import { Cleric as Cleric2024 } from "./2024/classes/Cleric";
@@ -56,6 +59,7 @@ import { Sorcerer as Sorcerer2024 } from "./2024/classes/Sorcerer";
 import { Warlock as Warlock2024 } from "./2024/classes/Warlock";
 import { Wizard as Wizard2024 } from "./2024/classes/Wizard";
 
+import { ArtificerSubclasses as ArtificerSubclasses2024 } from "./2024/subclasses/Artificer";
 import { BarbarianSubclasses as BarbarianSubclasses2024 } from "./2024/subclasses/Barbarian";
 import { BardSubclasses as BardSubclasses2024 } from "./2024/subclasses/Bard";
 import { ClericSubclasses as ClericSubclasses2024 } from "./2024/subclasses/Cleric";
@@ -97,7 +101,7 @@ const RULESETS: Record<Edition, Ruleset> = {
     // Human2014 stays hand-authored rather than generated - see the header
     // comment in 2014/races/Races.ts for why (5etools' own data is missing
     // an `ability` field for PHB Human entirely).
-    races: RACES_2014,
+    races: [Human2014, ...RACES_2014],
     classes: [
       Artificer2014, Barbarian2014, Bard2014, Cleric2014, Druid2014, Fighter2014,
       Monk2014, Paladin2014, Ranger2014, Rogue2014, Sorcerer2014, Warlock2014, Wizard2014,
@@ -116,17 +120,18 @@ const RULESETS: Record<Edition, Ruleset> = {
   },
   "2024": {
     edition: "2024",
-    races: RACES_2024,
-    // Artificer has no official 2024 (XPHB) printing - see the '2014'-tagged
-    // Artificer2014 class comment - so it's absent from the 2024 class list.
+    races: [Human2024, ...RACES_2024],
+    // Artificer's 2024 printing is Eberron: Forge of the Artificer (EFA,
+    // 2023) rather than an XPHB entry - see the Artificer2024 class file's
+    // header comment.
     classes: [
-      Barbarian2024, Bard2024, Cleric2024, Druid2024, Fighter2024, Monk2024,
+      Artificer2024, Barbarian2024, Bard2024, Cleric2024, Druid2024, Fighter2024, Monk2024,
       Paladin2024, Ranger2024, Rogue2024, Sorcerer2024, Warlock2024, Wizard2024,
     ],
     backgrounds: BACKGROUNDS_2024,
     feats: FEATS_2024,
     subclasses: [
-      ...BarbarianSubclasses2024, ...BardSubclasses2024, ...ClericSubclasses2024,
+      ...ArtificerSubclasses2024, ...BarbarianSubclasses2024, ...BardSubclasses2024, ...ClericSubclasses2024,
       ...DruidSubclasses2024, ...FighterSubclasses2024, ...MonkSubclasses2024,
       ...PaladinSubclasses2024, ...RangerSubclasses2024, ...RogueSubclasses2024,
       ...SorcererSubclasses2024, ...WarlockSubclasses2024, ...WizardSubclasses2024,
