@@ -625,6 +625,20 @@ export const RACES_2024: Race[] = [
         languages: ["Common"],
     },
     {
+        name: "Human",
+        edition: "2024",
+        traits: [
+            "Resourceful: You gain Heroic Inspiration whenever you finish a Long Rest.",
+            "Skillful: You gain proficiency in one skill of your choice.",
+            "Versatile: You gain an Origin feat of your choice, in addition to the one granted by your background.",
+        ],
+        abilityModifiers: {},
+        speed: 30,
+        languages: ["Common"],
+        grantedFeatChoice: { category: "origin" },
+        grantedSkillChoice: { choose: 1 },
+    },
+    {
         name: "Tiefling",
         edition: "2024",
         traits: [

@@ -5432,4 +5432,25 @@ export const RACES_2014: Race[] = [
         speed: 30,
         languages: ["Common"],
     },
+    {
+        name: "Human",
+        edition: "2014",
+        traits: [
+            "Age: Humans reach adulthood in their late teens and live less than a century.",
+            "Size: Humans vary widely in height and build, from barely 5 feet to well over 6 feet tall. Your size is Medium.",
+            "Speed: Your base walking speed is 30 feet.",
+            "Ability Score Increase: Each of your ability scores increases by 1.",
+            "Languages: You can speak, read, and write Common and one extra language of your choice.",
+        ],
+        abilityModifiers: {
+            strength: 1,
+            dexterity: 1,
+            constitution: 1,
+            intelligence: 1,
+            wisdom: 1,
+            charisma: 1,
+        },
+        speed: 30,
+        languages: ["Common"],
+    }
 ];

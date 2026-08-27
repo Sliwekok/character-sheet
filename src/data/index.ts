@@ -9,7 +9,6 @@ import { Spell } from "@/interfaces/Spell";
 import { Armor } from "@/interfaces/Armor";
 import { MagicItem } from "@/interfaces/MagicItem";
 
-import { Human as Human2014 } from "./2014/races/Human";
 import { RACES_2014 } from "./2014/races/Races";
 import { BACKGROUNDS_2014 } from "./2014/backgrounds/Backgrounds";
 import { FEATS_2014 } from "./2014/feats/Feats";
@@ -42,7 +41,6 @@ import { SorcererSubclasses as SorcererSubclasses2014 } from "./2014/subclasses/
 import { WarlockSubclasses as WarlockSubclasses2014 } from "./2014/subclasses/Warlock";
 import { WizardSubclasses as WizardSubclasses2014 } from "./2014/subclasses/Wizard";
 
-import { Human as Human2024 } from "./2024/races/Human";
 import { RACES_2024 } from "./2024/races/Races";
 import { BACKGROUNDS_2024 } from "./2024/backgrounds/Backgrounds";
 import { FEATS_2024 } from "./2024/feats/Feats";
@@ -108,7 +106,7 @@ const RULESETS: Record<Edition, Ruleset> = {
     // Human2014 stays hand-authored rather than generated - see the header
     // comment in 2014/races/Races.ts for why (5etools' own data is missing
     // an `ability` field for PHB Human entirely).
-    races: [Human2014, ...RACES_2014],
+    races: RACES_2014,
     classes: [
       Artificer2014, Barbarian2014, Bard2014, Cleric2014, Druid2014, Fighter2014,
       Monk2014, Paladin2014, Ranger2014, Rogue2014, Sorcerer2014, Warlock2014, Wizard2014,
@@ -129,7 +127,7 @@ const RULESETS: Record<Edition, Ruleset> = {
   },
   "2024": {
     edition: "2024",
-    races: [Human2024, ...RACES_2024],
+    races: RACES_2024,
     // Artificer's 2024 printing is Eberron: Forge of the Artificer (EFA,
     // 2023) rather than an XPHB entry - see the Artificer2024 class file's
     // header comment.
