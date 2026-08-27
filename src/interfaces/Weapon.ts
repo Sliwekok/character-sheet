@@ -1,3 +1,5 @@
+import { AttunementRequirement, MagicItemRarity } from "@/interfaces/MagicItem";
+
 export type WeaponCategory = "simple" | "martial";
 export type WeaponRange = "melee" | "ranged";
 
@@ -41,4 +43,17 @@ export interface Weapon {
   weight: number;
   cost?: string;
   mastery?: WeaponMasteryProperty;
+  /** Attack/damage bonus from magic or other sources - the Weapon-side equivalent of Armor.bonus. */
+  bonus?: number;
+  /**
+   * Magic-item fields, all optional - a mundane weapon (the common case)
+   * leaves these unset. Set together when this Weapon represents a magic
+   * item (e.g. "Longsword +1", "Flame Tongue") rather than plain
+   * equipment.
+   */
+  rarity?: MagicItemRarity;
+  requiresAttunement?: AttunementRequirement;
+  magicDescription?: string;
+  /** Set on weapons a player homebrewed via createCustomWeapon() rather than official content. */
+  isCustom?: boolean;
 }

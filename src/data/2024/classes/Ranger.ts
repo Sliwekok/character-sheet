@@ -1,6 +1,9 @@
 import { CharacterClass } from "@/interfaces/CharacterClass";
 import { halfCasterProgression } from "@/interfaces/SpellSlotsProgression";
 
+// weaponMasteryProgression was previously missing entirely. Filled in to match the
+// same {1,4,10} breakpoints and counts already sourced from 5etools for Barbarian
+// (Fighter alone gets an extra step at 16) - worth a cross-check against your book.
 export const Ranger: CharacterClass = {
     name: "Ranger",
     edition: "2024",
@@ -25,4 +28,5 @@ export const Ranger: CharacterClass = {
         progression: halfCasterProgression,
     },
     subclassLevel: 3,
+    weaponMasteryProgression: { 1: 2, 4: 3, 10: 4 },
 };

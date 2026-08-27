@@ -1,5 +1,8 @@
 import { CharacterClass } from "@/interfaces/CharacterClass";
 
+// weaponMasteryProgression was previously missing entirely. Filled in to match the
+// same {1,4,10} breakpoints and counts already sourced from 5etools for Barbarian
+// (Fighter alone gets an extra step at 16) - worth a cross-check against your book.
 export const Rogue: CharacterClass = {
     name: "Rogue",
     edition: "2024",
@@ -41,4 +44,5 @@ export const Rogue: CharacterClass = {
     primaryAbility: "dexterity",
     casterProgression: "none",
     subclassLevel: 3,
+    weaponMasteryProgression: { 1: 2, 4: 3, 10: 4 },
 };

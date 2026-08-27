@@ -9,6 +9,7 @@ import { Currency } from "@/interfaces/Currency";
 import { Spell } from "@/interfaces/Spell";
 import { SkillName } from "@/interfaces/Skill";
 import { Edition } from "@/interfaces/Edition";
+import { MagicItem } from "@/interfaces/MagicItem";
 
 export type AbilityScores = {
     strength: number;
@@ -52,6 +53,15 @@ export interface Character {
     /** Spells the character knows or has prepared, across all of their casting classes. */
     spellsKnown: Spell[];
     languages: string[];
+    /**
+     * Magic items carried/owned that aren't the equipped armor, shield, or
+     * one of `weapons` above (those three can each be magic ITEMS in their
+     * own right via the magic-item fields on Armor/Weapon - see e.g.
+     * `equippedArmor.rarity`). This covers everything else: wondrous
+     * items, rings, rods, staves, wands, potions, scrolls. Optional since
+     * most characters start with none.
+     */
+    magicItems?: MagicItem[];
 }
 
 /** Total character level - the sum of every class's level. */

@@ -6,6 +6,8 @@ import { Feat } from "@/interfaces/Feat";
 import { Subclass } from "@/interfaces/Subclass";
 import { Weapon } from "@/interfaces/Weapon";
 import { Spell } from "@/interfaces/Spell";
+import { Armor } from "@/interfaces/Armor";
+import { MagicItem } from "@/interfaces/MagicItem";
 
 import { Human as Human2014 } from "./2014/races/Human";
 import { RACES_2014 } from "./2014/races/Races";
@@ -73,8 +75,9 @@ import { SorcererSubclasses as SorcererSubclasses2024 } from "./2024/subclasses/
 import { WarlockSubclasses as WarlockSubclasses2024 } from "./2024/subclasses/Warlock";
 import { WizardSubclasses as WizardSubclasses2024 } from "./2024/subclasses/Wizard";
 
-import { Longsword } from "./weapons/Longsword";
-import { Shortbow } from "./weapons/Shortbow";
+import { WEAPONS } from "./weapons/Weapons";
+import { ARMOR } from "./armor/Armor";
+import { MAGIC_ITEMS } from "./magicItems/MagicItems";
 import { SPELLS } from "./spells/Spells";
 
 export interface Ruleset {
@@ -86,14 +89,18 @@ export interface Ruleset {
   subclasses: Subclass[];
   /** Weapon stats are edition-agnostic, so both rulesets expose the same list. */
   weapons: Weapon[];
+  /** Armor stats are edition-agnostic too - same list shared by both rulesets. */
+  armor: Armor[];
   /** Spells are edition-agnostic too (see interfaces/Spell.ts) - same list shared by both rulesets. */
   spells: Spell[];
+  /** Non-armor/weapon magic items (wondrous items, rings, rods, staves, wands, potions, scrolls) - edition-agnostic, same list shared by both rulesets. */
+  magicItems: MagicItem[];
 }
 
-// Weapon and spell data don't differ by edition, so both are shared here
-// rather than duplicated per edition (weapon mastery usability is governed
-// by CharacterClass.weaponMasteryProgression instead).
-const WEAPONS: Weapon[] = [Longsword, Shortbow];
+// Weapon, armor, and magic item data don't differ by edition, so all three
+// are shared here rather than duplicated per edition (weapon mastery
+// usability is governed by CharacterClass.weaponMasteryProgression
+// instead, not by the weapon itself).
 
 const RULESETS: Record<Edition, Ruleset> = {
   "2014": {
@@ -116,7 +123,9 @@ const RULESETS: Record<Edition, Ruleset> = {
       ...WizardSubclasses2014,
     ],
     weapons: WEAPONS,
+    armor: ARMOR,
     spells: SPELLS,
+    magicItems: MAGIC_ITEMS,
   },
   "2024": {
     edition: "2024",
@@ -137,7 +146,9 @@ const RULESETS: Record<Edition, Ruleset> = {
       ...SorcererSubclasses2024, ...WarlockSubclasses2024, ...WizardSubclasses2024,
     ],
     weapons: WEAPONS,
+    armor: ARMOR,
     spells: SPELLS,
+    magicItems: MAGIC_ITEMS,
   },
 };
 
