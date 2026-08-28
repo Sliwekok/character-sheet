@@ -1,11 +1,17 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Nav from "../layout/nav";
 import { Container, SectionHeading } from "@/components/ui";
 import { CharacterCard, type CharacterSummary } from "@/components/character/CharacterCard";
+import { loadCharacters } from "@/utils/storage";
+import { toCharacterSummary } from "@/utils/characterSummary";
 
-// Placeholder data until character creation and persistence exist.
-// Shaped as CharacterSummary[] so swapping in real characters later is a
-// drop-in change - the grid and CharacterCard below don't need to change.
+// Placeholder data shown only when there's nothing in storage yet, so a
+// first-time visitor doesn't land on a blank page - shaped as
+// CharacterSummary[] so it renders through the exact same CharacterCard as
+// real, generator-produced characters.
 const MOCK_CHARACTERS: CharacterSummary[] = [
   {
     id: "mock-1",
@@ -44,6 +50,16 @@ const MOCK_CHARACTERS: CharacterSummary[] = [
 ];
 
 export default function HomePage() {
+  // Storage is browser-only (see utils/storage.ts), so characters load in an
+  // effect rather than during render - this avoids a server/client
+  // hydration mismatch, same reasoning as the landing page's sketch shuffle.
+  const [characters, setCharacters] = useState<CharacterSummary[] | null>(null);
+
+  useEffect(() => {
+    const stored = loadCharacters();
+    setCharacters(stored.length > 0 ? stored.map(toCharacterSummary) : MOCK_CHARACTERS);
+  }, []);
+
   return (
     <>
       <Nav />
@@ -51,11 +67,11 @@ export default function HomePage() {
         <SectionHeading
           eyebrow="Your party"
           title="Characters"
-          subtitle="Every sheet you've built, at a glance. Select one to keep playing, or start a new one."
+          subtitle="Every sheet you've built, at a glance. Select one to keep editing, or start a new one."
         />
 
         <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {MOCK_CHARACTERS.map((character) => (
+          {characters?.map((character) => (
             <CharacterCard key={character.id} character={character} />
           ))}
 

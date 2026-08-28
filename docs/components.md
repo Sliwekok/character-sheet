@@ -42,8 +42,16 @@ the top of every page (`Home`, `About`, `New Character`). Supports `align: "left
 
 ### `TextInput`
 
-Styled `<input>` with an optional leading icon slot. Currently used only for the nav
-search field (`Nav`'s "Search for wisdom" input, which isn't wired to anything yet).
+Styled `<input>` with an optional leading icon slot. Used for the nav search field
+(`Nav`'s "Search for wisdom" input, still not wired to anything) and, since the
+generator, for free-text wizard fields (character name, manual ability scores,
+class level, guided-random basics).
+
+### `Select`
+
+Styled `<select>`, sized/colored to match `TextInput`. Added for the character
+generator — every dropdown in the wizard (race, class, subclass, background,
+ability-score assignment, alignment) and the random-generator's guided form uses it.
 
 ### `Logo`
 
@@ -73,8 +81,8 @@ Tailwind utility classes, only drops literal falsy values.
 
 ### `CharacterCard`
 
-The only domain component that exists today. Deliberately takes a plain
-`CharacterSummary` type rather than the full `Character` interface:
+Deliberately takes a plain `CharacterSummary` type rather than the full `Character`
+interface:
 
 ```ts
 export type CharacterSummary = {
@@ -92,18 +100,29 @@ export type CharacterSummary = {
 };
 ```
 
-The comment in the source explains why: this lets the component be driven by
-mock/placeholder data today and swapped to real `Character`-derived data later
-without the card itself changing. It renders name/level/class, an alignment badge, AC
-and initiative badges, and a `StatBlock` of the six formatted ability modifiers, all
-wrapped in a `Link` to `/home#{id}` (an anchor, not a real detail route — there's no
-per-character page yet).
+The comment in the source explains why: this let the component be driven by
+mock/placeholder data early on and swapped to real, generator-produced data later
+without the card itself changing — which is exactly what happened. It renders
+name/level/class, an alignment badge, AC and initiative badges, and a `StatBlock` of
+the six formatted ability modifiers. `utils/characterSummary.ts`'s `toCharacterSummary()`
+is what derives this shape from a real `StoredCharacter` (combining
+`calculateAbilityModifiers`, `calculateArmorClass`, `getCharacterLevel`, and the
+character's own `initiative` — see [calculations.md](./calculations.md)).
 
-`app/home/page.tsx` currently supplies two `MOCK_CHARACTERS: CharacterSummary[]`
-entries by hand; there's no logic anywhere yet that derives a `CharacterSummary` from
-a real `Character` object (that would presumably combine
-`calculateAbilityModifiers`, `calculateArmorClass`, and `character.initiative` — see
-[calculations.md](./calculations.md)).
+There's still no dedicated "view a character" page, so the card's link doubles as the
+edit entry point: real characters link to `/newCharacter/manual?edit={id}` (loading
+that character back into the wizard, see [generator.md](./generator.md)), while the
+`/home` placeholder mock cards (ids prefixed `mock-`) keep the old harmless
+`/home#{id}` anchor instead, since they don't exist in storage to edit.
+
+### Wizard components (`src/components/character/wizard`)
+
+`EditionStep`, `RaceStep`, `ClassStep`, `AbilityScoresStep`, `BackgroundStep`,
+`SkillsEquipmentStep`, `DetailsStep`, `ReviewStep`, and `StepProgress` — one component
+per step of the manual character wizard, each a controlled component (the step's slice
+of state plus an `onChange`-style callback, no internal draft state of its own). See
+[generator.md](./generator.md) for how `app/newCharacter/manual/ManualWizard.tsx`
+orchestrates them, and how `ReviewStep` is reused as-is by the random-generation flow.
 
 ## Page-level composition
 

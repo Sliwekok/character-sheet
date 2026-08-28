@@ -21,6 +21,9 @@ territory rather than a promise of where the project is headed.
 - **[calculations.md](./calculations.md)** — the game-math utilities (ability
   modifiers, armor class, max HP, spellcasting slots, weapon mastery, custom magic
   items) and the caveats/known-fixed-bugs called out in their source comments.
+- **[generator.md](./generator.md)** — the character generator: the manual
+  step-by-step wizard, the two random-generation modes, how editing an existing
+  character works, and where characters are actually stored (`localStorage`).
 
 ## One-paragraph summary
 
@@ -31,11 +34,12 @@ v4 and a small hand-rolled UI kit (`src/components/ui`). The domain model lives 
 field, while rules that didn't change between editions (`Weapon`, `Armor`, `Spell`,
 `MagicItem`) are edition-agnostic and shared. `src/data/index.ts` assembles both
 rulesets into a single `getRuleset(edition)` lookup. `src/utils` holds the derived-stat
-math (AC, HP, spell slots, weapon mastery). As of this writing, the **only** working
-end-to-end feature is browsing a static list of characters (`/home`, currently backed
-by mock data) — the actual character-creation flow (`/newCharacter`) is a placeholder
-screen with no form behind it yet, and there is no persistence layer (no database, no
-local storage, no API routes).
+math (AC, HP, spell slots, weapon mastery) plus the character-generator logic
+(`characterDraft.ts`, `randomCharacter.ts`, `storage.ts`). `/newCharacter` now offers a
+full manual wizard and two random-generation modes (see generator.md); saved
+characters persist in the browser's `localStorage` (there is still no backend/database
+— that's a deliberate scope choice, not a gap) and `/home` lists them, falling back to
+two placeholder mock cards only when nothing has been saved yet.
 
 ## Running it locally
 

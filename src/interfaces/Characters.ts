@@ -62,6 +62,18 @@ export interface Character {
      * most characters start with none.
      */
     magicItems?: MagicItem[];
+    /**
+     * The player's chosen allocation of `background.abilityScoreOptions`
+     * (2024 only - see Background.ts). `abilityScores` above already has
+     * this baked in - it's always the FINAL, effective score - this field
+     * exists only so editing a character can recover what was originally
+     * rolled/bought/typed at the Ability Scores step versus what came from
+     * the background, via utils/abilityScoreBonuses.ts's
+     * subtractAbilityScores(). Undefined for 2014 characters, which don't
+     * have this mechanic at all (see Race.abilityModifiers instead, which
+     * needs no such bookkeeping since it isn't a player choice).
+     */
+    backgroundAbilityBonuses?: Partial<AbilityScores>;
 }
 
 /** Total character level - the sum of every class's level. */

@@ -54,8 +54,9 @@ export function getRuleset(edition: Edition): Ruleset
 
 This is called out in the source as **the** intended extension point: *"add new
 content by adding a file under `data/2014` or `data/2024` and listing it here, not by
-branching on edition elsewhere in the app."* No UI currently calls `getRuleset` —
-it's the data layer waiting for the character-creation flow to consume it.
+branching on edition elsewhere in the app."* The character generator (see
+[generator.md](./generator.md)) is what actually calls `getRuleset` today — every step
+of the manual wizard and both random-generation modes read from it.
 
 ### Content sizes (informal — for orientation)
 
@@ -131,6 +132,11 @@ Key design points:
   (`rarity`, `requiresAttunement`, `magicDescription`, `bonus`) filled in — see below.
   `Character.magicItems` is only for things that are *neither* armor nor a weapon
   (wondrous items, rings, rods, staves, wands, potions, scrolls).
+
+A saved character is a `StoredCharacter` (`interfaces/StoredCharacter.ts`) —
+`Character` plus `id`/`createdAt`/`updatedAt`, the bookkeeping `localStorage`
+persistence needs. See [generator.md](./generator.md) for how a `Character` gets
+built (or edited) in the first place via `CharacterDraft`.
 
 ## Content interfaces at a glance
 

@@ -11,4 +11,10 @@ export const EldritchKnight: Subclass = {
     casterProgressionOverride: "third",
     description:
         "A Fighter who augments martial prowess with a limited repertoire of arcane spells, drawn primarily from the abjuration and evocation schools.",
+    // Not yet filled in with the subclass's named features (Weapon Bond,
+    // War Magic, Eldritch Strike, Arcane Charge, Improved War Magic) -
+    // `features` is required by the Subclass interface, so this is left as
+    // an empty array (rather than omitted, which fails to typecheck)
+    // until those are authored.
+    features: [],
 };

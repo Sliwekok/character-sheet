@@ -1,5 +1,23 @@
+import Link from "next/link";
 import Nav from "../layout/nav";
-import { Button, Card, CardContent, Container, SectionHeading } from "@/components/ui";
+import { Card, CardContent, Container, SectionHeading } from "@/components/ui";
+
+const MODES = [
+  {
+    href: "/newCharacter/manual",
+    icon: "📜",
+    title: "Step-by-step",
+    description:
+      "Build a character the recommended way: edition, race, class, ability scores, background, skills and equipment, then details - one step at a time, with a full review before you save.",
+  },
+  {
+    href: "/newCharacter/random",
+    icon: "🎲",
+    title: "Random",
+    description:
+      "Let the dice decide. Generate a fully random character in one click, or lock in a few basics (name, level, race, class) and randomize the rest.",
+  },
+];
 
 export default function NewCharacterPage() {
   return (
@@ -9,21 +27,22 @@ export default function NewCharacterPage() {
         <SectionHeading
           eyebrow="New character"
           title="Forge your next hero"
-          subtitle="The guided creation flow - race, class, ability scores, and a random-roll option - isn't built yet."
+          subtitle="Choose how you'd like to build this character."
         />
 
-        <Card className="mt-8">
-          <CardContent className="flex flex-col items-center gap-4 py-10 text-center text-fontcolor-secondary">
-            <span className="text-4xl">🎲</span>
-            <p className="max-w-sm">
-              This is where you&apos;ll build a character from scratch or
-              roll up a random one. Check back soon.
-            </p>
-            <Button href="/home" variant="secondary">
-              Back to characters
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="mt-8 grid gap-6 sm:grid-cols-2">
+          {MODES.map((mode) => (
+            <Link key={mode.href} href={mode.href} className="block h-full">
+              <Card className="flex h-full flex-col transition-colors hover:border-border-strong">
+                <CardContent className="flex flex-1 flex-col gap-3">
+                  <span className="text-3xl">{mode.icon}</span>
+                  <h3 className="font-display text-xl tracking-wide text-fontcolor">{mode.title}</h3>
+                  <p className="text-sm text-fontcolor-secondary">{mode.description}</p>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
       </Container>
     </>
   );
