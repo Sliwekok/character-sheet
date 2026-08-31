@@ -8,47 +8,6 @@ import { CharacterCard, type CharacterSummary } from "@/components/character/Cha
 import { loadCharacters } from "@/utils/storage";
 import { toCharacterSummary } from "@/utils/characterSummary";
 
-// Placeholder data shown only when there's nothing in storage yet, so a
-// first-time visitor doesn't land on a blank page - shaped as
-// CharacterSummary[] so it renders through the exact same CharacterCard as
-// real, generator-produced characters.
-const MOCK_CHARACTERS: CharacterSummary[] = [
-  {
-    id: "mock-1",
-    name: "Name",
-    level: 12,
-    alignment: "Chaotic Evil",
-    className: "Bard",
-    armorClass: 18,
-    initiative: 2,
-    abilityModifiers: {
-      strength: 2,
-      dexterity: 2,
-      constitution: 2,
-      intelligence: 2,
-      wisdom: 2,
-      charisma: 2,
-    },
-  },
-  {
-    id: "mock-2",
-    name: "Kael Stormblade",
-    level: 5,
-    alignment: "Lawful Good",
-    className: "Fighter",
-    armorClass: 17,
-    initiative: 1,
-    abilityModifiers: {
-      strength: 3,
-      dexterity: 1,
-      constitution: 2,
-      intelligence: 0,
-      wisdom: 1,
-      charisma: 0,
-    },
-  },
-];
-
 export default function HomePage() {
   // Storage is browser-only (see utils/storage.ts), so characters load in an
   // effect rather than during render - this avoids a server/client
@@ -57,7 +16,7 @@ export default function HomePage() {
 
   useEffect(() => {
     const stored = loadCharacters();
-    setCharacters(stored.length > 0 ? stored.map(toCharacterSummary) : MOCK_CHARACTERS);
+    setCharacters(stored.map(toCharacterSummary));
   }, []);
 
   return (
