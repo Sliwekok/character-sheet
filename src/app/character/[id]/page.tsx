@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Nav from "../../layout/nav";
 import {
+  Alert,
   Badge,
   Button,
   Card,
@@ -19,7 +20,7 @@ import {
 import { StoredCharacter } from "@/interfaces/StoredCharacter";
 import { Spell } from "@/interfaces/Spell";
 import { getCharacterLevel } from "@/interfaces/Characters";
-import { loadCharacter } from "@/utils/storage";
+import { deleteCharacter, loadCharacter } from "@/utils/storage";
 import { calculateAbilityModifiers } from "@/utils/abilityModifiers";
 import { calculateArmorClass } from "@/utils/calculateArmorClass";
 import { getPactMagicSlots, getSpellSlots } from "@/utils/spellcasting";
@@ -72,7 +73,12 @@ function formatSlots(slots: Record<number, number> | null, label: string) {
  */
 export default function CharacterDetailsPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const id = params.id;
+
+  // Drives the "Delete character" confirmation alert below - kept separate
+  // from `character` so closing it doesn't touch the loaded data.
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // `null` once loaded means "no such character" - kept distinct from the
   // initial `undefined` "still loading" state so the not-found message
@@ -127,9 +133,36 @@ export default function CharacterDetailsPage() {
   const stats = ABILITY_LABELS.map(({ key, label }) => ({ label, value: formatModifier(modifiers[key]) }));
   const spellGroups = groupSpellsByLevel(character.spellsKnown);
 
+  function handleDeleteCharacter() {
+    deleteCharacter(character.id);
+    router.push("/home");
+  }
+
   return (
     <>
       <Nav />
+
+      {showDeleteConfirm && (
+        <Alert
+          variant="confirm"
+          title="Delete this character?"
+          onDismiss={() => setShowDeleteConfirm(false)}
+          actions={
+            <>
+              <Button variant="danger" size="sm" onClick={handleDeleteCharacter}>
+                Yes, delete
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => setShowDeleteConfirm(false)}>
+                Cancel
+              </Button>
+            </>
+          }
+        >
+          This will permanently remove <span className="font-semibold text-fontcolor">{character.name}</span> - this
+          can&apos;t be undone.
+        </Alert>
+      )}
+
       <Container size="lg" className="pb-24">
         <SectionHeading
           eyebrow="Character sheet"
@@ -260,6 +293,9 @@ export default function CharacterDetailsPage() {
             >
               Back to characters
             </Link>
+            <Button variant="danger" size="md" onClick={() => setShowDeleteConfirm(true)}>
+              Delete character
+            </Button>
           </div>
         </div>
       </Container>

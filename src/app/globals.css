@@ -13,6 +13,7 @@
   /* accent */
   --foreground: #e78b48;
   --foreground-hover: #f2a268;
+  --foreground-danger: #800000;
 
   /* structure */
   --border: rgba(245, 196, 94, 0.16);
@@ -35,6 +36,7 @@
   --color-fontcolor-secondary: var(--fontcolor-secondary);
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
+  --color-foreground-danger: var(--foreground-danger);
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);

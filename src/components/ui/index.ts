@@ -1,5 +1,7 @@
 export { Button } from "./Button";
 export type { ButtonProps } from "./Button";
+export { Alert } from "./Alert";
+export type { AlertProps } from "./Alert";
 export { Card, CardHeader, CardTitle, CardContent, CardFooter } from "./Card";
 export { Badge } from "./Badge";
 export { Container } from "./Container";

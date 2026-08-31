@@ -6,7 +6,7 @@ import type {
 } from "react";
 import { cn } from "@/utils/cn";
 
-type Variant = "primary" | "secondary" | "ghost";
+type Variant = "primary" | "secondary" | "ghost" | "danger";
 type Size = "sm" | "md" | "lg";
 
 const base =
@@ -20,6 +20,8 @@ const variants: Record<Variant, string> = {
     "border border-border-strong text-fontcolor hover:border-foreground hover:text-foreground",
   ghost:
     "text-fontcolor-secondary hover:text-fontcolor hover:bg-background-elevated",
+  danger:
+    "bg-foreground-danger hover:bg-foreground-danger/90 text-fontcolor-secondary ml-auto cursor-pointer"
 };
 
 const sizes: Record<Size, string> = {
