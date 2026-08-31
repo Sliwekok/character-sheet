@@ -6,6 +6,7 @@ export { Container } from "./Container";
 export { SectionHeading } from "./SectionHeading";
 export { TextInput } from "./TextInput";
 export { Select } from "./Select";
+export { Combobox } from "./Combobox";
 export { Logo } from "./Logo";
 export { StatBlock, formatModifier } from "./StatBlock";
 export type { Stat } from "./StatBlock";

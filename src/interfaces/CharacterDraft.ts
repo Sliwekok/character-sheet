@@ -8,6 +8,7 @@ import { SkillName } from "@/interfaces/Skill";
 import { Armor } from "@/interfaces/Armor";
 import { Weapon } from "@/interfaces/Weapon";
 import { Currency } from "@/interfaces/Currency";
+import { Spell } from "@/interfaces/Spell";
 
 export type AbilityScoreMethod = "standard-array" | "point-buy" | "roll" | "manual";
 
@@ -27,6 +28,27 @@ export interface AbilityScoreState {
 }
 
 /**
+ * One class-and-level entry being built in the wizard - mirrors
+ * `CharacterClassLevel` (interfaces/Characters.ts) but every field is
+ * optional/present-in-progress the same way the rest of `CharacterDraft`
+ * is, since a row can exist before the player has picked a class for it
+ * (see ClassStep's "Add class" button).
+ *
+ * `subclass` is only ever meaningful on `classes[0]` (the "main" class) -
+ * ClassStep never offers a subclass picker for any later entry, so
+ * multiclass entries always have `subclass: undefined`. This mirrors the
+ * real rule that a character has exactly one subclass, always on the class
+ * they took it in - simplified here to always be the main class, since the
+ * wizard has no way to reach subclassLevel in anything but the class you
+ * started in before this feature existed anyway.
+ */
+export interface DraftClassEntry {
+    characterClass?: CharacterClass;
+    subclass?: Subclass;
+    level: number;
+}
+
+/**
  * Working state for a character that is being built or edited, one step at
  * a time. Every field is optional/defaulted so the draft is always a valid
  * object to render, even before the player has made a choice - each
@@ -43,10 +65,15 @@ export interface CharacterDraft {
     id?: string;
     edition?: Edition;
     race?: Race;
-    characterClass?: CharacterClass;
-    subclass?: Subclass;
-    /** Level within `characterClass`. Multiclassing isn't supported by the wizard yet - see draftFromCharacter()'s header comment. */
-    classLevel: number;
+    /**
+     * One entry per class the character has levels in - always at least
+     * one (createEmptyDraft seeds a single not-yet-chosen entry).
+     * `classes[0]` is the "main" class: proficiencies, saving throws, and
+     * the first hit die all come from it (see finalizeDraft/
+     * calculateMaxHp), and it's the only entry with a subclass picker -
+     * see DraftClassEntry.
+     */
+    classes: DraftClassEntry[];
     /** Base ability scores only - race/background bonuses are NOT baked in here, see `backgroundAbilityBonuses` below and utils/abilityScoreBonuses.ts's `sumAbilityScores()`. */
     abilityScores: AbilityScoreState;
     background?: Background;
@@ -68,4 +95,11 @@ export interface CharacterDraft {
     alignment: string;
     /** Extra languages beyond the ones `race` grants automatically. */
     languages: string[];
+    /**
+     * Spells picked on the Spells step (only shown for spellcasting
+     * classes - see SpellsStep and ManualWizard's `isSpellcaster`). Always
+     * `[]` for a non-caster. Carried straight through to
+     * `Character.spellsKnown` by `finalizeDraft()`.
+     */
+    spellsKnown: Spell[];
 }

@@ -149,9 +149,9 @@ export function ItemDetailPanel({ item, className }: ItemDetailPanelProps) {
       </CardHeader>
       <CardContent className="flex flex-col gap-3 text-sm text-fontcolor-secondary">
         {!item && <p>Click a skill, weapon, piece of armor, or shield to see its full details here.</p>}
-        {item?.kind === "skill" && <SkillDetails skill={item.skill} />}
-        {item?.kind === "weapon" && <WeaponDetails weapon={item.weapon} />}
-        {(item?.kind === "armor" || item?.kind === "shield") && (
+        {item && item.kind === "skill" && <SkillDetails skill={item.skill} />}
+        {item && item.kind === "weapon" && <WeaponDetails weapon={item.weapon} />}
+        {item && (item.kind === "armor" || item.kind === "shield") && (
           <ArmorDetails armor={item.armor} isShield={item.kind === "shield"} />
         )}
       </CardContent>

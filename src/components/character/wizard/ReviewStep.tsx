@@ -4,6 +4,7 @@ import { Badge, Button, Card, CardContent, StatBlock, formatModifier } from "@/c
 import { finalizeDraft, isDraftReadyToFinalize } from "@/utils/characterDraft";
 import { calculateAbilityModifiers } from "@/utils/abilityModifiers";
 import { calculateArmorClass } from "@/utils/calculateArmorClass";
+import { levelLabel } from "@/components/character/wizard/SpellsStep";
 
 type ReviewStepProps = {
   draft: CharacterDraft;
@@ -80,6 +81,15 @@ export function ReviewStep({ draft, isEditing, onSave, extraActions }: ReviewSte
             <p>Armor: {preview.equippedArmor?.name ?? "Unarmored"}{preview.shield ? ` + ${preview.shield.name}` : ""}</p>
             <p>Weapons: {preview.weapons.map((w) => w.name).join(", ") || "None"}</p>
             <p>Languages: {preview.languages.join(", ") || "None"}</p>
+            {preview.spellsKnown.length > 0 && (
+              <p className="sm:col-span-2">
+                Spells:{" "}
+                {[...preview.spellsKnown]
+                  .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))
+                  .map((spell) => `${spell.name} (${levelLabel(spell.level)})`)
+                  .join(", ")}
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>

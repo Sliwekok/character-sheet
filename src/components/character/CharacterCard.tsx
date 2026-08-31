@@ -47,14 +47,14 @@ export function CharacterCard({ character }: { character: CharacterSummary }) {
     { label: "CHA", value: formatModifier(abilityModifiers.charisma) },
   ];
 
-  // There's no dedicated "view a character" page yet, so opening a card
-  // goes straight into editing it (see app/newCharacter/manual - it loads
-  // ?edit=<id> back into the wizard). The `mock-` ids are the /home
-  // placeholder sample cards (not real stored characters, see that page's
-  // MOCK_CHARACTERS) and keep the old harmless in-page anchor instead.
-  const href = character.id.startsWith("mock-")
-    ? `/home#${character.id}`
-    : `/newCharacter/manual?edit=${character.id}`;
+  // Opening a card goes to the character's details page (app/character/[id])
+  // now, not straight into editing - that page has its own "Edit character"
+  // button (see app/newCharacter/manual - it loads ?edit=<id> back into the
+  // wizard) for when the player actually wants to change something. The
+  // `mock-` ids are the /home placeholder sample cards (not real stored
+  // characters, see that page's MOCK_CHARACTERS) and keep the old harmless
+  // in-page anchor instead, since there's no real character to look up.
+  const href = character.id.startsWith("mock-") ? `/home#${character.id}` : `/character/${character.id}`;
 
   return (
     <Link href={href} className="block h-full">

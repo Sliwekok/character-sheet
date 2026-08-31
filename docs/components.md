@@ -124,6 +124,13 @@ of state plus an `onChange`-style callback, no internal draft state of its own).
 [generator.md](./generator.md) for how `app/newCharacter/manual/ManualWizard.tsx`
 orchestrates them, and how `ReviewStep` is reused as-is by the random-generation flow.
 
+`ItemDetailPanel` (also under `wizard/`) is the one exception to "no internal state" -
+it's a pure display component for whatever skill/weapon/armor/shield
+`SkillsEquipmentStep` last had clicked, and that selection is transient UI state, not
+part of the draft, so `SkillsEquipmentStep` owns it locally rather than routing it
+through `ManualWizard`. See [generator.md](./generator.md)'s "Skills & equipment"
+section.
+
 ## Page-level composition
 
 Every page follows the same shape: import `Nav` from `../layout/nav`, wrap content in

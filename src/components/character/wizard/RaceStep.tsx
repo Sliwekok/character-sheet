@@ -1,5 +1,5 @@
 import { Race } from "@/interfaces/Race";
-import { Card, CardContent, Select, Badge } from "@/components/ui";
+import { Card, CardContent, Combobox, Badge } from "@/components/ui";
 
 type RaceStepProps = {
   races: Race[];
@@ -21,22 +21,20 @@ export function RaceStep({ races, race, onSelect }: RaceStepProps) {
     <div className="flex flex-col gap-6">
       <label className="flex flex-col gap-2">
         <span className="text-sm font-medium text-fontcolor-secondary">Race / Species</span>
-        <Select
-          value={race?.name ?? ""}
-          onChange={(event) => {
-            const next = races.find((r) => r.name === event.target.value);
-            if (next) onSelect(next);
-          }}
-        >
-          <option value="" disabled>
-            Choose a race...
-          </option>
-          {races.map((option) => (
-            <option key={option.name} value={option.name}>
-              {option.name}
-            </option>
-          ))}
-        </Select>
+        {/*
+          Searchable combobox (type to filter, "Select2"-style) instead of
+          a native <select> - useful once a ruleset's race list gets long
+          enough that scrolling a dropdown is slower than typing. See
+          components/ui/Combobox.tsx.
+        */}
+        <Combobox
+          options={races}
+          value={race}
+          getOptionLabel={(option) => option.name}
+          getOptionValue={(option) => option.name}
+          onChange={onSelect}
+          placeholder="Search races..."
+        />
       </label>
 
       {race && (

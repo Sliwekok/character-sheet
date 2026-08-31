@@ -1,6 +1,9 @@
 import { getRuleset } from "@/data";
 import { Edition } from "@/interfaces/Edition";
 import { StoredCharacter } from "@/interfaces/StoredCharacter";
+import { CharacterClass } from "@/interfaces/CharacterClass";
+import { Subclass } from "@/interfaces/Subclass";
+import { AbilityScores } from "@/interfaces/Characters";
 import { pickRandom, pickRandomN, randomAbilityScores } from "@/utils/dice";
 import { randomAlignment, randomCharacterName } from "@/utils/randomNames";
 import { classCanUseArmor, classCanUseWeapon } from "@/utils/proficiencyMatch";
@@ -8,6 +11,8 @@ import { calculateAbilityModifiers } from "@/utils/abilityModifiers";
 import { calculateMaxHP } from "@/utils/calculateMaxHp";
 import { generateId } from "@/utils/id";
 import { randomBackgroundAllocation, sumAbilityScores } from "@/utils/abilityScoreBonuses";
+import { getSpellLimits } from "@/utils/spellcasting";
+import { Spell } from "@/interfaces/Spell";
 
 /**
  * Everything the "guided random" flow lets a player pin down before the
@@ -91,6 +96,12 @@ export function generateRandomCharacter(overrides: RandomCharacterOverrides = {}
     const shield = usableShields.length > 0 && Math.random() > 0.5 ? pickRandom(usableShields) : undefined;
     const weapons = usableWeapons.length > 0 ? pickRandomN(usableWeapons, Math.random() > 0.5 ? 2 : 1) : [];
 
+    // `abilityScores` here is already the character's FINAL score (race +
+    // background bonus included), same as what SpellsStep/ManualWizard pass
+    // to getSpellLimits - needed since a "prepared" caster's cap is an
+    // ability-modifier formula, not a flat table.
+    const spellsKnown = randomSpellsKnown(ruleset.spells, characterClass, subclass, level, abilityScores);
+
     const base: StoredCharacter = {
         id: generateId(),
         createdAt: new Date().toISOString(),
@@ -113,7 +124,7 @@ export function generateRandomCharacter(overrides: RandomCharacterOverrides = {}
         initiative: 0,
         currentHP: 0,
         maxHP: 0,
-        spellsKnown: [],
+        spellsKnown,
         languages: [...race.languages],
     };
 
@@ -129,4 +140,42 @@ function rollGold(): number {
     let total = 0;
     for (let i = 0; i < 5; i++) total += Math.floor(Math.random() * 4) + 1;
     return total * 10;
+}
+
+/**
+ * A random spellcaster's starting `spellsKnown` - empty for a non-caster.
+ * Uses the SAME cap system the manual wizard's Spells step enforces
+ * (utils/spellcasting.ts's `getSpellLimits`) rather than an independent
+ * heuristic, so a randomly generated caster's spell COUNT matches what
+ * SpellsStep would actually allow that class/level/ability combination to
+ * know, and cantrips/leveled spells are drawn from - and capped against -
+ * their own separate pools rather than one mixed bag (RAW never lets a
+ * "2 cantrips known" caster end up with, say, 5 cantrips and 0 leveled
+ * spells just because a random pick happened to land there).
+ *
+ * Previously this picked `2 + floor(level / 2)` spells from every
+ * available level lumped together, with no cantrip/leveled split and no
+ * reference to the class's actual known/prepared cap at all - which is
+ * why a randomly generated caster's spell count and level spread didn't
+ * line up with what that same class/level/ability combination could
+ * actually have.
+ */
+function randomSpellsKnown(
+    spells: Spell[],
+    characterClass: CharacterClass,
+    subclass: Subclass | undefined,
+    level: number,
+    abilityScores: AbilityScores
+): Spell[] {
+    const limits = getSpellLimits([{ characterClass, subclass, level }], abilityScores);
+    if (limits.availableLevels.length === 0) return [];
+
+    const pool = spells.filter((spell) => limits.availableLevels.includes(spell.level));
+    const cantripPool = pool.filter((spell) => spell.level === 0);
+    const leveledPool = pool.filter((spell) => spell.level > 0);
+
+    // pickRandomN clamps internally (never asks for more than the pool
+    // has), so this stays correct even if the spell data has fewer spells
+    // at a level than the character could otherwise know.
+    return [...pickRandomN(cantripPool, limits.maxCantrips), ...pickRandomN(leveledPool, limits.maxLeveled)];
 }

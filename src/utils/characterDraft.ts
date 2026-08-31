@@ -1,5 +1,5 @@
 import { AbilityScores } from "@/interfaces/Characters";
-import { CharacterDraft, AbilityScoreMethod, AbilityScoreState } from "@/interfaces/CharacterDraft";
+import { CharacterDraft, AbilityScoreMethod, AbilityScoreState, DraftClassEntry } from "@/interfaces/CharacterDraft";
 import { StoredCharacter } from "@/interfaces/StoredCharacter";
 import { Edition } from "@/interfaces/Edition";
 import { calculateAbilityModifiers } from "@/utils/abilityModifiers";
@@ -8,6 +8,8 @@ import { generateId } from "@/utils/id";
 import { pointBuyStartingScores } from "@/utils/pointBuy";
 import { rollAbilityScoreSet } from "@/utils/dice";
 import { isValidBackgroundAllocation, subtractAbilityScores, sumAbilityScores } from "@/utils/abilityScoreBonuses";
+import { classCanUseArmor, classCanUseWeapon } from "@/utils/proficiencyMatch";
+import { getSpellLimits, pruneSpellsToLimits } from "@/utils/spellcasting";
 
 const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
 
@@ -51,7 +53,7 @@ export function abilityScoreStateForMethod(method: AbilityScoreMethod): AbilityS
 export function createEmptyDraft(edition?: Edition): CharacterDraft {
     return {
         edition,
-        classLevel: 1,
+        classes: [{ level: 1 }],
         abilityScores: abilityScoreStateForMethod("standard-array"),
         backgroundAbilityBonuses: {},
         skillProficiencies: [],
@@ -60,22 +62,16 @@ export function createEmptyDraft(edition?: Edition): CharacterDraft {
         name: "",
         alignment: "",
         languages: [],
+        spellsKnown: [],
     };
 }
 
 /**
- * Loads an existing character back into a draft for editing.
- *
- * Known limitation: the wizard only edits a SINGLE class/level - a
- * multiclassed character loaded here only shows/lets you edit
- * `classes[0]`. Editing multiclass characters end-to-end would need the
- * class/ability/skill steps to become per-class-entry, which is a bigger
- * change than this generator makes right now; flagging it here rather than
- * silently dropping the other classes on save. (In practice `finalizeDraft`
- * below only ever writes back a single-entry `classes` array, so editing
- * and re-saving a multiclass character DOES currently drop its other
- * classes - avoid editing multiclass characters through this flow until
- * that's addressed.)
+ * Loads an existing character back into a draft for editing. Every class
+ * the character has levels in becomes its own `classes` entry - the
+ * subclass is only ever carried over on `classes[0]` (the main class),
+ * matching `DraftClassEntry`'s rule and the real "one subclass, on the
+ * class you took it in" rule simplified to "always the main class".
  *
  * The Ability Scores step edits BASE scores, not final ones - `character
  * .abilityScores` is always final (race + background bonuses already
@@ -88,7 +84,6 @@ export function createEmptyDraft(edition?: Edition): CharacterDraft {
  * before it can be saved again, which is the correct way to backfill it.
  */
 export function draftFromCharacter(character: StoredCharacter): CharacterDraft {
-    const primaryClass = character.classes[0];
     const backgroundAbilityBonuses = character.backgroundAbilityBonuses ?? {};
     const baseAbilityScores = subtractAbilityScores(
         character.abilityScores,
@@ -96,13 +91,17 @@ export function draftFromCharacter(character: StoredCharacter): CharacterDraft {
         backgroundAbilityBonuses
     );
 
+    const classes: DraftClassEntry[] = character.classes.map(({ class: characterClass, subclass, level }, index) => ({
+        characterClass,
+        subclass: index === 0 ? subclass : undefined,
+        level,
+    }));
+
     return {
         id: character.id,
         edition: character.edition,
         race: character.race,
-        characterClass: primaryClass?.class,
-        subclass: primaryClass?.subclass,
-        classLevel: primaryClass?.level ?? 1,
+        classes,
         abilityScores: { method: "manual", scores: baseAbilityScores, unassignedPool: [] },
         background: character.background,
         backgroundAbilityBonuses,
@@ -116,6 +115,7 @@ export function draftFromCharacter(character: StoredCharacter): CharacterDraft {
         name: character.name,
         alignment: character.alignment,
         languages: character.languages.filter((language) => !character.race.languages.includes(language)),
+        spellsKnown: character.spellsKnown,
     };
 }
 
@@ -124,7 +124,8 @@ export function isDraftReadyToFinalize(draft: CharacterDraft): boolean {
     return Boolean(
         draft.edition &&
             draft.race &&
-            draft.characterClass &&
+            draft.classes.length > 0 &&
+            draft.classes.every((entry) => entry.characterClass) &&
             draft.background &&
             draft.name.trim().length > 0 &&
             draft.alignment &&
@@ -145,11 +146,14 @@ export function isDraftReadyToFinalize(draft: CharacterDraft): boolean {
  * `abilityScores` on the result is the FINAL score: the base scores from
  * the Ability Scores step, plus the race's flat modifiers (2014), plus the
  * background's chosen allocation (2024) - see utils/abilityScoreBonuses.ts.
- * Neither bonus was being applied at all before this - `draft.abilityScores
- * .scores` was written straight through as the character's final score.
+ *
+ * `classes[0]` (the main class) supplies saving throw proficiencies and
+ * (via calculateMaxHP) the first hit die - see DraftClassEntry's header
+ * comment for why the wizard only ever offers a subclass on that entry.
  */
 export function finalizeDraft(draft: CharacterDraft): StoredCharacter | null {
-    if (!isDraftReadyToFinalize(draft) || !draft.edition || !draft.race || !draft.characterClass || !draft.background) {
+    const primary = draft.classes[0]?.characterClass;
+    if (!isDraftReadyToFinalize(draft) || !draft.edition || !draft.race || !primary || !draft.background) {
         return null;
     }
 
@@ -169,7 +173,11 @@ export function finalizeDraft(draft: CharacterDraft): StoredCharacter | null {
         updatedAt: now,
         edition: draft.edition,
         name: draft.name.trim(),
-        classes: [{ class: draft.characterClass, subclass: draft.subclass, level: draft.classLevel }],
+        classes: draft.classes.map((entry) => ({
+            class: entry.characterClass!,
+            subclass: entry.subclass,
+            level: entry.level,
+        })),
         race: draft.race,
         background: draft.background,
         feats: [],
@@ -178,7 +186,7 @@ export function finalizeDraft(draft: CharacterDraft): StoredCharacter | null {
         backgroundAbilityBonuses:
             Object.keys(draft.backgroundAbilityBonuses).length > 0 ? draft.backgroundAbilityBonuses : undefined,
         skillProficiencies: [...draft.background.skillProficiencies, ...draft.skillProficiencies],
-        savingThrowProficiencies: draft.characterClass.proficiencies.savingThrows,
+        savingThrowProficiencies: primary.proficiencies.savingThrows,
         equippedArmor: draft.equippedArmor,
         shield: draft.shield,
         weapons: draft.weapons,
@@ -186,7 +194,10 @@ export function finalizeDraft(draft: CharacterDraft): StoredCharacter | null {
         initiative: 0,
         currentHP: 0,
         maxHP: 0,
-        spellsKnown: [],
+        // Was previously hardcoded to [] here regardless of what the Spells
+        // step collected - the wizard step existed to fill in
+        // `draft.spellsKnown`, but nothing ever read it back out.
+        spellsKnown: draft.spellsKnown,
         languages: [...draft.race.languages, ...draft.languages],
     };
 
@@ -195,4 +206,40 @@ export function finalizeDraft(draft: CharacterDraft): StoredCharacter | null {
     base.currentHP = base.maxHP;
 
     return base;
+}
+
+/**
+ * Re-checks everything that depends on `draft.classes` and drops whatever
+ * the current class/subclass/level selection no longer allows - called
+ * whenever that selection changes (see ManualWizard's revalidation effect),
+ * so a player can't carry forward a skill, armor, weapon, or spell picked
+ * under a since-abandoned class choice.
+ *
+ * Skill and equipment proficiency are checked against `classes[0]` (the
+ * main class) only - the wizard doesn't offer secondary classes' own
+ * (RAW-reduced) multiclass proficiency choices, so there's nothing
+ * class-specific from them to validate here. Spell limits, on the other
+ * hand, are genuinely combined across every entry - see
+ * utils/spellcasting.ts's `getSpellLimits`.
+ */
+export function revalidateDraftForClasses(draft: CharacterDraft): CharacterDraft {
+    const primary = draft.classes[0]?.characterClass;
+
+    const skillPool = primary ? primary.proficiencies.skills.from : [];
+    const skillProficiencies = draft.skillProficiencies.filter((skill) => skillPool.includes(skill));
+
+    const equippedArmor =
+        primary && draft.equippedArmor && classCanUseArmor(primary, draft.equippedArmor) ? draft.equippedArmor : undefined;
+    const shield = primary && draft.shield && classCanUseArmor(primary, draft.shield) ? draft.shield : undefined;
+    const weapons = primary ? draft.weapons.filter((weapon) => classCanUseWeapon(primary, weapon)) : [];
+
+    const abilityScores = sumAbilityScores(
+        draft.abilityScores.scores,
+        draft.race?.abilityModifiers ?? {},
+        draft.backgroundAbilityBonuses
+    );
+    const limits = getSpellLimits(draft.classes, abilityScores);
+    const spellsKnown = pruneSpellsToLimits(draft.spellsKnown, limits);
+
+    return { ...draft, skillProficiencies, equippedArmor, shield, weapons, spellsKnown };
 }

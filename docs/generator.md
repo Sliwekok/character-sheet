@@ -145,6 +145,18 @@ proficiency strings ("Light armor", "Martial weapons") against `Armor.category`/
 `Weapon.category` by substring - noted there as an approximation, not a full
 proficiency-string parser.
 
+Clicking any skill/weapon/armor/shield pill both toggles it on the draft (same as
+before) and feeds an `ItemDetailPanel` (`components/character/wizard/ItemDetailPanel.tsx`)
+docked to the right of the step on wide screens (stacked below it on narrow ones) -
+the full `Skill`/`Weapon`/`Armor` data behind whatever was last clicked, rather than
+just its short pill label. Armor and shield were converted from `<Select>` dropdowns
+to the same pill style as weapons so they, too, have something clickable to open the
+panel with; "Unarmored"/"None" pills clear the equipped item and the panel. The
+clicked item (`SelectedEquipmentItem`, a small discriminated union) is transient view
+state local to `SkillsEquipmentStep` - unlike every other piece of state on this step,
+it's never lifted into `CharacterDraft`, since it's not something a saved character
+needs to remember.
+
 ### Review & save (`ReviewStep`)
 
 Computes a preview via `finalizeDraft(draft)` (`utils/characterDraft.ts`) and shows
