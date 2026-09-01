@@ -9,6 +9,7 @@ import { Armor } from "@/interfaces/Armor";
 import { Weapon } from "@/interfaces/Weapon";
 import { Currency } from "@/interfaces/Currency";
 import { Spell } from "@/interfaces/Spell";
+import { CharacterDetails } from "@/interfaces/CharacterDetails";
 
 export type AbilityScoreMethod = "standard-array" | "point-buy" | "roll" | "manual";
 
@@ -102,4 +103,6 @@ export interface CharacterDraft {
      * `Character.spellsKnown` by `finalizeDraft()`.
      */
     spellsKnown: Spell[];
+    /** Flavor/print-only fields, edited on the Details step - see CharacterDetails.ts. Always a valid (possibly empty) object, same convention as `backgroundAbilityBonuses` above. */
+    details: CharacterDetails;
 }

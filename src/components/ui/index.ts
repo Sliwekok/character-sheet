@@ -7,6 +7,7 @@ export { Badge } from "./Badge";
 export { Container } from "./Container";
 export { SectionHeading } from "./SectionHeading";
 export { TextInput } from "./TextInput";
+export { Textarea } from "./Textarea";
 export { Select } from "./Select";
 export { Combobox } from "./Combobox";
 export { Logo } from "./Logo";

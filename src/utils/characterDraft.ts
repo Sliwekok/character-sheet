@@ -1,5 +1,6 @@
 import { AbilityScores } from "@/interfaces/Characters";
 import { CharacterDraft, AbilityScoreMethod, AbilityScoreState, DraftClassEntry } from "@/interfaces/CharacterDraft";
+import { CharacterDetails } from "@/interfaces/CharacterDetails";
 import { StoredCharacter } from "@/interfaces/StoredCharacter";
 import { Edition } from "@/interfaces/Edition";
 import { calculateAbilityModifiers } from "@/utils/abilityModifiers";
@@ -63,7 +64,33 @@ export function createEmptyDraft(edition?: Edition): CharacterDraft {
         alignment: "",
         languages: [],
         spellsKnown: [],
+        details: {},
     };
+}
+
+/**
+ * Strips a details object down to `undefined` when nothing meaningful was
+ * entered (every string empty, every nested object empty, inspiration/death
+ * saves untouched) - so `finalizeDraft` never persists a `details: {}`
+ * husk onto a character that never used the Details step's flavor fields.
+ */
+function cleanDetails(details: CharacterDetails): CharacterDetails | undefined {
+    const cleaned: CharacterDetails = { ...details };
+
+    if (cleaned.appearance && Object.values(cleaned.appearance).every((value) => !value)) {
+        delete cleaned.appearance;
+    }
+    if (cleaned.flavor && Object.values(cleaned.flavor).every((value) => !value)) {
+        delete cleaned.flavor;
+    }
+
+    const hasContent = Object.values(cleaned).some((value) => {
+        if (value === undefined || value === "") return false;
+        if (typeof value === "object") return Object.keys(value).length > 0;
+        return true;
+    });
+
+    return hasContent ? cleaned : undefined;
 }
 
 /**
@@ -116,6 +143,7 @@ export function draftFromCharacter(character: StoredCharacter): CharacterDraft {
         alignment: character.alignment,
         languages: character.languages.filter((language) => !character.race.languages.includes(language)),
         spellsKnown: character.spellsKnown,
+        details: character.details ?? {},
     };
 }
 
@@ -199,6 +227,7 @@ export function finalizeDraft(draft: CharacterDraft): StoredCharacter | null {
         // `draft.spellsKnown`, but nothing ever read it back out.
         spellsKnown: draft.spellsKnown,
         languages: [...draft.race.languages, ...draft.languages],
+        details: cleanDetails(draft.details),
     };
 
     base.initiative = calculateAbilityModifiers(base.abilityScores).dexterity;

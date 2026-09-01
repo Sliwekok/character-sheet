@@ -10,6 +10,7 @@ import { Spell } from "@/interfaces/Spell";
 import { SkillName } from "@/interfaces/Skill";
 import { Edition } from "@/interfaces/Edition";
 import { MagicItem } from "@/interfaces/MagicItem";
+import { CharacterDetails } from "@/interfaces/CharacterDetails";
 
 export type AbilityScores = {
     strength: number;
@@ -74,6 +75,14 @@ export interface Character {
      * needs no such bookkeeping since it isn't a player choice).
      */
     backgroundAbilityBonuses?: Partial<AbilityScores>;
+    /**
+     * Flavor/print-only fields (backstory, appearance, personality traits,
+     * death saves, etc.) - see CharacterDetails.ts. Undefined for any
+     * character created before this existed, or from the random generator;
+     * the print sheet (app/character/[id]/print) treats that the same as
+     * "every field blank", same as a fresh paper sheet.
+     */
+    details?: CharacterDetails;
 }
 
 /** Total character level - the sum of every class's level. */

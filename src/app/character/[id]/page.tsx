@@ -287,6 +287,9 @@ export default function CharacterDetailsPage() {
 
           <div className="flex flex-wrap items-center gap-3 border-t border-border pt-6">
             <Button href={`/newCharacter/manual?edit=${character.id}`}>Edit character</Button>
+            <Button variant="secondary" href={`/character/${character.id}/print`}>
+              Print / Save as PDF
+            </Button>
             <Link
               href="/home"
               className="text-sm text-fontcolor-secondary underline-offset-4 hover:text-fontcolor hover:underline"

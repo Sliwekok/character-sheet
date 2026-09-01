@@ -212,8 +212,8 @@ export default function ManualWizard() {
   function handleSave() {
     const finalized = finalizeDraft(draft);
     if (!finalized) return;
-    saveCharacter(finalized);
-    router.push("/home");
+    const savedCharacter = saveCharacter(finalized);
+    router.push("/character/" + savedCharacter.id);
   }
 
   const currentStep = STEPS[stepIndex];
@@ -358,8 +358,10 @@ export default function ManualWizard() {
               <DetailsStep
                 name={draft.name}
                 alignment={draft.alignment}
+                details={draft.details}
                 onNameChange={(name) => updateDraft({ name })}
                 onAlignmentChange={(alignment) => updateDraft({ alignment })}
+                onDetailsChange={(details) => updateDraft({ details })}
               />
             )}
 

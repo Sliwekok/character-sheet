@@ -1,7 +1,7 @@
 import { CharacterClass } from "@/interfaces/CharacterClass";
 import { Subclass } from "@/interfaces/Subclass";
 import { DraftClassEntry } from "@/interfaces/CharacterDraft";
-import { Button, Card, CardContent, Select, TextInput } from "@/components/ui";
+import { Button, Card, CardContent, Combobox, Select, TextInput } from "@/components/ui";
 
 type ClassStepProps = {
   classes: CharacterClass[];
@@ -13,6 +13,36 @@ type ClassStepProps = {
 
 function classSummary(characterClass: CharacterClass): string {
   return `d${characterClass.hitDie} hit die · ${characterClass.primaryAbility} · caster: ${characterClass.casterProgression}`;
+}
+
+function subclassSummary(subclass: Subclass): JSX.Element {
+  return (
+      <label className="flex flex-col gap-2">
+            <span className="text-sm font-medium text-fontcolor-secondary">
+                Subclass description
+            </span>
+
+        <span className="text-sm font-small">
+                {subclass.description}
+            </span>
+
+        <span className="text-sm font-medium text-fontcolor-secondary">
+                Features:
+            </span>
+
+        {subclass.features.map((feature, index) => (
+            // Keyed by index (plus name/level for readability), not just
+            // `feature.name` - several subclasses (e.g. Fighter's Battle
+            // Master) repeat a feature name at multiple levels ("Additional
+            // Maneuvers" at 7th, 10th, and 15th), so `feature.name` alone
+            // collided and React reused/misplaced list nodes across a
+            // subclass switch, leaving stale feature lines behind.
+            <span className="text-sm font-small" key={`${index}-${feature.level}-${feature.name}`}>
+                    <b>{feature.name}:</b> {feature.description}
+                </span>
+        ))}
+      </label>
+  );
 }
 
 /**
@@ -148,23 +178,17 @@ export function ClassStep({ classes, subclasses, entries, onChange }: ClassStepP
                     </span>
                   )}
                 </span>
-                <Select
-                  value={entry.subclass?.name ?? ""}
-                  disabled={!subclassUnlocked || eligibleSubclasses.length === 0}
-                  onChange={(event) => {
-                    const next = eligibleSubclasses.find((s) => s.name === event.target.value);
-                    updateEntry(index, { subclass: next });
-                  }}
-                >
-                  <option value="">
-                    {eligibleSubclasses.length === 0 ? "No subclasses available" : "None chosen yet"}
-                  </option>
-                  {eligibleSubclasses.map((option) => (
-                    <option key={option.name} value={option.name}>
-                      {option.name}
-                    </option>
-                  ))}
-                </Select>
+                <Combobox
+                  options={eligibleSubclasses}
+                  value={entry.subclass}
+                  getOptionLabel={(option) => option.name}
+                  getOptionValue={(option) => option.name}
+                  isDisabled={!subclassUnlocked || eligibleSubclasses.length === 0}
+                  onChange={(next) => updateEntry(index, { subclass: next })}
+                  onClear={() => updateEntry(index, { subclass: undefined })}
+                  placeholder={eligibleSubclasses.length === 0 ? "No subclasses available" : "Search subclasses..."}
+                />
+                {entry.subclass && subclassSummary(entry.subclass)}
               </label>
             )}
           </div>

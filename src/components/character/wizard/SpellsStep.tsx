@@ -24,6 +24,10 @@ export function levelLabel(level: number): string {
   return `${level}${suffix} level`;
 }
 
+export function actionLabel(action: string): string {
+    return action === "1 action" ? "1 action" : action === "1 bonus action" ? "1 bonus" : action === "1 reaction" ? "1 reaction" : action;
+}
+
 function pillClass(selected: boolean): string {
   return cn(
     "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
@@ -105,10 +109,18 @@ function SpellDetailPanel({
 export function SpellsStep({ spells, classes, abilityScores, spellsKnown, onChange }: SpellsStepProps) {
   const [search, setSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState<number | "all">("all");
+  const [actionFilter, setActionFilter] = useState<string | "all">("all");
   const [previewSpell, setPreviewSpell] = useState<Spell | undefined>(spellsKnown[0]);
 
   const limits = useMemo(() => getSpellLimits(classes, abilityScores), [classes, abilityScores]);
   const availableLevels = limits.availableLevels;
+  // Scoped to spells at an available level, same as `availableLevels` itself -
+  // otherwise this could offer a casting-time pill (e.g. one only used by a
+  // higher-level spell not accessible yet) that filters the browser down to
+  // zero results.
+  const availableSpellActions = [
+    ...new Set(spells.filter((spell) => availableLevels.includes(spell.level)).map((spell) => spell.castingTime)),
+  ];
 
   const cantripsKnown = spellsKnown.filter((spell) => spell.level === 0).length;
   const leveledKnown = spellsKnown.filter((spell) => spell.level > 0).length;
@@ -120,9 +132,10 @@ export function SpellsStep({ spells, classes, abilityScores, spellsKnown, onChan
     return spells
       .filter((spell) => availableLevels.includes(spell.level))
       .filter((spell) => levelFilter === "all" || spell.level === levelFilter)
+      .filter((spell) => actionFilter === "all" || spell.castingTime === actionFilter)
       .filter((spell) => !query || spell.name.toLowerCase().includes(query))
       .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
-  }, [spells, availableLevels, levelFilter, search]);
+  }, [spells, availableLevels, levelFilter, actionFilter, search]);
 
   function isSelected(spell: Spell): boolean {
     return spellsKnown.some((known) => known.name === spell.name);
@@ -182,6 +195,21 @@ export function SpellsStep({ spells, classes, abilityScores, spellsKnown, onChan
                   >
                     {levelLabel(level)}
                   </button>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => setActionFilter("all")} className={pillClass(actionFilter === "all")}>
+                  All
+                </button>
+                {availableSpellActions.map((action) => (
+                    <button
+                        key={action}
+                        type="button"
+                        onClick={() => setActionFilter(action)}
+                        className={pillClass(actionFilter === action)}
+                    >
+                      {actionLabel(action)}
+                    </button>
                 ))}
               </div>
             </div>

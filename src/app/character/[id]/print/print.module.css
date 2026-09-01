@@ -1,0 +1,719 @@
+/* Printable character sheet - matches the official 5e sheet's box layout,
+   proportions, and "caption at the bottom of each box" visual language as
+   closely as CSS allows. The one thing NOT reproduced is Wizards of the
+   Coast's dragon illustration/logo (copyrighted artwork this project has
+   no license to embed) - everywhere else (shapes, rule lines, black-on-
+   white line-art styling, label placement) follows the source sheet. */
+
+:root {
+  --ink: #171717;
+  --label: #6b6b6b;
+  --line: #111111;
+  --line-soft: #9a9a9a;
+  --line-faint: #d6d6d6;
+  --page-bg: #ffffff;
+  --box-bg: #ffffff;
+  --sans: "Geist", Arial, Helvetica, sans-serif;
+}
+
+.toolbar {
+  max-width: 900px;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 8px;
+}
+
+.toolbarLinks {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.backLink {
+  font-size: 0.9rem;
+  color: var(--fontcolor-secondary, #a9b6cc);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.printButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 0.85rem;
+  padding: 0.65rem 1.25rem;
+  font-weight: 600;
+  background: var(--foreground, #e78b48);
+  color: #1a1206;
+  border: none;
+  cursor: pointer;
+}
+.printButton:hover {
+  filter: brightness(1.08);
+}
+
+.sheetWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  padding-bottom: 40px;
+}
+
+.page {
+  width: 8.5in;
+  min-height: 11in;
+  box-sizing: border-box;
+  padding: 0.35in;
+  background: var(--page-bg);
+  color: var(--ink);
+  border: 1px solid #ccc;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+  font-family: var(--sans);
+  font-size: 10px;
+  line-height: 1.25;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+/* ---------- shared header banner ---------- */
+
+.banner {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  min-height: 66px;
+}
+
+.bannerName {
+  flex: 0 0 32%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--box-bg);
+  border: 1.6px solid var(--line);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+  text-align: center;
+  padding: 8px 26px;
+  clip-path: polygon(3% 0, 97% 0, 100% 50%, 97% 100%, 3% 100%, 0 50%);
+}
+
+.bannerFieldsBox {
+  flex: 1;
+  border: 1.6px solid var(--line);
+  border-radius: 6px;
+  background: var(--box-bg);
+  display: flex;
+  flex-direction: column;
+}
+
+.bannerFields {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.bannerField {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 3px;
+  padding: 5px 10px;
+  border-left: 1px solid var(--line-faint);
+}
+.bannerField:first-child {
+  border-left: none;
+}
+.bannerRow1 .bannerField {
+  border-bottom: 1px solid var(--line-faint);
+}
+
+.fieldLabel {
+  font-size: 6.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--label);
+}
+
+.fieldValue {
+  font-size: 10.5px;
+  font-weight: 600;
+  min-height: 1.2em;
+  word-break: break-word;
+}
+
+.bannerStacked {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- generic boxed panel (caption at the BOTTOM, matching the source sheet) ---------- */
+
+.box {
+  border: 1.4px solid var(--line);
+  border-radius: 8px;
+  background: var(--box-bg);
+  padding: 5px 7px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.boxTitle {
+  font-size: 7px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--label);
+  text-align: center;
+}
+
+.boxTitleLeft {
+  font-size: 7px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--label);
+}
+
+.filler {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.ruled {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 12px,
+    var(--line-faint) 13px
+  );
+}
+
+.freeText {
+  white-space: pre-wrap;
+  font-size: 9px;
+  flex: 1;
+}
+
+.placeholder {
+  color: #c2c2c2;
+  font-style: italic;
+}
+
+/* ---------- page 1: core sheet ---------- */
+
+.body1 {
+  display: grid;
+  grid-template-columns: 82px 168px 1fr 1.1fr;
+  gap: 7px;
+  align-items: stretch;
+  flex: 1;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.abilityCol {
+  gap: 15px;
+  padding-bottom: 8px;
+}
+
+.abilityBox {
+  position: relative;
+  border: 1.6px solid var(--line);
+  border-radius: 10px;
+  background: var(--box-bg);
+  flex: 1;
+  min-height: 64px;
+}
+
+.abilityLabel {
+  position: absolute;
+  top: -6px;
+  left: 6px;
+  background: var(--page-bg);
+  padding: 0 3px;
+  font-size: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--label);
+  z-index: 1;
+}
+
+.abilityCircle {
+  position: absolute;
+  top: 12%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 30px;
+  border: 1.4px solid var(--line);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.abilityScoreTab {
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 22px;
+  padding: 0 3px;
+  text-align: center;
+  border: 1.2px solid var(--line);
+  border-radius: 4px;
+  background: var(--box-bg);
+  font-size: 9px;
+  z-index: 1;
+}
+
+.inspirationRow,
+.profBonusRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1.4px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+/* Chamfered "tag" shape used by the source sheet for the Inspiration box and
+   every spell-level header: a rounded pill with a small wedge notched out of
+   its left cap. Pure geometry (no illustration), built with a border-color
+   triangle so the pill's border-radius is untouched. */
+.tagShape {
+  position: relative;
+  border-radius: 999px;
+  padding-left: 16px !important;
+}
+.tagShape::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-top: 7px solid transparent;
+  border-bottom: 7px solid transparent;
+  border-left: 9px solid var(--page-bg);
+}
+
+.circlePip {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.2px solid var(--line);
+  flex: none;
+  display: inline-block;
+}
+
+.circlePipFilled {
+  background: var(--line);
+}
+
+.bigCircle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.4px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex: none;
+  font-size: 11px;
+}
+
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.checkRow {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 8px;
+}
+
+.checkRowLabel {
+  flex: 1;
+}
+
+.checkRowMod {
+  width: 18px;
+  text-align: center;
+  font-weight: 600;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.skillsBox {
+  flex: 1;
+}
+
+.passiveBox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1.4px solid var(--line);
+  border-radius: 6px;
+  padding: 5px 8px;
+}
+
+.topStatsRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.statBox {
+  border: 1.4px solid var(--line);
+  border-radius: 8px;
+  background: var(--box-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 2px 4px;
+  gap: 2px;
+}
+
+.shieldBox {
+  clip-path: polygon(0 0, 100% 0, 100% 76%, 50% 100%, 0 76%);
+  padding-bottom: 8px;
+}
+
+.statBoxValue {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.hpGroup {
+  border: 1.4px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.hpMaxRow {
+  font-size: 7px;
+  text-transform: uppercase;
+  color: var(--label);
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 8px 3px;
+  border-bottom: 1px solid var(--line-faint);
+}
+
+.hpCurrentRow {
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid var(--line-faint);
+}
+
+.hpCurrentLabel {
+  font-size: 6.5px;
+  text-transform: uppercase;
+  color: var(--label);
+  text-align: center;
+  padding: 2px 0 4px;
+  border-bottom: 1px solid var(--line-faint);
+}
+
+.hpTempRow {
+  font-size: 13px;
+  text-align: center;
+  min-height: 18px;
+  padding-top: 3px;
+}
+
+.hpTempLabel {
+  font-size: 6.5px;
+  text-transform: uppercase;
+  color: var(--label);
+  text-align: center;
+  padding-bottom: 4px;
+}
+
+.hitDiceDeathRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.deathSavesRow {
+  display: flex;
+  justify-content: space-around;
+  font-size: 7px;
+  text-transform: uppercase;
+}
+
+.deathSavesPips {
+  display: flex;
+  gap: 3px;
+  margin-top: 2px;
+  justify-content: center;
+}
+
+.attacksBox {
+  flex: 1;
+}
+
+.attacksTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8px;
+}
+
+.attacksTable th {
+  font-size: 6.5px;
+  text-transform: uppercase;
+  color: var(--label);
+  background: #f2f2f2;
+  text-align: left;
+  padding: 2px 4px;
+  border: 1px solid var(--line-faint);
+}
+
+.attacksTable td {
+  border: 1px solid var(--line-faint);
+  padding: 3px 4px;
+  min-height: 14px;
+}
+
+.equipmentBox {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+
+.currencyColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: none;
+  width: 42px;
+}
+
+.currencyPip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  clip-path: polygon(15% 0, 85% 0, 100% 50%, 85% 100%, 15% 100%, 0 50%);
+  border: 1.1px solid var(--line);
+  padding: 3px 4px;
+}
+
+.currencyPip span:first-child {
+  font-size: 6.5px;
+  color: var(--label);
+}
+.currencyPip span:last-child {
+  font-weight: 700;
+  font-size: 9px;
+  min-width: 10px;
+  text-align: center;
+}
+
+.flavorBox {
+  min-height: 42px;
+}
+
+.featuresBox {
+  flex: 1;
+}
+
+/* ---------- page 2: details sheet ---------- */
+
+.body2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  flex: 1;
+}
+
+.portraitBox {
+  flex: none;
+  height: 110px;
+  border: 1.4px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.portraitPlaceholder {
+  font-size: 7px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--line-soft);
+}
+
+.appearanceBox {
+  flex: 1;
+  min-height: 140px;
+}
+
+.backstoryBox {
+  flex: 1;
+  min-height: 220px;
+}
+
+.alliesRow {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+}
+
+.alliesText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.symbolBox {
+  flex: none;
+  width: 88px;
+  border: 1.4px solid var(--line);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 5px;
+  text-align: center;
+}
+
+.twoColBox {
+  position: relative;
+  flex: 1;
+  min-height: 90px;
+}
+.twoColBox::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: var(--line-faint);
+}
+
+/* ---------- page 3: spellcasting sheet ---------- */
+
+.body3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  flex: 1;
+}
+
+.spellColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.levelBox {
+  border: 1.4px solid var(--line);
+  border-radius: 8px;
+  padding: 4px 7px 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.levelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  border: 1.3px solid var(--line);
+  padding: 3px 10px 3px 6px;
+  margin-bottom: 3px;
+  background: #f2f2f2;
+}
+
+.levelNumber {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 8px;
+  letter-spacing: 0.04em;
+}
+
+.slotsInfo {
+  font-size: 6.5px;
+  text-align: right;
+  color: var(--label);
+}
+
+.slotPips {
+  display: flex;
+  gap: 2px;
+  justify-content: flex-end;
+}
+
+.spellRow {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 8px;
+  border-bottom: 1px solid var(--line-faint);
+  padding: 2px 0;
+  min-height: 12px;
+}
+
+/* ---------- print media ---------- */
+
+@media print {
+  .noPrint {
+    display: none !important;
+  }
+  .page {
+    box-shadow: none;
+    border: none;
+    margin: 0;
+    break-after: page;
+  }
+  .page:last-child {
+    break-after: auto;
+  }
+  .sheetWrapper {
+    gap: 0;
+    padding-bottom: 0;
+  }
+}
+
+@page {
+  size: letter portrait;
+  margin: 0.25in;
+}

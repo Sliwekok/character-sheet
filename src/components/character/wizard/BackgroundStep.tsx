@@ -1,5 +1,5 @@
 import { Background } from "@/interfaces/Background";
-import { Card, CardContent, Select } from "@/components/ui";
+import { Card, CardContent, Combobox } from "@/components/ui";
 
 type BackgroundStepProps = {
   backgrounds: Background[];
@@ -12,22 +12,20 @@ export function BackgroundStep({ backgrounds, background, onSelect }: Background
     <div className="flex flex-col gap-6">
       <label className="flex flex-col gap-2">
         <span className="text-sm font-medium text-fontcolor-secondary">Background</span>
-        <Select
-          value={background?.name ?? ""}
-          onChange={(event) => {
-            const next = backgrounds.find((b) => b.name === event.target.value);
-            if (next) onSelect(next);
-          }}
-        >
-          <option value="" disabled>
-            Choose a background...
-          </option>
-          {backgrounds.map((option) => (
-            <option key={option.name} value={option.name}>
-              {option.name}
-            </option>
-          ))}
-        </Select>
+        {/*
+          Searchable combobox (type to filter, "Select2"-style) instead of a
+          native <select>, matching RaceStep - useful once a ruleset's
+          background list gets long enough that scrolling a dropdown is
+          slower than typing. See components/ui/Combobox.tsx.
+        */}
+        <Combobox
+          options={backgrounds}
+          value={background}
+          getOptionLabel={(option) => option.name}
+          getOptionValue={(option) => option.name}
+          onChange={onSelect}
+          placeholder="Search backgrounds..."
+        />
       </label>
 
       {background && (
