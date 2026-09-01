@@ -17,6 +17,13 @@ const MODES = [
     description:
       "Let the dice decide. Generate a fully random character in one click, or lock in a few basics (name, level, race, class) and randomize the rest.",
   },
+  {
+    href: "/newCharacter/import",
+    icon: "📥",
+    title: "Import",
+    description:
+      "Load a character you previously exported as a JSON file - handy for moving one between browsers or devices, or restoring a backup.",
+  },
 ];
 
 export default function NewCharacterPage() {
@@ -30,7 +37,7 @@ export default function NewCharacterPage() {
           subtitle="Choose how you'd like to build this character."
         />
 
-        <div className="mt-8 grid gap-6 sm:grid-cols-2">
+        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {MODES.map((mode) => (
             <Link key={mode.href} href={mode.href} className="block h-full">
               <Card className="flex h-full flex-col transition-colors hover:border-border-strong">

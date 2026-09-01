@@ -21,6 +21,7 @@ import { StoredCharacter } from "@/interfaces/StoredCharacter";
 import { Spell } from "@/interfaces/Spell";
 import { getCharacterLevel } from "@/interfaces/Characters";
 import { deleteCharacter, loadCharacter } from "@/utils/storage";
+import { downloadCharacterAsJson } from "@/utils/characterImportExport";
 import { calculateAbilityModifiers } from "@/utils/abilityModifiers";
 import { calculateArmorClass } from "@/utils/calculateArmorClass";
 import { getPactMagicSlots, getSpellSlots } from "@/utils/spellcasting";
@@ -289,6 +290,9 @@ export default function CharacterDetailsPage() {
             <Button href={`/newCharacter/manual?edit=${character.id}`}>Edit character</Button>
             <Button variant="secondary" href={`/character/${character.id}/print`}>
               Print / Save as PDF
+            </Button>
+            <Button variant="secondary" onClick={() => downloadCharacterAsJson(character)}>
+              Export as JSON
             </Button>
             <Link
               href="/home"
