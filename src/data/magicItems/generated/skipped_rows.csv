@@ -1,0 +1,34 @@
+Name,Source,Type,Rarity,Reason
++1 Weapon (no damage),DMG'14,Generic Variant,uncommon,generic variant with no parseable base-item list
++2 Weapon (no damage),DMG'14,Generic Variant,rare,generic variant with no parseable base-item list
++3 Weapon (no damage),DMG'14,Generic Variant,very rare,generic variant with no parseable base-item list
+Armor of Resistance,DMG'24,Generic Variant,rare,generic variant with no parseable base-item list
+Armor of Vulnerability,DMG'24,Generic Variant,rare,generic variant with no parseable base-item list
+Armor of Vulnerability (Bludgeoning),DMG'24,Generic Variant,rare,generic variant - none of its base items exist in this project's WEAPONS/ARMOR tables
+Armor of Vulnerability (Piercing),DMG'24,Generic Variant,rare,generic variant - none of its base items exist in this project's WEAPONS/ARMOR tables
+Armor of Vulnerability (Slashing),DMG'24,Generic Variant,rare,generic variant - none of its base items exist in this project's WEAPONS/ARMOR tables
+Channeling Wand,ExE'24,Generic Variant,rare,generic variant with no parseable base-item list
+Dragon's Wrath Weapon,FTD,Generic Variant,varies,generic variant with no parseable base-item list
+Enspelled Armor,DMG'24,Generic Variant,varies,generic variant with no parseable base-item list
+Enspelled Armor (Cantrip),DMG'24,Generic Variant,uncommon,generic variant - none of its base items exist in this project's WEAPONS/ARMOR tables
+Enspelled Armor (Level 1),DMG'24,Generic Variant,uncommon,generic variant - none of its base items exist in this project's WEAPONS/ARMOR tables
+Enspelled Armor (Level 2),DMG'24,Generic Variant,rare,generic variant - none of its base items exist in this project's WEAPONS/ARMOR tables
+Enspelled Armor (Level 3),DMG'24,Generic Variant,rare,generic variant - none of its base items exist in this project's WEAPONS/ARMOR tables
+Enspelled Armor (Level 4),DMG'24,Generic Variant,very rare,generic variant - none of its base items exist in this project's WEAPONS/ARMOR tables
+Enspelled Armor (Level 5),DMG'24,Generic Variant,very rare,generic variant - none of its base items exist in this project's WEAPONS/ARMOR tables
+Enspelled Armor (Level 6),DMG'24,Generic Variant,legendary,generic variant - none of its base items exist in this project's WEAPONS/ARMOR tables
+Enspelled Armor (Level 7),DMG'24,Generic Variant,legendary,generic variant - none of its base items exist in this project's WEAPONS/ARMOR tables
+Enspelled Armor (Level 8),DMG'24,Generic Variant,legendary,generic variant - none of its base items exist in this project's WEAPONS/ARMOR tables
+Enspelled Weapon,DMG'24,Generic Variant,varies,generic variant with no parseable base-item list
+Enspelled Weapon (Cantrip),DMG'24,Generic Variant,uncommon,generic variant - none of its base items exist in this project's WEAPONS/ARMOR tables
+Enspelled Weapon (Level 1),DMG'24,Generic Variant,uncommon,generic variant - none of its base items exist in this project's WEAPONS/ARMOR tables
+Enspelled Weapon (Level 2),DMG'24,Generic Variant,rare,generic variant - none of its base items exist in this project's WEAPONS/ARMOR tables
+Enspelled Weapon (Level 3),DMG'24,Generic Variant,rare,generic variant - none of its base items exist in this project's WEAPONS/ARMOR tables
+Enspelled Weapon (Level 4),DMG'24,Generic Variant,very rare,generic variant - none of its base items exist in this project's WEAPONS/ARMOR tables
+Enspelled Weapon (Level 5),DMG'24,Generic Variant,very rare,generic variant - none of its base items exist in this project's WEAPONS/ARMOR tables
+Enspelled Weapon (Level 6),DMG'24,Generic Variant,legendary,generic variant - none of its base items exist in this project's WEAPONS/ARMOR tables
+Enspelled Weapon (Level 7),DMG'24,Generic Variant,legendary,generic variant - none of its base items exist in this project's WEAPONS/ARMOR tables
+Enspelled Weapon (Level 8),DMG'24,Generic Variant,legendary,generic variant - none of its base items exist in this project's WEAPONS/ARMOR tables
+Living Stoneskin,FoEQ,"Heavy Armor (Plate Armor), Symbiont (Plate Armor)",very rare,armor type but no Damage column - not a concrete item
+Molten Bronze Skin,MOT,Generic Variant,rare,generic variant with no parseable base-item list
+Witchlight Vane,WBtW,Melee Weapon (Mace),legendary,weapon type but no Damage column - not a concrete item

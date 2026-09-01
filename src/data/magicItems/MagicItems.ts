@@ -1,4 +1,5 @@
 import { MagicItem } from "@/interfaces/MagicItem";
+import { GENERATED_MAGIC_ITEMS } from "./generated/GeneratedMagicItems";
 
 /**
  * A starter set of iconic DMG magic items that are NOT armor or a weapon
@@ -11,13 +12,13 @@ import { MagicItem } from "@/interfaces/MagicItem";
  * haven't changed between 2014 and 2024, so this single list is shared by
  * both rulesets (see data/index.ts).
  *
- * This is a representative sample (~25 items), not the full DMG - by
- * design, this same shape is exactly what a player-facing "add a custom
- * magic item" form would produce via createCustomMagicItem() in
- * utils/customMagicItems.ts, so hand-authoring the complete DMG catalog
- * here isn't a prerequisite for that feature to work.
+ * Hand-authored, kept for its shorter/curated descriptions and the couple
+ * of named entries (e.g. "Rod of the Pact Keeper +1") that the generated
+ * compendium below happens to spell differently. `MAGIC_ITEMS` below is
+ * the generated compendium first, with anything here NOT already present
+ * there layered on top - see that constant's comment.
  */
-export const MAGIC_ITEMS: MagicItem[] = [
+export const CURATED_MAGIC_ITEMS: MagicItem[] = [
     // ---- Common ----
     {
         name: "Potion of Healing",
@@ -255,4 +256,19 @@ export const MAGIC_ITEMS: MagicItem[] = [
         requiresAttunement: false,
         description: "Usually found in a box or pouch, this deck contains a number of cards made of ivory or vellum. Before drawing a card, a creature may be required to declare how many cards they'll draw. Each card, once drawn, has a wildly powerful and often unpredictable effect on the drawer - full effects per the DMG's Deck of Many Things table.",
     },
+];
+
+const GENERATED_NAMES = new Set(GENERATED_MAGIC_ITEMS.map((item) => item.name));
+
+/**
+ * The full magic item compendium: `GENERATED_MAGIC_ITEMS` (auto-generated
+ * from data/Items.csv by scripts/convert_items.py - see that script and
+ * src/data/magicItems/generated/conversion_report.md) plus any
+ * `CURATED_MAGIC_ITEMS` entry not already covered there under the same
+ * name (a few entries, like "Rod of the Pact Keeper +1", are named
+ * slightly differently in the generated set and so both are kept).
+ */
+export const MAGIC_ITEMS: MagicItem[] = [
+    ...GENERATED_MAGIC_ITEMS,
+    ...CURATED_MAGIC_ITEMS.filter((item) => !GENERATED_NAMES.has(item.name)),
 ];

@@ -9,6 +9,7 @@ type ComboboxProps<T> = {
   getOptionLabel: (option: T) => string;
   getOptionValue: (option: T) => string;
   onChange: (option: T) => void;
+  onInputChange?: (value: string) => void;
   /** When set, shows react-select's clear ("x") control and is called instead of `onChange` when the player clears the field - opt-in so fields that must always hold a value (Race, Background) keep their current no-clear behavior by just omitting this prop. */
   onClear?: () => void;
   placeholder?: string;
@@ -35,6 +36,7 @@ export function Combobox<T>({
   placeholder,
   isDisabled,
   className,
+  onInputChange,
 }: ComboboxProps<T>) {
   const classNames: ClassNamesConfig<T, false, GroupBase<T>> = {
     control: (state) =>
@@ -76,6 +78,9 @@ export function Combobox<T>({
       value={value}
       getOptionLabel={getOptionLabel}
       getOptionValue={getOptionValue}
+      onInputChange={(inputValue) => {
+        onInputChange?.(inputValue);
+      }}
       onChange={(next) => {
         if (next) onChange(next);
         else onClear?.();

@@ -31,7 +31,10 @@ import { getPactMagicSlots, getSpellSlots } from "@/utils/spellcasting";
 import { levelLabel } from "@/components/character/wizard/SpellsStep";
 import { WeaponEntry } from "@/components/character/WeaponEntry";
 import { SpellEntry } from "@/components/character/SpellEntry";
+import { FeatureEntry, FeatureLike } from "@/components/character/FeatureEntry";
+import { FeatEntry } from "@/components/character/FeatEntry";
 import { Spell } from "@/interfaces/Spell";
+import { CharacterDetails } from "@/interfaces/CharacterDetails";
 
 const ABILITY_LABELS: { key: keyof StoredCharacter["abilityScores"]; label: string }[] = [
   { key: "strength", label: "STR" },
@@ -67,6 +70,33 @@ function formatSlots(slots: Record<number, number> | null, label: string) {
         .map(([level, count]) => `${count}× ${levelLabel(Number(level))}`)
         .join(", ")}
     </p>
+  );
+}
+
+/** One class entry's base class features plus its subclass's features (if a subclass has been chosen), merged and sorted by the level they're gained at - the order a player would actually earn them in. */
+function combinedFeatures(entry: StoredCharacter["classes"][number]): FeatureLike[] {
+  return [...entry.class.features, ...(entry.subclass?.features ?? [])].sort(
+    (a, b) => a.level - b.level || a.name.localeCompare(b.name)
+  );
+}
+
+/** True if `details` has anything worth its own card - a character created before CharacterDetails existed, or from the random generator, has no `details` at all (see CharacterDetails.ts), and one from the wizard can still have every field left blank. */
+function hasCharacterDetails(details: CharacterDetails | undefined): boolean {
+  if (!details) return false;
+  return Boolean(
+    details.playerName ||
+      details.inspiration ||
+      details.deathSaves ||
+      details.otherProficienciesNotes ||
+      details.featuresAndTraitsNotes ||
+      details.backstory ||
+      details.alliesAndOrganizations ||
+      details.organizationSymbolName ||
+      details.additionalFeaturesAndTraits ||
+      details.treasure ||
+      details.appearanceNotes ||
+      (details.appearance && Object.values(details.appearance).some(Boolean)) ||
+      (details.flavor && Object.values(details.flavor).some(Boolean))
   );
 }
 
@@ -245,7 +275,6 @@ export default function CharacterDetailsPage() {
                 <p>Skills: {character.skillProficiencies.join(", ") || "None"}</p>
                 <p>Saving throws: {character.savingThrowProficiencies.join(", ") || "None"}</p>
                 <p>Languages: {character.languages.join(", ") || "None"}</p>
-                {character.feats.length > 0 && <p>Feats: {character.feats.map((feat) => feat.name).join(", ")}</p>}
               </CardContent>
             </Card>
 
@@ -280,6 +309,54 @@ export default function CharacterDetailsPage() {
               </CardContent>
             </Card>
           </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Class &amp; subclass features</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-6 text-sm text-fontcolor-secondary">
+              {character.classes.map((entry, index) => {
+                const features = combinedFeatures(entry);
+                const subclassPending = !entry.subclass && entry.level < entry.class.subclassLevel;
+                return (
+                  <div key={`${entry.class.name}-${index}`} className="flex flex-col gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-foreground">
+                      {entry.class.name}
+                      {entry.subclass ? ` (${entry.subclass.name})` : ""} · Level {entry.level}
+                    </p>
+                    {subclassPending && (
+                      <p className="text-xs italic">
+                        Subclass not yet chosen - available at {entry.class.name} level {entry.class.subclassLevel}.
+                      </p>
+                    )}
+                    <div className="flex flex-col gap-2">
+                      {features.map((feature, featureIndex) => (
+                        <FeatureEntry
+                          key={`${feature.name}-${feature.level}-${featureIndex}`}
+                          feature={feature}
+                          reached={feature.level <= entry.level}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Feats</CardTitle>
+              {character.feats.length > 0 && <Badge variant="muted">{character.feats.length}</Badge>}
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2 text-sm text-fontcolor-secondary">
+              {character.feats.length === 0 ? (
+                <p>No feats yet - edit this character to add some.</p>
+              ) : (
+                character.feats.map((feat) => <FeatEntry key={feat.name} feat={feat} />)
+              )}
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>
@@ -326,6 +403,100 @@ export default function CharacterDetailsPage() {
               )}
             </CardContent>
           </Card>
+
+          {hasCharacterDetails(character.details) && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Character details</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-2 text-sm text-fontcolor-secondary">
+                <div className="flex flex-wrap items-center gap-3">
+                  {character.details?.playerName && <p>Player: {character.details.playerName}</p>}
+                  {character.details?.inspiration && <Badge variant="solid">Inspiration</Badge>}
+                  {character.details?.deathSaves &&
+                    (character.details.deathSaves.successes > 0 || character.details.deathSaves.failures > 0) && (
+                      <Badge variant="muted">
+                        Death saves: {character.details.deathSaves.successes} success /{" "}
+                        {character.details.deathSaves.failures} failure
+                      </Badge>
+                    )}
+                </div>
+                {character.details?.flavor?.personalityTraits && (
+                  <p>
+                    <span className="font-semibold text-fontcolor">Personality traits:</span>{" "}
+                    {character.details.flavor.personalityTraits}
+                  </p>
+                )}
+                {character.details?.flavor?.ideals && (
+                  <p>
+                    <span className="font-semibold text-fontcolor">Ideals:</span> {character.details.flavor.ideals}
+                  </p>
+                )}
+                {character.details?.flavor?.bonds && (
+                  <p>
+                    <span className="font-semibold text-fontcolor">Bonds:</span> {character.details.flavor.bonds}
+                  </p>
+                )}
+                {character.details?.flavor?.flaws && (
+                  <p>
+                    <span className="font-semibold text-fontcolor">Flaws:</span> {character.details.flavor.flaws}
+                  </p>
+                )}
+                {character.details?.appearance && Object.values(character.details.appearance).some(Boolean) && (
+                  <p>
+                    <span className="font-semibold text-fontcolor">Appearance:</span>{" "}
+                    {Object.entries(character.details.appearance)
+                      .filter(([, value]) => value)
+                      .map(([key, value]) => `${key.charAt(0).toUpperCase()}${key.slice(1)} ${value}`)
+                      .join(", ")}
+                  </p>
+                )}
+                {character.details?.appearanceNotes && (
+                  <p className="whitespace-pre-line">
+                    <span className="font-semibold text-fontcolor">Physical description:</span>{" "}
+                    {character.details.appearanceNotes}
+                  </p>
+                )}
+                {character.details?.backstory && (
+                  <p className="whitespace-pre-line">
+                    <span className="font-semibold text-fontcolor">Backstory:</span> {character.details.backstory}
+                  </p>
+                )}
+                {character.details?.alliesAndOrganizations && (
+                  <p className="whitespace-pre-line">
+                    <span className="font-semibold text-fontcolor">Allies &amp; organizations:</span>{" "}
+                    {character.details.alliesAndOrganizations}
+                    {character.details.organizationSymbolName
+                      ? ` (symbol: ${character.details.organizationSymbolName})`
+                      : ""}
+                  </p>
+                )}
+                {character.details?.treasure && (
+                  <p className="whitespace-pre-line">
+                    <span className="font-semibold text-fontcolor">Treasure:</span> {character.details.treasure}
+                  </p>
+                )}
+                {character.details?.additionalFeaturesAndTraits && (
+                  <p className="whitespace-pre-line">
+                    <span className="font-semibold text-fontcolor">Additional features &amp; traits:</span>{" "}
+                    {character.details.additionalFeaturesAndTraits}
+                  </p>
+                )}
+                {character.details?.featuresAndTraitsNotes && (
+                  <p className="whitespace-pre-line">
+                    <span className="font-semibold text-fontcolor">Features &amp; traits notes:</span>{" "}
+                    {character.details.featuresAndTraitsNotes}
+                  </p>
+                )}
+                {character.details?.otherProficienciesNotes && (
+                  <p className="whitespace-pre-line">
+                    <span className="font-semibold text-fontcolor">Other proficiencies &amp; languages notes:</span>{" "}
+                    {character.details.otherProficienciesNotes}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <div className="flex flex-wrap items-center gap-3 border-t border-border pt-6">
             <Button href={`/newCharacter/manual?edit=${character.id}`}>Edit character</Button>

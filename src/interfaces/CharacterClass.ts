@@ -64,4 +64,21 @@ export interface CharacterClass {
    * for 2014 classes and for classes with no weapon mastery feature.
    */
   weaponMasteryProgression?: Record<number, number>;
+  /**
+   * Every named mechanical benefit this BASE class grants (not counting
+   * subclass features - see Subclass.features for those), in the order a
+   * character gains them, e.g. Fighter has "Fighting Style"/"Second Wind"
+   * at 1, "Action Surge" at 2, "Extra Attack" at 5, etc. `level` is the
+   * character's level in this class at which the feature is gained - the
+   * same convention Subclass.features uses, so both lists can be merged
+   * and sorted together. A generic "Ability Score Improvement" entry is
+   * included at every level a class grants one (4/8/12/16/19, plus a
+   * class's own extra ASI levels) since it's a real row on the class
+   * table, same as any other feature. This is the intended place to show
+   * every feature a class will EVER grant - including ones above the
+   * character's current level, marked as not yet reached by comparing
+   * `level` to the character's class level - not just the ones already
+   * unlocked.
+   */
+  features: { name: string; level: number; description: string }[];
 }

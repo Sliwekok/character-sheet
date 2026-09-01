@@ -76,6 +76,8 @@ import { WizardSubclasses as WizardSubclasses2024 } from "./2024/subclasses/Wiza
 import { WEAPONS } from "./weapons/Weapons";
 import { ARMOR } from "./armor/Armor";
 import { MAGIC_ITEMS } from "./magicItems/MagicItems";
+import { MAGIC_WEAPONS } from "./magicItems/MagicWeapons";
+import { MAGIC_ARMOR } from "./magicItems/MagicArmor";
 import { SPELLS } from "./spells/Spells";
 
 export interface Ruleset {
@@ -93,6 +95,18 @@ export interface Ruleset {
   spells: Spell[];
   /** Non-armor/weapon magic items (wondrous items, rings, rods, staves, wands, potions, scrolls) - edition-agnostic, same list shared by both rulesets. */
   magicItems: MagicItem[];
+  /**
+   * Named magic weapons (e.g. "Flame Tongue Longsword") - a separate list
+   * from `weapons` (which stays the mundane starting-equipment table), for
+   * a future "browse loot"/enchant-picker UI. See data/magicItems/MagicWeapons.ts.
+   */
+  magicWeapons: Weapon[];
+  /**
+   * Named magic armor and shields (e.g. "Animated Shield") - a separate
+   * list from `armor` for the same reason as `magicWeapons` above. See
+   * data/magicItems/MagicArmor.ts.
+   */
+  magicArmor: Armor[];
 }
 
 // Weapon, armor, and magic item data don't differ by edition, so all three
@@ -124,6 +138,8 @@ const RULESETS: Record<Edition, Ruleset> = {
     armor: ARMOR,
     spells: SPELLS,
     magicItems: MAGIC_ITEMS,
+    magicWeapons: MAGIC_WEAPONS,
+    magicArmor: MAGIC_ARMOR,
   },
   "2024": {
     edition: "2024",
@@ -147,6 +163,8 @@ const RULESETS: Record<Edition, Ruleset> = {
     armor: ARMOR,
     spells: SPELLS,
     magicItems: MAGIC_ITEMS,
+    magicWeapons: MAGIC_WEAPONS,
+    magicArmor: MAGIC_ARMOR,
   },
 };
 
@@ -159,4 +177,11 @@ const RULESETS: Record<Edition, Ruleset> = {
  */
 export function getRuleset(edition: Edition): Ruleset {
   return RULESETS[edition];
+}
+
+export function getSpecificItem(edition: string, type: string, item: string) {
+    const ruleset = getRuleset(edition as Edition);
+    const gruop = ruleset[type as keyof Ruleset] as any[];
+
+    return gruop.find((i) => i.name === item);
 }

@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { Container, Logo, TextInput } from "@/components/ui";
+import {useEffect, useState} from "react";
+import {Combobox, Container, Logo, TextInput} from "@/components/ui";
 import { cn } from "@/utils/cn";
+import {getRuleset, getSpecificItem, Ruleset} from "@/data";
 
 const NAV_LINKS = [
   { href: "/home", label: "Home" },
@@ -14,8 +15,63 @@ const NAV_LINKS = [
 
 export default function Nav() {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchOptions, setSearchOptions] = useState([]);
+  const [filteredOptions, setFilteredOptions] = useState<any[]>([]);
+  const [search, setSearch] = useState('');
   const pathname = usePathname();
+  const maxFilters = 5;
+  const [allItemsList, setAllItemsList] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchAllItems = async () => {
+      const ruleset2014 = getRuleset("2014");
+      const ruleset2024 = getRuleset("2024");
+
+      const rulesets = [ruleset2014, ruleset2024];
+      const itemsToInsert = [];
+
+      for (const currentRuleset of rulesets) {
+        for (const key of Object.keys(currentRuleset) as Array<keyof Ruleset>) {
+          const currentKey = currentRuleset[key];
+
+          if (Array.isArray(currentKey)) {
+            for (const item of currentKey) {
+              itemsToInsert.push({
+                name: item.name,
+                ruleset: currentRuleset.edition,
+                type: key,
+              });
+            }
+          }
+        }
+      }
+      setAllItemsList(itemsToInsert);
+    };
+
+    fetchAllItems();
+  }, []);
+
+  useEffect(() => {
+  }, [allItemsList]);
+
   const toggleNav = () => setIsOpen((open) => !open);
+
+  function filterSearch (searchValue: string) {
+    if (searchValue?.trim().length <= 3) {
+      return [];
+    }
+    const filtered = allItemsList.filter((item) =>
+      item.name.toLowerCase().includes((searchValue || search).toLowerCase())
+    ).slice(0, maxFilters) as Array<{ name: string; ruleset: Ruleset; type: keyof Ruleset }>;
+
+    setFilteredOptions(filtered);
+  }
+
+  useEffect(() => {
+    filterSearch(search);
+  }, [search]);
+
+
 
   return (
     <nav className="sticky top-0 z-30 border-b border-border bg-background-darken/95 backdrop-blur-sm">
@@ -26,7 +82,21 @@ export default function Nav() {
           </Link>
 
           <div className="hidden max-w-md flex-1 px-8 lg:flex">
-            <TextInput placeholder="Search for wisdom" className="w-full" />
+            <Combobox
+                options={filteredOptions}
+                placeholder="Roll for wisdom"
+                className="w-full"
+                value={search}
+                getOptionLabel={(option) => '(' + option.ruleset + ')' + ' ' + option.name}
+                getOptionValue={(option) => option.name + ' ' + option.ruleset}
+                onInputChange={(value) => {
+                  setSearch(value);
+                }}
+                onChange={(value) => {
+                  console.log("Selected:", value);
+                  console.log(getSpecificItem(value.ruleset, value.type, value.name));
+                }}
+            />
           </div>
 
           {/* desktop links */}
