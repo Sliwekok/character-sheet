@@ -151,12 +151,14 @@ export default function PrintCharacterSheet() {
 
   if (character === null) {
     return (
-      <div className={styles.toolbar}>
-        <p>No character found with that id - it may have been deleted.</p>
-        <Link href="/home" className={styles.backLink}>
-          Back to characters
-        </Link>
-      </div>
+        <div className={styles.print}>
+          <div className={styles.toolbar}>
+            <p>No character found with that id - it may have been deleted.</p>
+            <Link href="/home" className={styles.backLink}>
+              Back to characters
+            </Link>
+          </div>
+        </div>
     );
   }
 

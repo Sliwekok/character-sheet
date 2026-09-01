@@ -106,7 +106,7 @@ export default function CharacterDetailsPage() {
     return (
       <>
         <Nav />
-        <Container size="lg" className="pb-24" />
+        <Container children="lg" size="lg" className="pb-24" />
       </>
     );
   }
@@ -135,6 +135,7 @@ export default function CharacterDetailsPage() {
   const spellGroups = groupSpellsByLevel(character.spellsKnown);
 
   function handleDeleteCharacter() {
+    if (!character?.id) return false;
     deleteCharacter(character.id);
     router.push("/home");
   }

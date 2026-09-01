@@ -5,7 +5,7 @@
    no license to embed) - everywhere else (shapes, rule lines, black-on-
    white line-art styling, label placement) follows the source sheet. */
 
-:root {
+.print {
   --ink: #171717;
   --label: #6b6b6b;
   --line: #111111;

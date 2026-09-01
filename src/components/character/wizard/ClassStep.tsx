@@ -2,6 +2,7 @@ import { CharacterClass } from "@/interfaces/CharacterClass";
 import { Subclass } from "@/interfaces/Subclass";
 import { DraftClassEntry } from "@/interfaces/CharacterDraft";
 import { Button, Card, CardContent, Combobox, Select, TextInput } from "@/components/ui";
+import {JSX} from "react";
 
 type ClassStepProps = {
   classes: CharacterClass[];
