@@ -15,17 +15,23 @@ import {
   Container,
   SectionHeading,
   StatBlock,
+  Tooltip,
   formatModifier,
 } from "@/components/ui";
 import { StoredCharacter } from "@/interfaces/StoredCharacter";
-import { Spell } from "@/interfaces/Spell";
 import { getCharacterLevel } from "@/interfaces/Characters";
 import { deleteCharacter, loadCharacter } from "@/utils/storage";
 import { downloadCharacterAsJson } from "@/utils/characterImportExport";
 import { calculateAbilityModifiers } from "@/utils/abilityModifiers";
-import { calculateArmorClass } from "@/utils/calculateArmorClass";
+import { getArmorClassBreakdown } from "@/utils/calculateArmorClass";
+import { getMaxHpBreakdown } from "@/utils/calculateMaxHp";
+import { getAbilityScoreBreakdown, getInitiativeBreakdown } from "@/utils/statBreakdowns";
+import { getSpellcastingInfo } from "@/utils/attackCalculations";
 import { getPactMagicSlots, getSpellSlots } from "@/utils/spellcasting";
 import { levelLabel } from "@/components/character/wizard/SpellsStep";
+import { WeaponEntry } from "@/components/character/WeaponEntry";
+import { SpellEntry } from "@/components/character/SpellEntry";
+import { Spell } from "@/interfaces/Spell";
 
 const ABILITY_LABELS: { key: keyof StoredCharacter["abilityScores"]; label: string }[] = [
   { key: "strength", label: "STR" },
@@ -71,6 +77,12 @@ function formatSlots(slots: Record<number, number> | null, label: string) {
  * rendered it - see SpellsStep). Clicking a character on /home lands here
  * now instead of jumping straight into editing (see CharacterCard); this
  * page's "Edit character" button is the new way in.
+ *
+ * Every derived number (ability modifiers, AC, HP, initiative, spellcasting,
+ * weapon attack/damage) carries a small info Tooltip explaining how it was
+ * computed - see utils/statBreakdowns.ts and utils/attackCalculations.ts -
+ * and weapons/spells get "Roll ..." buttons that actually roll the dice
+ * (utils/dice.ts) rather than just displaying the numbers.
  */
 export default function CharacterDetailsPage() {
   const params = useParams<{ id: string }>();
@@ -96,9 +108,12 @@ export default function CharacterDetailsPage() {
     if (!character) return null;
     return {
       modifiers: calculateAbilityModifiers(character.abilityScores),
-      ac: calculateArmorClass(character),
+      ac: getArmorClassBreakdown(character),
+      hp: getMaxHpBreakdown(character),
+      initiative: getInitiativeBreakdown(character),
       spellSlots: getSpellSlots(character),
       pactMagicSlots: getPactMagicSlots(character),
+      spellcasting: getSpellcastingInfo(character),
     };
   }, [character]);
 
@@ -127,11 +142,22 @@ export default function CharacterDetailsPage() {
     );
   }
 
-  const { modifiers, ac, spellSlots, pactMagicSlots } = derived!;
+  const { modifiers, ac, hp, initiative, spellSlots, pactMagicSlots, spellcasting } = derived!;
   const classSummary = character.classes
     .map((entry) => `${entry.class.name}${entry.subclass ? ` (${entry.subclass.name})` : ""} ${entry.level}`)
     .join(", ");
-  const stats = ABILITY_LABELS.map(({ key, label }) => ({ label, value: formatModifier(modifiers[key]) }));
+  const stats = ABILITY_LABELS.map(({ key, label }) => {
+    const breakdown = getAbilityScoreBreakdown(character, key);
+    return {
+      label,
+      value: (
+        <span className="flex items-center gap-1.5">
+          {formatModifier(modifiers[key])}
+          <Tooltip title={`${label} (score ${breakdown.score})`} lines={breakdown.lines} />
+        </span>
+      ),
+    };
+  });
   const spellGroups = groupSpellsByLevel(character.spellsKnown);
 
   function handleDeleteCharacter() {
@@ -178,12 +204,21 @@ export default function CharacterDetailsPage() {
           <Card>
             <CardContent className="flex flex-col gap-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-wrap gap-3">
-                  <Badge variant="solid">AC {ac}</Badge>
-                  <Badge variant="muted">
-                    HP {character.currentHP}/{character.maxHP}
-                  </Badge>
-                  <Badge variant="muted">Initiative {formatModifier(character.initiative)}</Badge>
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="flex items-center gap-1">
+                    <Badge variant="solid">AC {ac.total}</Badge>
+                    <Tooltip title="Armor Class" lines={ac.lines} />
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Badge variant="muted">
+                      HP {character.currentHP}/{character.maxHP}
+                    </Badge>
+                    <Tooltip title="Max HP" lines={hp.lines} />
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Badge variant="muted">Initiative {formatModifier(character.initiative)}</Badge>
+                    <Tooltip title="Initiative" lines={initiative.lines} />
+                  </span>
                 </div>
                 <Badge variant="outline">{character.alignment}</Badge>
               </div>
@@ -218,12 +253,11 @@ export default function CharacterDetailsPage() {
               <CardHeader>
                 <CardTitle>Equipment</CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-col gap-2 text-sm text-fontcolor-secondary">
+              <CardContent className="flex flex-col gap-3 text-sm text-fontcolor-secondary">
                 <p>
                   Armor: {character.equippedArmor?.name ?? "Unarmored"}
                   {character.shield ? ` + ${character.shield.name}` : ""}
                 </p>
-                <p>Weapons: {character.weapons.map((weapon) => weapon.name).join(", ") || "None"}</p>
                 {character.magicItems && character.magicItems.length > 0 && (
                   <p>Magic items: {character.magicItems.map((item) => item.name).join(", ")}</p>
                 )}
@@ -232,6 +266,17 @@ export default function CharacterDetailsPage() {
                   {character.currency.electrum ? `, ${character.currency.electrum}ep` : ""}
                   {character.currency.platinum ? `, ${character.currency.platinum}pp` : ""}
                 </p>
+
+                {character.weapons.length > 0 ? (
+                  <div className="flex flex-col gap-2 border-t border-border pt-3">
+                    <p className="font-semibold text-fontcolor">Weapons</p>
+                    {character.weapons.map((weapon, index) => (
+                      <WeaponEntry key={`${weapon.name}-${index}`} character={character} weapon={weapon} />
+                    ))}
+                  </div>
+                ) : (
+                  <p>Weapons: None</p>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -239,13 +284,17 @@ export default function CharacterDetailsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Spells</CardTitle>
-              {character.spellsKnown.length > 0 && (
-                <Badge variant="muted">
-                  {character.spellsKnown.length} known
-                </Badge>
-              )}
+              {character.spellsKnown.length > 0 && <Badge variant="muted">{character.spellsKnown.length} known</Badge>}
             </CardHeader>
             <CardContent className="flex flex-col gap-4 text-sm text-fontcolor-secondary">
+              {spellcasting && (
+                <p className="flex items-center gap-1 text-xs">
+                  Casts as a {spellcasting.className} using {spellcasting.abilityLabel} — Spell attack{" "}
+                  {formatModifier(spellcasting.spellAttackBonus)}, Save DC {spellcasting.spellSaveDC}
+                  <Tooltip title="Spellcasting" lines={spellcasting.lines} />
+                </p>
+              )}
+
               {(spellSlots || pactMagicSlots) && (
                 <div className="flex flex-col gap-1 border-b border-border pb-3">
                   {formatSlots(spellSlots, "Spell slots")}
@@ -255,7 +304,9 @@ export default function CharacterDetailsPage() {
 
               {spellGroups.length === 0 ? (
                 <p>
-                  {character.classes.some((entry) => entry.class.casterProgression !== "none" || entry.subclass?.casterProgressionOverride)
+                  {character.classes.some(
+                    (entry) => entry.class.casterProgression !== "none" || entry.subclass?.casterProgressionOverride
+                  )
                     ? "No spells picked yet - edit this character to add some."
                     : "This character doesn't cast spells."}
                 </p>
@@ -267,18 +318,7 @@ export default function CharacterDetailsPage() {
                     </p>
                     <div className="flex flex-col gap-2">
                       {spells.map((spell) => (
-                        <div key={spell.name} className="rounded-(--radius-sm) bg-background-darken/60 px-3 py-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-semibold text-fontcolor">{spell.name}</span>
-                            <Badge variant="outline">{spell.school}</Badge>
-                            {spell.ritual && <Badge variant="muted">Ritual</Badge>}
-                            {spell.concentration && <Badge variant="muted">Concentration</Badge>}
-                          </div>
-                          <p className="mt-1 text-xs">
-                            {spell.castingTime} · {spell.range} · {spell.components.join(", ")} · {spell.duration}
-                          </p>
-                          <p className="mt-2 whitespace-pre-line">{spell.description}</p>
-                        </div>
+                        <SpellEntry key={spell.name} spell={spell} spellcasting={spellcasting} />
                       ))}
                     </div>
                   </div>

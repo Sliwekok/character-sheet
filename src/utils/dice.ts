@@ -55,3 +55,78 @@ export function randomAbilityScores(): AbilityScores {
         return scores;
     }, {} as AbilityScores);
 }
+
+export type DiceRollResult = {
+    /** The formula that was rolled, e.g. "1d8" or "1d20". */
+    formula: string;
+    /** Individual die results, in the order rolled. Empty if `formula` didn't parse. */
+    rolls: number[];
+    /** Sum of just the dice, before `modifier`. */
+    diceTotal: number;
+    /** Flat modifier applied on top of the dice (any embedded in `formula` plus any passed in separately). */
+    modifier: number;
+    /** `diceTotal + modifier` - the number to actually use. */
+    total: number;
+};
+
+/**
+ * Parses and rolls a small subset of dice notation: "NdM", optionally with
+ * a trailing "+K"/"-K" (whitespace-tolerant, case-insensitive "d"). Built
+ * only to roll the app's own weapon/spell dice strings (e.g. "1d8", "2d6"),
+ * not as a general-purpose dice-notation parser - multiple dice groups
+ * ("1d8+1d6") and advantage/disadvantage aren't supported. Falls back to a
+ * dice-less result (just `extraModifier` as the total) if `formula` doesn't
+ * match at all, rather than throwing, since one caller (SpellEntry) passes
+ * in text pulled from a spell description via `findDiceNotation`, which
+ * isn't guaranteed to be clean.
+ */
+export function rollDiceFormula(formula: string, extraModifier = 0): DiceRollResult {
+    const match = formula.trim().match(/^(\d+)\s*d\s*(\d+)\s*(?:([+-])\s*(\d+))?$/i);
+    if (!match) {
+        return { formula, rolls: [], diceTotal: 0, modifier: extraModifier, total: extraModifier };
+    }
+
+    const count = Number(match[1]);
+    const sides = Number(match[2]);
+    const embeddedModifier = match[3] ? Number(`${match[3]}${match[4]}`) : 0;
+    const rolls = Array.from({ length: count }, () => rollDie(sides));
+    const diceTotal = rolls.reduce((sum, roll) => sum + roll, 0);
+    const modifier = embeddedModifier + extraModifier;
+
+    return { formula, rolls, diceTotal, modifier, total: diceTotal + modifier };
+}
+
+/** Rolls a d20 plus a flat modifier - the shared shape behind every attack roll (weapon or spell) on the character sheet. */
+export function rollD20(modifier = 0): DiceRollResult {
+    const roll = rollDie(20);
+    return { formula: "1d20", rolls: [roll], diceTotal: roll, modifier, total: roll + modifier };
+}
+
+/**
+ * Finds the first "NdM" (optionally "+K"/"-K") dice notation in free text.
+ * Used to offer a "roll" button for a spell's damage/healing straight from
+ * its `description` field, since interfaces/Spell.ts has no structured
+ * damage-dice field the way Weapon does. Only ever returns the FIRST match
+ * - a spell whose text has more than one dice notation (e.g. a scaling
+ * "at higher levels" clause) only offers the first one, and any modifier
+ * the spell text adds beyond that (e.g. "+ your spellcasting ability
+ * modifier" on many healing spells) isn't applied automatically - the
+ * button's tooltip says as much rather than silently guessing. Returns
+ * `null` when nothing matches.
+ */
+export function findDiceNotation(text: string): string | null {
+    const match = text.match(/\d+\s*d\s*\d+(?:\s*[+-]\s*\d+)?/i);
+    return match ? match[0].replace(/\s+/g, "") : null;
+}
+
+/**
+ * Human-readable summary of a roll, e.g. "[14] + 5 = 19" or
+ * "[4, 6] + 3 = 13" or "8 = 8" (a flat, dice-less result). Shared by every
+ * "Roll ..." button on the character sheet so results render consistently.
+ */
+export function describeDiceRoll(result: DiceRollResult): string {
+    if (result.rolls.length === 0) return `${result.total}`;
+    const rollsText = result.rolls.length > 1 ? `[${result.rolls.join(", ")}]` : `${result.rolls[0]}`;
+    const modifierText = result.modifier ? ` ${result.modifier >= 0 ? "+" : "-"} ${Math.abs(result.modifier)}` : "";
+    return `${rollsText}${modifierText} = ${result.total}`;
+}

@@ -1,8 +1,10 @@
+import type { ReactNode } from "react";
 import { cn } from "@/utils/cn";
 
 export type Stat = {
   label: string;
-  value: number | string;
+  /** Usually a formatted number/string, but any node is allowed so a stat can carry its own inline info Tooltip (see app/character/[id]/page.tsx's ability score row). */
+  value: ReactNode;
 };
 
 type StatBlockProps = {

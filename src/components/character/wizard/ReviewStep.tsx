@@ -80,6 +80,9 @@ export function ReviewStep({ draft, isEditing, onSave, extraActions }: ReviewSte
             <p>Skills: {preview.skillProficiencies.join(", ") || "None"}</p>
             <p>Armor: {preview.equippedArmor?.name ?? "Unarmored"}{preview.shield ? ` + ${preview.shield.name}` : ""}</p>
             <p>Weapons: {preview.weapons.map((w) => w.name).join(", ") || "None"}</p>
+            {preview.magicItems && preview.magicItems.length > 0 && (
+              <p>Magic items: {preview.magicItems.map((item) => item.name).join(", ")}</p>
+            )}
             <p>Languages: {preview.languages.join(", ") || "None"}</p>
             {preview.spellsKnown.length > 0 && (
               <p className="sm:col-span-2">

@@ -13,3 +13,5 @@ export { Combobox } from "./Combobox";
 export { Logo } from "./Logo";
 export { StatBlock, formatModifier } from "./StatBlock";
 export type { Stat } from "./StatBlock";
+export { Tooltip } from "./Tooltip";
+export type { TooltipLine } from "./Tooltip";

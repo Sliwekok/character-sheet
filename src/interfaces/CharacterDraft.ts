@@ -10,6 +10,7 @@ import { Weapon } from "@/interfaces/Weapon";
 import { Currency } from "@/interfaces/Currency";
 import { Spell } from "@/interfaces/Spell";
 import { CharacterDetails } from "@/interfaces/CharacterDetails";
+import { MagicItem } from "@/interfaces/MagicItem";
 
 export type AbilityScoreMethod = "standard-array" | "point-buy" | "roll" | "manual";
 
@@ -91,6 +92,16 @@ export interface CharacterDraft {
     equippedArmor?: Armor;
     shield?: Armor;
     weapons: Weapon[];
+    /**
+     * Magic items carried/owned beyond the equipped armor/shield/weapons
+     * above (those can be magic items in their own right - see the
+     * magic-item fields on Armor/Weapon). Picked from the compendium or
+     * homebrewed via `createCustomMagicItem` on the Magic Items step - see
+     * utils/customMagicItems.ts. Always `[]` rather than undefined, same
+     * convention as `weapons`; `finalizeDraft()` drops it back to
+     * `undefined` on `Character.magicItems` when empty.
+     */
+    magicItems: MagicItem[];
     currency: Currency;
     name: string;
     alignment: string;

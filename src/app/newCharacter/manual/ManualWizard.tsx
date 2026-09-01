@@ -23,6 +23,7 @@ import { ClassStep } from "@/components/character/wizard/ClassStep";
 import { AbilityScoresStep } from "@/components/character/wizard/AbilityScoresStep";
 import { BackgroundStep } from "@/components/character/wizard/BackgroundStep";
 import { SkillsEquipmentStep } from "@/components/character/wizard/SkillsEquipmentStep";
+import { MagicItemsStep } from "@/components/character/wizard/MagicItemsStep";
 import { SpellsStep } from "@/components/character/wizard/SpellsStep";
 import { DetailsStep } from "@/components/character/wizard/DetailsStep";
 import { ReviewStep } from "@/components/character/wizard/ReviewStep";
@@ -33,12 +34,14 @@ import { ReviewStep } from "@/components/character/wizard/ReviewStep";
 // bonus picker and docs/generator.md.
 //
 // The step LIST is no longer a static constant - "Spells" is spliced in
-// after "Skills & Equipment" only for a spellcasting class (see
-// `isSpellcaster` below), so every step is looked up by NAME rather than a
-// fixed numeric index (see `canProceed` and the render switch below) -
-// that's what lets the list grow/shrink as the player changes their class
-// without the rest of the wizard's indices going stale.
-const BASE_STEPS = ["Edition", "Race", "Class", "Background", "Ability Scores", "Skills & Equipment"];
+// after "Magic Items" only for a spellcasting class (see `isSpellcaster`
+// below), so every step is looked up by NAME rather than a fixed numeric
+// index (see `canProceed` and the render switch below) - that's what lets
+// the list grow/shrink as the player changes their class without the rest
+// of the wizard's indices going stale. "Magic Items" itself is always
+// present (in BASE_STEPS) - unlike Spells it isn't gated on class, since
+// any character can carry a wand or a potion regardless of what they cast.
+const BASE_STEPS = ["Edition", "Race", "Class", "Background", "Ability Scores", "Skills & Equipment", "Magic Items"];
 
 /** Whether the player can move past `stepName` via the Continue button - this is the one place the wizard's linear order is encoded. The step indicator (StepProgress) deliberately does NOT use this - it lets the player jump to any step at any time, see this component's `onSelect`. */
 function canProceed(stepName: string, draft: CharacterDraft): boolean {
@@ -57,8 +60,9 @@ function canProceed(stepName: string, draft: CharacterDraft): boolean {
         isValidBackgroundAllocation(draft.background, draft.backgroundAbilityBonuses)
       );
     case "Skills & Equipment":
+    case "Magic Items":
     case "Spells":
-      return true; // both optional to fill in before moving on
+      return true; // all three optional to fill in before moving on
     case "Details":
       return draft.name.trim().length > 0 && draft.alignment.length > 0;
     default: // "Review"
@@ -334,6 +338,21 @@ export default function ManualWizard() {
                   }
                   jumpLabel={!primaryClass ? "Go to Class" : "Go to Background"}
                   onJump={() => setStepIndex(STEPS.indexOf(!primaryClass ? "Class" : "Background"))}
+                />
+              ))}
+
+            {currentStep === "Magic Items" &&
+              (ruleset ? (
+                <MagicItemsStep
+                  ruleset={ruleset}
+                  magicItems={draft.magicItems}
+                  onChange={(magicItems) => updateDraft({ magicItems })}
+                />
+              ) : (
+                <PrerequisiteNotice
+                  message="Choose an edition first - it decides which magic items are available to browse."
+                  jumpLabel="Go to Edition"
+                  onJump={() => setStepIndex(STEPS.indexOf("Edition"))}
                 />
               ))}
 
