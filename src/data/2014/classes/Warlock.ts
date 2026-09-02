@@ -23,6 +23,7 @@ export const Warlock: CharacterClass = {
         pactMagic: pactMagicProgression,
     },
     subclassLevel: 1,
+    // features text verified against 5etools' class-warlock.json (PHB source) - https://5e.tools/classes.html#warlock_phb
     features: [
         { name: "Pact Magic", level: 1, description: "Your arcane research and the magic bestowed on you by your patron have given you facility with spells. You regain all expended Pact Magic spell slots when you finish a short or long rest, unlike other spellcasters. See the Spells section of this sheet for the spells you know, your spell save DC, and your spell attack bonus." },
         { name: "Eldritch Invocations", level: 2, description: "In your study of occult lore, you have unearthed eldritch invocations, fragments of forbidden knowledge that imbue you with an abiding magical ability. You gain two eldritch invocations of your choice (such as Agonizing Blast, Devil's Sight, or Mask of Many Faces); some require you to be a specific level or have a specific pact boon before you can learn them. You gain additional invocations as you gain levels in this class, and can swap one out for another whenever you gain a level." },

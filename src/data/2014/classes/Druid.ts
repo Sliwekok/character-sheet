@@ -35,8 +35,14 @@ export const Druid: CharacterClass = {
         progression: fullCasterProgression,
     },
     subclassLevel: 2,
+    // features verified against 5etools' class-druid.json (PHB source) - https://5e.tools/classes.html#druid_phb
+    // Corrected from an earlier from-memory pass: Druidic's description included a sentence about
+    // inscribing Druidic script into a spell's visible effect that isn't part of the PHB feature
+    // text, so it was removed. Everything else here - Wild Shape's progression, the Ability Score
+    // Improvement levels, the Timeless Body/Beast Spells order at 18th level, and Archdruid - was
+    // already accurate against the source.
     features: [
-        { name: "Druidic", level: 1, description: "You know Druidic, the secret language of druids. You can speak the language and use it to leave hidden messages. You and others who know this language automatically spot such a message. Others spot the message's presence with a successful DC 15 Wisdom (Perception) check but can't decipher it without magic. In addition, you can add the Druidic script to any spell you cast that has a visible physical effect that you can control - the spell's effect isn't changed, but you can incorporate the language into it." },
+        { name: "Druidic", level: 1, description: "You know Druidic, the secret language of druids. You can speak the language and use it to leave hidden messages. You and others who know this language automatically spot such a message. Others spot the message's presence with a successful DC 15 Wisdom (Perception) check but can't decipher it without magic." },
         { name: "Spellcasting", level: 1, description: "Drawing on the divine essence of nature itself, you can cast spells to shape that essence to your will. See the Spells section of this sheet for the spells you know or have prepared, your spell save DC, and your spell attack bonus." },
         { name: "Wild Shape", level: 2, description: "You can use your action to magically assume the shape of a beast that you have seen before. You can use this feature twice, regaining expended uses when you finish a short or long rest. Your druid level determines the beasts you can transform into, as shown in the Beast Shapes table (initially limited to a challenge rating of 1/4 with no swimming or flying speed). You can stay in a beast shape for a number of hours equal to half your druid level (rounded down), or until you drop to 0 hit points or die." },
         { name: "Wild Shape Improvement (swimming)", level: 4, description: "You can transform into a beast with a challenge rating as high as 1/2, and you can now transform into a beast with a swimming speed." },

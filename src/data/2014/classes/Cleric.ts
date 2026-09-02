@@ -23,6 +23,9 @@ export const Cleric: CharacterClass = {
         progression: fullCasterProgression,
     },
     subclassLevel: 1,
+    // features text verified against 5etools' class-cleric.json (PHB source) - https://5e.tools/classes.html#cleric_phb
+    // Already accurate: no corrections needed (Channel Divinity, Destroy Undead thresholds,
+    // Divine Intervention wording, and the Ability Score Improvement levels all match source).
     features: [
         { name: "Spellcasting", level: 1, description: "As a conduit for divine power, you can cast cleric spells. See the Spells section of this sheet for the spells you know or have prepared, your spell save DC, and your spell attack bonus." },
         { name: "Channel Divinity (1/rest)", level: 2, description: "You gain the ability to channel divine energy directly from your deity, using it to fuel magical effects. Every cleric has the Turn Undead Channel Divinity option: as an action, you present your holy symbol and each undead creature that can see or hear you within 30 feet must make a Wisdom saving throw or be turned for 1 minute or until it takes damage. Your Divine Domain grants you a second Channel Divinity option of its own. You can use your Channel Divinity once per short or long rest, increasing to twice at 6th level and three times at 18th level; you must finish a rest to regain expended uses." },

@@ -43,6 +43,11 @@ export const Rogue: CharacterClass = {
     primaryAbility: "dexterity",
     casterProgression: "none",
     subclassLevel: 3,
+    // features text pulled and verified against 5etools' class-rogue.json (PHB source) - https://5e.tools/classes.html#rogue_phb
+    // Already accurate from an earlier pass - Sneak Attack die progression (1d6 at 1st, 2d6 at 3rd,
+    // up to 10d6 at 19th, +1d6 every two levels), the Expertise/Uncanny Dodge/Evasion/Blindsense/
+    // Slippery Mind/Elusive/Stroke of Luck wording, and the ASI levels (4, 8, 10, 12, 16, 19 - no
+    // Epic Boon carve-out, that's 2024-only) all check out against the source JSON. No changes made.
     features: [
         { name: "Expertise", level: 1, description: "Choose two of your skill proficiencies, or one of your skill proficiencies and your proficiency with thieves' tools. Your proficiency bonus is doubled for any ability check you make that uses either of the chosen proficiencies. At 6th level, you can choose two more of your proficiencies (in skills or with thieves' tools) to gain this benefit." },
         { name: "Sneak Attack", level: 1, description: "You know how to strike subtly and exploit a foe's distraction. Once per turn, you can deal an extra 1d6 damage to one creature you hit with an attack if you have advantage on the attack roll. The attack must use a finesse or a ranged weapon. You don't need advantage on the attack roll if another enemy of the target is within 5 feet of it, that enemy isn't incapacitated, and you don't have disadvantage on the attack roll. The extra damage increases as you gain levels in this class, as shown in the Sneak Attack column of the Rogue table (2d6 at 3rd level, up to 10d6 at 19th level, increasing by 1d6 every two levels)." },

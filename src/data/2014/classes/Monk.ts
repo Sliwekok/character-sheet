@@ -17,6 +17,8 @@ export const Monk: CharacterClass = {
     primaryAbility: "dexterity",
     casterProgression: "none",
     subclassLevel: 3,
+    // features verified against 5etools' class-monk.json (PHB source) - already accurate;
+    // no corrections needed.
     features: [
         { name: "Unarmored Defense", level: 1, description: "While you are wearing no armor and not wielding a shield, your Armor Class equals 10 + your Dexterity modifier + your Wisdom modifier." },
         { name: "Martial Arts", level: 1, description: "Your practice of martial arts gives you mastery of combat styles that use unarmed strikes and monk weapons (shortswords and simple melee weapons that don't have the two-handed or heavy property). You gain the following benefits while unarmed or wielding only monk weapons and not wearing armor or wielding a shield: you can use Dexterity instead of Strength for the attack and damage rolls of your unarmed strikes and monk weapons; you can roll a d4 in place of the normal damage of your unarmed strike or monk weapon (this die changes as you gain monk levels, per the Martial Arts column of the Monk table: d4 at 1st, d6 at 5th, d8 at 11th, d10 at 17th); and when you use the Attack action with an unarmed strike or monk weapon, you can make one unarmed strike as a bonus action." },
