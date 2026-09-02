@@ -33,8 +33,9 @@ export default function Nav() {
       setFilteredOptions([]);
       return;
     }
+    const searchValueLower = searchValue.toLowerCase();
     const filtered = allItemsList
-      .filter((item) => item.name.toLowerCase().includes(searchValue.toLowerCase()))
+      .filter((item) => item.nameLower.includes(searchValueLower))
       .slice(0, maxFilters);
 
     setFilteredOptions(filtered);

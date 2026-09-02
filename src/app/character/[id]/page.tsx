@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import Nav from "../../layout/nav";
 import {
   Alert,
   Badge,
@@ -148,27 +147,19 @@ export default function CharacterDetailsPage() {
   }, [character]);
 
   if (character === undefined) {
-    return (
-      <>
-        <Nav />
-        <Container children="lg" size="lg" className="pb-24" />
-      </>
-    );
+    return <Container children="lg" size="lg" className="pb-24" />;
   }
 
   if (character === null) {
     return (
-      <>
-        <Nav />
-        <Container size="md" className="pb-24">
-          <Card>
-            <CardContent className="flex flex-col items-start gap-3 text-sm text-fontcolor-secondary">
-              <p>No character found with that id - it may have been deleted.</p>
-              <Button href="/home">Back to characters</Button>
-            </CardContent>
-          </Card>
-        </Container>
-      </>
+      <Container size="md" className="pb-24">
+        <Card>
+          <CardContent className="flex flex-col items-start gap-3 text-sm text-fontcolor-secondary">
+            <p>No character found with that id - it may have been deleted.</p>
+            <Button href="/home">Back to characters</Button>
+          </CardContent>
+        </Card>
+      </Container>
     );
   }
 
@@ -198,8 +189,6 @@ export default function CharacterDetailsPage() {
 
   return (
     <>
-      <Nav />
-
       {showDeleteConfirm && (
         <Alert
           variant="confirm"

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Nav from "../layout/nav";
 import { Card, CardContent, Container, SectionHeading } from "@/components/ui";
 
 const MODES = [
@@ -29,7 +28,6 @@ const MODES = [
 export default function NewCharacterPage() {
   return (
     <>
-      <Nav />
       <Container size="md" className="pb-24">
         <SectionHeading
           eyebrow="New character"

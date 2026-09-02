@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import Nav from "../../layout/nav";
 import { Button, Card, CardContent, Container, SectionHeading, Select, TextInput } from "@/components/ui";
 import { Edition } from "@/interfaces/Edition";
 import { StoredCharacter } from "@/interfaces/StoredCharacter";
@@ -38,7 +37,6 @@ export default function RandomCharacterPage() {
 
   return (
     <>
-      <Nav />
       <Container size="lg" className="pb-24">
         <SectionHeading
           eyebrow="New character"

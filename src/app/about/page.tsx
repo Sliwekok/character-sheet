@@ -1,10 +1,8 @@
-import Nav from "../layout/nav";
 import { Card, CardContent, Container, SectionHeading } from "@/components/ui";
 
 export default function AboutPage() {
   return (
     <>
-      <Nav />
       <Container size="md" className="pb-24">
         <SectionHeading
           eyebrow="About"

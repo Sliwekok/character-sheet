@@ -3,7 +3,6 @@
 import { useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
-import Nav from "../../layout/nav";
 import {
   Alert,
   Badge,
@@ -87,7 +86,6 @@ export default function ImportCharacterPage() {
 
   return (
     <>
-      <Nav />
       <Container size="md" className="pb-24">
         <SectionHeading
           eyebrow="New character"

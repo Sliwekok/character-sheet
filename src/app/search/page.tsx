@@ -2,7 +2,6 @@
 
 import { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import Nav from "../layout/nav";
 import { Button, Container, SectionHeading } from "@/components/ui";
 import { getSpecificItem } from "@/data";
 import { SearchableType } from "@/utils/searchIndex";
@@ -65,7 +64,6 @@ function SearchPageContent() {
 
   return (
     <>
-      <Nav />
       <Container size="lg" className="pb-24">
         <SectionHeading
           eyebrow="Compendium"

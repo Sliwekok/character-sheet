@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Nav from "../layout/nav";
 import { Container, SectionHeading } from "@/components/ui";
 import { CharacterCard, type CharacterSummary } from "@/components/character/CharacterCard";
 import { loadCharacters } from "@/utils/storage";
@@ -21,7 +20,6 @@ export default function HomePage() {
 
   return (
     <>
-      <Nav />
       <Container size="xl" className="pb-24">
         <SectionHeading
           eyebrow="Your party"
