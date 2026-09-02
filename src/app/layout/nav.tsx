@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import {useEffect, useState} from "react";
-import {Combobox, Container, Logo, TextInput} from "@/components/ui";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Combobox, Container, Logo, TextInput } from "@/components/ui";
 import { cn } from "@/utils/cn";
-import {getRuleset, getSpecificItem, Ruleset} from "@/data";
+import { buildSearchIndex, SearchIndexEntry } from "@/utils/searchIndex";
 
 const NAV_LINKS = [
   { href: "/home", label: "Home" },
@@ -15,63 +15,34 @@ const NAV_LINKS = [
 
 export default function Nav() {
   const [isOpen, setIsOpen] = useState(false);
-  const [searchOptions, setSearchOptions] = useState([]);
-  const [filteredOptions, setFilteredOptions] = useState<any[]>([]);
-  const [search, setSearch] = useState('');
+  const [filteredOptions, setFilteredOptions] = useState<SearchIndexEntry[]>([]);
+  const [search, setSearch] = useState("");
   const pathname = usePathname();
+  const router = useRouter();
   const maxFilters = 5;
-  const [allItemsList, setAllItemsList] = useState<any[]>([]);
+  const [allItemsList, setAllItemsList] = useState<SearchIndexEntry[]>([]);
 
   useEffect(() => {
-    const fetchAllItems = async () => {
-      const ruleset2014 = getRuleset("2014");
-      const ruleset2024 = getRuleset("2024");
-
-      const rulesets = [ruleset2014, ruleset2024];
-      const itemsToInsert = [];
-
-      for (const currentRuleset of rulesets) {
-        for (const key of Object.keys(currentRuleset) as Array<keyof Ruleset>) {
-          const currentKey = currentRuleset[key];
-
-          if (Array.isArray(currentKey)) {
-            for (const item of currentKey) {
-              itemsToInsert.push({
-                name: item.name,
-                ruleset: currentRuleset.edition,
-                type: key,
-              });
-            }
-          }
-        }
-      }
-      setAllItemsList(itemsToInsert);
-    };
-
-    fetchAllItems();
+    setAllItemsList(buildSearchIndex());
   }, []);
-
-  useEffect(() => {
-  }, [allItemsList]);
 
   const toggleNav = () => setIsOpen((open) => !open);
 
-  function filterSearch (searchValue: string) {
+  function filterSearch(searchValue: string) {
     if (searchValue?.trim().length <= 3) {
-      return [];
+      setFilteredOptions([]);
+      return;
     }
-    const filtered = allItemsList.filter((item) =>
-      item.name.toLowerCase().includes((searchValue || search).toLowerCase())
-    ).slice(0, maxFilters) as Array<{ name: string; ruleset: Ruleset; type: keyof Ruleset }>;
+    const filtered = allItemsList
+      .filter((item) => item.name.toLowerCase().includes(searchValue.toLowerCase()))
+      .slice(0, maxFilters);
 
     setFilteredOptions(filtered);
   }
 
   useEffect(() => {
     filterSearch(search);
-  }, [search]);
-
-
+  }, [search, allItemsList]);
 
   return (
     <nav className="sticky top-0 z-30 border-b border-border bg-background-darken/95 backdrop-blur-sm">
@@ -83,19 +54,28 @@ export default function Nav() {
 
           <div className="hidden max-w-md flex-1 px-8 lg:flex">
             <Combobox
-                options={filteredOptions}
-                placeholder="Roll for wisdom"
-                className="w-full"
-                value={search}
-                getOptionLabel={(option) => '(' + option.ruleset + ')' + ' ' + option.name}
-                getOptionValue={(option) => option.name + ' ' + option.ruleset}
-                onInputChange={(value) => {
-                  setSearch(value);
-                }}
-                onChange={(value) => {
-                  console.log("Selected:", value);
-                  console.log(getSpecificItem(value.ruleset, value.type, value.name));
-                }}
+              options={filteredOptions}
+              placeholder="Roll for wisdom"
+              className="w-full"
+              value={undefined}
+              getOptionLabel={(option) => "(" + option.ruleset + ") " + option.name}
+              getOptionValue={(option) => option.name + " " + option.ruleset + " " + option.type}
+              onInputChange={(value) => {
+                setSearch(value);
+              }}
+              onChange={(value) => {
+                // Full data for this item lives in getSpecificItem(value.ruleset, value.type,
+                // value.name) - the search results page (app/search/page.tsx) looks it up itself
+                // from these same three params, so we just navigate rather than passing it along.
+                const params = new URLSearchParams({
+                  edition: value.ruleset,
+                  type: value.type,
+                  name: value.name,
+                });
+                router.push(`/search?${params.toString()}`);
+                setSearch("");
+                setFilteredOptions([]);
+              }}
             />
           </div>
 
