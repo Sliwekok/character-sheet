@@ -50,21 +50,21 @@ export function WeaponEntry({ character, weapon }: { character: Character; weapo
         {weapon.properties.length > 0 ? ` · ${weapon.properties.join(", ")}` : ""}
       </p>
 
-      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
-        <span className="flex items-center gap-1 text-xs text-fontcolor-secondary">
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 justify-between">
+        <span className="flex items-center gap-1 text-xs text-fontcolor-secondary flex-1/2">
           Attack {formatModifier(attack.attackBonus)}
           <Tooltip title="Attack bonus" lines={attack.lines} />
         </span>
-        <Button size="sm" variant="secondary" onClick={rollAttack}>
+        <Button size="sm" variant="secondary" onClick={rollAttack} className="flex-1/4">
           Roll attack
         </Button>
 
-        <span className="flex items-center gap-1 text-xs text-fontcolor-secondary">
+        <span className="flex items-center gap-1 text-xs text-fontcolor-secondary flex-1/2">
           Damage {damage.diceFormula}
           {damage.flatBonus ? ` ${formatModifier(damage.flatBonus)}` : ""}
           <Tooltip title="Damage" lines={damage.lines} />
         </span>
-        <Button size="sm" variant="secondary" onClick={rollDamage}>
+        <Button size="sm" variant="secondary" onClick={rollDamage} className="flex-1/4">
           Roll damage
         </Button>
 

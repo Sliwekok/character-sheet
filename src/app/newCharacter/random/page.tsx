@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, CardContent, Container, SectionHeading, Select, TextInput } from "@/components/ui";
+import {Button, Card, CardContent, Combobox, Container, SectionHeading, Select, TextInput} from "@/components/ui";
 import { Edition } from "@/interfaces/Edition";
 import { StoredCharacter } from "@/interfaces/StoredCharacter";
-import { getRuleset } from "@/data";
+import { getRulesetAsync, Ruleset } from "@/data";
 import { generateRandomCharacter, RandomCharacterOverrides } from "@/utils/randomCharacter";
 import { draftFromCharacter, finalizeDraft } from "@/utils/characterDraft";
 import { saveCharacter } from "@/utils/storage";
@@ -19,12 +19,39 @@ export default function RandomCharacterPage() {
   const [mode, setMode] = useState<Mode>("choose");
   const [overrides, setOverrides] = useState<RandomCharacterOverrides>({});
   const [generated, setGenerated] = useState<StoredCharacter | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const ruleset = useMemo(() => (overrides.edition ? getRuleset(overrides.edition) : null), [overrides.edition]);
+  // Only needed here to populate the guided form's race/class pickers with
+  // a specific edition's options - fetched on demand (and cached per
+  // edition) rather than loaded eagerly, same as the manual wizard's
+  // ruleset. `generate()` below fetches its own copy independently (inside
+  // `generateRandomCharacter`), including for "All random", which never
+  // sets `overrides.edition` at all and so never populates this one.
+  const [ruleset, setRuleset] = useState<Ruleset | null>(null);
+  useEffect(() => {
+    if (!overrides.edition) {
+      setRuleset(null);
+      return;
+    }
+    let cancelled = false;
+    setRuleset(null);
+    getRulesetAsync(overrides.edition).then((loaded) => {
+      if (!cancelled) setRuleset(loaded);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [overrides.edition]);
 
-  function generate(withOverrides: RandomCharacterOverrides) {
-    setGenerated(generateRandomCharacter(withOverrides));
-    setMode("result");
+  async function generate(withOverrides: RandomCharacterOverrides) {
+    setIsGenerating(true);
+    try {
+      const character = await generateRandomCharacter(withOverrides);
+      setGenerated(character);
+      setMode("result");
+    } finally {
+      setIsGenerating(false);
+    }
   }
 
   function handleSave() {
@@ -55,8 +82,8 @@ export default function RandomCharacterPage() {
                     Randomizes everything, including which edition to use - race, class, level, ability
                     scores, background, skills, equipment, name, and alignment.
                   </p>
-                  <Button className="mt-2 w-fit" onClick={() => generate({})}>
-                    Generate character
+                  <Button className="mt-2 w-fit" onClick={() => generate({})} disabled={isGenerating}>
+                    {isGenerating ? "Generating…" : "Generate character"}
                   </Button>
                 </CardContent>
               </Card>
@@ -147,18 +174,15 @@ export default function RandomCharacterPage() {
 
                   <label className="flex flex-col gap-2">
                     <span className="text-sm font-medium text-fontcolor-secondary">Race</span>
-                    <Select
-                      value={overrides.raceName ?? ""}
-                      disabled={!ruleset}
-                      onChange={(event) => setOverrides((o) => ({ ...o, raceName: event.target.value || undefined }))}
-                    >
-                      <option value="">{ruleset ? "Random" : "Choose an edition first"}</option>
-                      {ruleset?.races.map((race) => (
-                        <option key={race.name} value={race.name}>
-                          {race.name}
-                        </option>
-                      ))}
-                    </Select>
+                    <Combobox options={ruleset ? ruleset.races.map((race) => ({ label: race.name, value: race.name })) : []}
+                              value={overrides.raceName ? { label: overrides.raceName, value: overrides.raceName } : null}
+                              placeholder={ruleset ? "Search races..." : "Choose an edition first"}
+                              onClear={() => setOverrides((o) => ({ ...o, raceName: undefined }))}
+                              getOptionLabel={(option) => option.label}
+                              getOptionValue={(option) => option.value}
+                              onChange={(option) => setOverrides((o) => ({ ...o, raceName: option?.value || undefined }))}
+                    />
+
                   </label>
 
                   <label className="flex flex-col gap-2">
@@ -182,7 +206,9 @@ export default function RandomCharacterPage() {
                   <Button variant="secondary" onClick={() => setMode("choose")}>
                     Back
                   </Button>
-                  <Button onClick={() => generate(overrides)}>Generate character</Button>
+                  <Button onClick={() => generate(overrides)} disabled={isGenerating}>
+                    {isGenerating ? "Generating…" : "Generate character"}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -194,8 +220,8 @@ export default function RandomCharacterPage() {
               isEditing={false}
               onSave={handleSave}
               extraActions={
-                <Button variant="secondary" onClick={() => generate(overrides)}>
-                  🎲 Reroll
+                <Button variant="secondary" onClick={() => generate(overrides)} disabled={isGenerating}>
+                  {isGenerating ? "Rerolling…" : "🎲 Reroll"}
                 </Button>
               }
             />

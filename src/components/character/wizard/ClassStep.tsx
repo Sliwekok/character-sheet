@@ -1,7 +1,10 @@
 import { CharacterClass } from "@/interfaces/CharacterClass";
 import { Subclass } from "@/interfaces/Subclass";
+import { HpMethod } from "@/interfaces/Hp";
 import { DraftClassEntry } from "@/interfaces/CharacterDraft";
 import { Button, Card, CardContent, Combobox, Select, TextInput } from "@/components/ui";
+import { rollsNeededForClassEntry } from "@/utils/calculateMaxHp";
+import { rollDie } from "@/utils/dice";
 import {JSX} from "react";
 
 type ClassStepProps = {
@@ -14,6 +17,19 @@ type ClassStepProps = {
 
 function classSummary(characterClass: CharacterClass): string {
   return `d${characterClass.hitDie} hit die · ${characterClass.primaryAbility} · caster: ${characterClass.casterProgression}`;
+}
+
+/**
+ * Grows/shrinks a class entry's stored rolls to exactly `needed` values -
+ * keeping whichever existing rolls are still in range (so leveling up
+ * doesn't reroll HP for levels already locked in) and rolling fresh d(hitDie)
+ * results for any new ones.
+ */
+function resizeRolls(hitDie: number, needed: number, existing: number[] | undefined): number[] {
+  const current = existing ?? [];
+  if (current.length === needed) return current;
+  if (current.length > needed) return current.slice(0, needed);
+  return [...current, ...Array.from({ length: needed - current.length }, () => rollDie(hitDie))];
 }
 
 function subclassSummary(subclass: Subclass): JSX.Element {
@@ -75,11 +91,32 @@ export function ClassStep({ classes, subclasses, entries, onChange }: ClassStepP
   }
 
   function addClass() {
-    onChange([...entries, { level: 1 }]);
+    onChange([...entries, { level: 1, hpMethod: "average" }]);
   }
 
   function removeClass(index: number) {
     onChange(entries.filter((_, i) => i !== index));
+  }
+
+  /** Switches a class entry's HP method - rolling a fresh set of dice immediately when switching TO "roll", so there's always something to show (and reroll) right away. */
+  function setHpMethod(index: number, hpMethod: HpMethod) {
+    const entry = entries[index];
+    const needed = entry.characterClass ? rollsNeededForClassEntry(entry.level, index === 0) : 0;
+    const hpRolls =
+      hpMethod === "roll" && entry.characterClass
+        ? Array.from({ length: needed }, () => rollDie(entry.characterClass!.hitDie))
+        : entry.hpRolls;
+    updateEntry(index, { hpMethod, hpRolls });
+  }
+
+  /** Re-rolls every non-first-level HP roll for one class entry from scratch. */
+  function rerollHp(index: number) {
+    const entry = entries[index];
+    if (!entry.characterClass) return;
+    const needed = rollsNeededForClassEntry(entry.level, index === 0);
+    updateEntry(index, {
+      hpRolls: Array.from({ length: needed }, () => rollDie(entry.characterClass!.hitDie)),
+    });
   }
 
   const eligibleSubclasses = primary?.characterClass
@@ -96,7 +133,7 @@ export function ClassStep({ classes, subclasses, entries, onChange }: ClassStepP
 
         return (
           <div key={index} className="flex flex-col gap-4">
-            <div className="grid gap-4 sm:grid-cols-[2fr_1fr_auto]">
+            <div className="grid gap-4 sm:grid-cols-[2fr_1fr_1fr_auto]">
               <label className="flex flex-col gap-2">
                 <span className="text-sm font-medium text-fontcolor-secondary">
                   {isPrimary ? "Class" : `Class ${index + 1} (multiclass)`}
@@ -112,6 +149,16 @@ export function ClassStep({ classes, subclasses, entries, onChange }: ClassStepP
                         // was picked for the old one, same as the original
                         // (single-class) behavior.
                         subclass: isPrimary ? undefined : entry.subclass,
+                        // A different class means a different (or same) hit
+                        // die - previously-rolled values no longer mean
+                        // anything against it, so reroll fresh rather than
+                        // carry stale numbers forward.
+                        hpRolls:
+                          entry.hpMethod === "roll"
+                            ? Array.from({ length: rollsNeededForClassEntry(entry.level, isPrimary) }, () =>
+                                rollDie(next.hitDie)
+                              )
+                            : entry.hpRolls,
                       });
                     }
                   }}
@@ -136,9 +183,29 @@ export function ClassStep({ classes, subclasses, entries, onChange }: ClassStepP
                   value={entry.level}
                   onChange={(event) => {
                     const parsed = Number(event.target.value);
-                    updateEntry(index, { level: Number.isFinite(parsed) ? Math.min(20, Math.max(1, parsed)) : 1 });
+                    const level = Number.isFinite(parsed) ? Math.min(20, Math.max(1, parsed)) : 1;
+                    const hpRolls =
+                      entry.hpMethod === "roll" && entry.characterClass
+                        ? resizeRolls(
+                            entry.characterClass.hitDie,
+                            rollsNeededForClassEntry(level, isPrimary),
+                            entry.hpRolls
+                          )
+                        : entry.hpRolls;
+                    updateEntry(index, { level, hpRolls });
                   }}
                 />
+              </label>
+
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-medium text-fontcolor-secondary">Hit points</span>
+                <Select
+                  value={entry.hpMethod ?? "average"}
+                  onChange={(event) => setHpMethod(index, event.target.value as HpMethod)}
+                >
+                  <option value="average">Average (fixed)</option>
+                  <option value="roll">Roll each level</option>
+                </Select>
               </label>
 
               {!isPrimary && (
@@ -149,6 +216,18 @@ export function ClassStep({ classes, subclasses, entries, onChange }: ClassStepP
                 </div>
               )}
             </div>
+
+            {entry.characterClass && entry.hpMethod === "roll" && (
+              <div className="flex flex-wrap items-center gap-3 text-xs text-fontcolor-secondary">
+                <span>
+                  Rolled (d{entry.characterClass.hitDie} each, level {isPrimary ? "2" : "1"}+):{" "}
+                  {(entry.hpRolls ?? []).length > 0 ? entry.hpRolls!.join(", ") : "—"}
+                </span>
+                <Button variant="secondary" size="sm" onClick={() => rerollHp(index)}>
+                  Reroll
+                </Button>
+              </div>
+            )}
 
             {isPrimary && entry.characterClass && (
               <Card>

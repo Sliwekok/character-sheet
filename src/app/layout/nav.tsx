@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Combobox, Container, Logo, TextInput } from "@/components/ui";
 import { cn } from "@/utils/cn";
-import { buildSearchIndex, SearchIndexEntry } from "@/utils/searchIndex";
+import { buildSearchIndexAsync, SearchIndexEntry } from "@/utils/searchIndex";
 
 const NAV_LINKS = [
   { href: "/home", label: "Home" },
@@ -21,10 +21,20 @@ export default function Nav() {
   const router = useRouter();
   const maxFilters = 5;
   const [allItemsList, setAllItemsList] = useState<SearchIndexEntry[]>([]);
+  // Whether the search box's index fetch has been kicked off - guards
+  // `ensureSearchIndex` below so it only fires the (fairly heavy, both
+  // rulesets' worth of) fetch once, the first time the player actually
+  // touches the search box, rather than on every mount of `Nav` - which,
+  // since `Nav` lives in the root layout (see NavGate), would otherwise
+  // mean every single page load fetches both full compendiums. See
+  // utils/searchIndex.ts's doc comment.
+  const indexRequested = useRef(false);
 
-  useEffect(() => {
-    setAllItemsList(buildSearchIndex());
-  }, []);
+  function ensureSearchIndex() {
+    if (indexRequested.current) return;
+    indexRequested.current = true;
+    buildSearchIndexAsync().then(setAllItemsList);
+  }
 
   const toggleNav = () => setIsOpen((open) => !open);
 
@@ -63,6 +73,7 @@ export default function Nav() {
               getOptionValue={(option) => option.name + " " + option.ruleset + " " + option.type}
               onInputChange={(value) => {
                 setSearch(value);
+                ensureSearchIndex();
               }}
               onChange={(value) => {
                 // Full data for this item lives in getSpecificItem(value.ruleset, value.type,

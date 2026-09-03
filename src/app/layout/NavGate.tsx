@@ -19,11 +19,12 @@ function isPrintPage(pathname: string): boolean {
  * This lives in the root layout rather than in each page so `Nav` mounts
  * once per session instead of once per navigation - previously every page
  * rendered its own `<Nav />`, so navigating anywhere remounted it and
- * re-ran its search-index effect from scratch. `buildSearchIndex()` is now
- * cached too (see utils/searchIndex.ts), so this is a belt-and-suspenders
- * fix: either change alone fixes the rebuild-per-navigation cost, but
- * keeping `Nav` mounted also preserves its own UI state (the search box,
- * the mobile menu) across navigations instead of resetting it every time.
+ * re-ran its search-index effect from scratch. `buildSearchIndexAsync()` is
+ * now cached too (see utils/searchIndex.ts), so this is a belt-and-
+ * suspenders fix: either change alone fixes the rebuild-per-navigation
+ * cost, but keeping `Nav` mounted also preserves its own UI state (the
+ * search box, the mobile menu) across navigations instead of resetting it
+ * every time.
  */
 export default function NavGate() {
   const pathname = usePathname();

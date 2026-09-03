@@ -56,6 +56,7 @@ export const CURATED_MAGIC_ITEMS: MagicItem[] = [
         rarity: "uncommon",
         requiresAttunement: true,
         description: "You gain a +1 bonus to AC and saving throws while you wear this cloak.",
+        bonuses: { armorClass: 1 },
     },
     {
         name: "Boots of Elvenkind",
@@ -157,6 +158,7 @@ export const CURATED_MAGIC_ITEMS: MagicItem[] = [
         rarity: "rare",
         requiresAttunement: true,
         description: "You gain a +1 bonus to AC and saving throws while wearing this ring.",
+        bonuses: { armorClass: 1 },
     },
     {
         name: "Ring of Spell Storing",
@@ -222,6 +224,7 @@ export const CURATED_MAGIC_ITEMS: MagicItem[] = [
         rarity: "rare",
         requiresAttunement: true,
         description: "This pale blue rhomboid orbits your head. You gain a +1 bonus to AC. If it's destroyed or you dismiss it, the bonus ends.",
+        bonuses: { armorClass: 1 },
     },
     {
         name: "Staff of Healing",

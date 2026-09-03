@@ -58,6 +58,15 @@ Design decisions (see conversion_report.md's header for the live summary):
     "staff"/"rod" MagicItems, matching this project's interface (which
     models staves/rods/wands/rings as MagicItem, never as Weapon), not as
     weapons.
+  - A MagicItem (never a weapon/armor row - those already carry their own
+    `bonus` field) gets a `bonuses` field when its rules text contains an
+    unconditional "+N bonus to AC" (skipped if a nearby phrase like "while
+    wearing no armor" suggests it's conditional - see Bracers of Defense)
+    or "+N bonus to attack and/or damage rolls" (skipped for "spell attack
+    rolls" - there's no hook for those). See parse_item_bonuses() - this is
+    a conservative regex match, not a rules parser, so plenty of items with
+    real mechanical effects (resistances, extra actions, ability score
+    increases, ...) still end up with no `bonuses` at all, same as before.
 """
 
 import csv
@@ -187,6 +196,65 @@ def parse_attunement(raw: str):
     if raw.startswith("Requires Attunement"):
         return True
     return True  # any other non-empty attunement text still means "requires attunement"
+
+
+# A passive/continuous AC bonus is required to read "while wearing/holding/
+# carrying/attuned to this/it" nearby - a POSITIVE requirement, not just the
+# absence of a red flag. Needed because negative-keyword exclusion alone let
+# through things like Quarterstaff of the Acrobat's Reaction ("...gaining a
+# +5 bonus to your Armor Class against the triggering attack, potentially
+# causing the attack to miss you...") - a one-attack Shield-spell-style
+# bonus with none of the "no armor"/"unarmored" phrasing that would have
+# flagged it, but also nothing like "while wearing this" nearby either.
+_AC_CONTINUOUS = re.compile(r"while (?:you (?:are )?)?(?:wearing|holding|carrying|attuned to)\s+(?:this|it)\b", re.I)
+
+
+def parse_item_bonuses(text: str):
+    """
+    Best-effort extraction of MagicItemBonuses (armorClass/attackRolls/
+    damageRolls) from a MagicItem's (non-weapon/non-armor) rules text - e.g.
+    "You gain a +1 bonus to AC and saving throws while wearing this ring"
+    -> {"armorClass": 1}, "+1 bonus to attack and damage rolls made with
+    this piece of magic ammunition" -> {"attackRolls": 1, "damageRolls": 1}.
+
+    Deliberately conservative: only the exact "+N bonus to ..." phrasing the
+    DMG actually uses is matched, an AC match additionally requires nearby
+    "while wearing/holding/carrying this" phrasing so a one-time Reaction
+    bonus (see _AC_CONTINUOUS's comment) isn't mistaken for a passive one,
+    and a plain "attack rolls" match is dropped when it's really "spell
+    attack rolls" (no hook for spell attack bonuses yet - see
+    MagicItemBonuses' doc comment). Returns None rather than a lot of false
+    positives when nothing matches cleanly.
+    """
+    bonuses = {}
+
+    for m in re.finditer(r"\+(\d+) bonus to (?:your )?(?:Armor Class|AC)\b", text):
+        window = text[max(0, m.start() - 20): m.end() + 140]
+        if not _AC_CONTINUOUS.search(window):
+            continue
+        bonuses["armorClass"] = int(m.group(1))
+        break
+
+    # Covers both DMG phrasings: "+N bonus to attack and damage rolls" and
+    # "+N bonus to attack rolls and damage rolls" (e.g. Rod of Lordly Might,
+    # Wand of Orcus, Quarterstaff of the Acrobat all use the latter).
+    m = re.search(r"\+(\d+) bonus to attack(?: rolls)? and damage rolls", text)
+    if m:
+        n = int(m.group(1))
+        bonuses["attackRolls"] = n
+        bonuses["damageRolls"] = n
+    else:
+        m = re.search(r"\+(\d+) bonus to (?:the )?damage rolls\b", text)
+        if m:
+            bonuses["damageRolls"] = int(m.group(1))
+        for m in re.finditer(r"\+(\d+) bonus to attack rolls\b", text):
+            preceding = text[max(0, m.start() - 12): m.start()].lower()
+            if "spell " in preceding:
+                continue
+            bonuses["attackRolls"] = int(m.group(1))
+            break
+
+    return bonuses or None
 
 
 def parse_weapon_damage(raw: str):
@@ -353,6 +421,7 @@ def main():
         "total_rows": len(rows),
         "mundane_excluded": 0,
         "magic_items": 0,
+        "magic_items_with_bonuses": 0,
         "magic_weapons_named": 0,
         "magic_weapons_expanded": 0,
         "magic_armor_named": 0,
@@ -450,11 +519,14 @@ def main():
                 stats["duplicate_names_dropped"] += 1
                 continue
             seen_item_names.add(name)
+            bonuses = parse_item_bonuses(text)
             magic_items.append({
                 "name": name, "category": "ammunition", "rarity": rarity,
-                "requiresAttunement": attunement, "description": text, "_source": source,
+                "requiresAttunement": attunement, "description": text, "bonuses": bonuses, "_source": source,
             })
             stats["magic_items"] += 1
+            if bonuses:
+                stats["magic_items_with_bonuses"] += 1
             continue
 
         # ---- Generic variant templates: expand against our own base tables ----
@@ -539,11 +611,14 @@ def main():
             stats["duplicate_names_dropped"] += 1
             continue
         seen_item_names.add(name)
+        bonuses = parse_item_bonuses(text)
         magic_items.append({
             "name": name, "category": category, "rarity": rarity,
-            "requiresAttunement": attunement, "description": text, "_source": source,
+            "requiresAttunement": attunement, "description": text, "bonuses": bonuses, "_source": source,
         })
         stats["magic_items"] += 1
+        if bonuses:
+            stats["magic_items_with_bonuses"] += 1
 
     # ---------------- TypeScript emission ----------------
 
@@ -564,6 +639,10 @@ def main():
         lines.append(f'    rarity: {ts_str(item["rarity"])},')
         lines.append(f'    requiresAttunement: {ts_attunement(item["requiresAttunement"])},')
         lines.append(f'    description: {ts_str(item["description"])},')
+        bonuses = item.get("bonuses")
+        if bonuses:
+            parts = ", ".join(f'{k}: {v}' for k, v in bonuses.items())
+            lines.append(f'    bonuses: {{ {parts} }},')
         lines.append("  },")
         return "\n".join(lines)
 
@@ -675,7 +754,7 @@ def main():
         f"Excluded as mundane (rarity none/unknown): {stats['mundane_excluded']}",
         "",
         "## Output",
-        f"- Magic items (MagicItem[]): {stats['magic_items']}",
+        f"- Magic items (MagicItem[]): {stats['magic_items']} ({stats['magic_items_with_bonuses']} with a parsed AC/attack/damage bonus - see MagicItem.bonuses)",
         f"- Magic weapons: {stats['magic_weapons_named']} named + {stats['magic_weapons_expanded']} expanded from templates = {len(magic_weapons)}",
         f"- Magic armor/shields: {stats['magic_armor_named']} named + {stats['magic_armor_expanded']} expanded from templates = {len(magic_armor)}",
         f"- Generic-variant template rows expanded into concrete entries: {stats['generic_variants_expanded_entries']}",

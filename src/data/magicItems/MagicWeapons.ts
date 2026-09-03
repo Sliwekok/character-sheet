@@ -9,10 +9,11 @@ import { GENERATED_MAGIC_WEAPONS } from "./generated/GeneratedMagicWeapons";
  * `bonus`/`rarity`/`requiresAttunement`/`magicDescription` set - see that
  * file's header comment for how a magic weapon fits into `Character.weapons`.
  *
- * Not merged into `Ruleset.weapons` (the mundane mastery-table list used by
- * the character-creation wizard's starting-equipment picker) - exposed
- * separately as `Ruleset.magicWeapons` instead, for a future "browse loot"
- * UI, since starting equipment and found/purchased magic gear are different
- * concerns. See src/data/index.ts.
+ * Not merged into `Ruleset.weapons` itself (the mundane mastery-table list)
+ * - exposed separately as `Ruleset.magicWeapons`, since starting equipment
+ * and found/purchased magic gear are different concerns. The character
+ * wizard's equipment step (SkillsEquipmentStep) appends this list after the
+ * mundane one when rendering its weapon picker, rather than the two being
+ * combined here. See src/data/index.ts.
  */
 export const MAGIC_WEAPONS: Weapon[] = GENERATED_MAGIC_WEAPONS;

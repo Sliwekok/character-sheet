@@ -34,6 +34,7 @@ import { FeatureEntry, FeatureLike } from "@/components/character/FeatureEntry";
 import { FeatEntry } from "@/components/character/FeatEntry";
 import { Spell } from "@/interfaces/Spell";
 import { CharacterDetails } from "@/interfaces/CharacterDetails";
+import { MagicItem } from "@/interfaces/MagicItem";
 
 const ABILITY_LABELS: { key: keyof StoredCharacter["abilityScores"]; label: string }[] = [
   { key: "strength", label: "STR" },
@@ -57,6 +58,17 @@ function groupSpellsByLevel(spells: Spell[]): [number, Spell[]][] {
     .map(([level, group]) => [level, [...group].sort((a, b) => a.name.localeCompare(b.name))]);
 }
 
+/** " (+1 AC)" / " (+1 attack, +1 damage)" / "" - the parenthetical suffix shown after a carried magic item's name on the Equipment card, so its AC/attack/damage bonus (already folded into the AC and weapon tooltips - see utils/calculateArmorClass.ts, utils/attackCalculations.ts) is visible at a glance too. */
+function magicItemBonusSuffix(item: MagicItem): string {
+  const bonuses = item.bonuses;
+  if (!bonuses) return "";
+  const parts: string[] = [];
+  if (bonuses.armorClass) parts.push(`${formatModifier(bonuses.armorClass)} AC`);
+  if (bonuses.attackRolls) parts.push(`${formatModifier(bonuses.attackRolls)} attack`);
+  if (bonuses.damageRolls) parts.push(`${formatModifier(bonuses.damageRolls)} damage`);
+  return parts.length > 0 ? ` (${parts.join(", ")})` : "";
+}
+
 function formatSlots(slots: Record<number, number> | null, label: string) {
   if (!slots) return null;
   const entries = Object.entries(slots).filter(([, count]) => (count ?? 0) > 0);
@@ -72,9 +84,18 @@ function formatSlots(slots: Record<number, number> | null, label: string) {
   );
 }
 
-/** One class entry's base class features plus its subclass's features (if a subclass has been chosen), merged and sorted by the level they're gained at - the order a player would actually earn them in. */
+/**
+ * One class entry's base class features plus its subclass's features (if a subclass has been chosen), merged and
+ * sorted by the level they're gained at - the order a player would actually earn them in.
+ *
+ * Characters are stored in localStorage as full snapshots of the class/subclass data at save time (see
+ * utils/storage.ts). A character saved before `features` existed on `CharacterClass`/`Subclass` - or from any
+ * other older shape - won't have an array there, so this falls back to `[]` instead of crashing on `[...undefined]`.
+ */
 function combinedFeatures(entry: StoredCharacter["classes"][number]): FeatureLike[] {
-  return [...entry.class.features, ...(entry.subclass?.features ?? [])].sort(
+  const classFeatures = Array.isArray(entry.class.features) ? entry.class.features : [];
+  const subclassFeatures = Array.isArray(entry.subclass?.features) ? entry.subclass!.features : [];
+  return [...classFeatures, ...subclassFeatures].sort(
     (a, b) => a.level - b.level || a.name.localeCompare(b.name)
   );
 }
@@ -230,7 +251,11 @@ export default function CharacterDetailsPage() {
                   </span>
                   <span className="flex items-center gap-1">
                     <Badge variant="muted">
-                      HP {character.currentHP}/{character.maxHP}
+                      {/* `hp.total` (the tooltip's own sum), not the stored `character.maxHP` -
+                          they agree for anything saved since per-level HP history/the minimum-1-per-level
+                          fix, but this keeps a character saved before either existed from showing a
+                          badge that disagrees with its own tooltip breakdown. */}
+                      HP {character.currentHP}/{hp.total}
                     </Badge>
                     <Tooltip title="Max HP" lines={hp.lines} />
                   </span>
@@ -277,7 +302,12 @@ export default function CharacterDetailsPage() {
                   {character.shield ? ` + ${character.shield.name}` : ""}
                 </p>
                 {character.magicItems && character.magicItems.length > 0 && (
-                  <p>Magic items: {character.magicItems.map((item) => item.name).join(", ")}</p>
+                  <p>
+                    Magic items:{" "}
+                    {character.magicItems
+                      .map((item) => `${item.name}${magicItemBonusSuffix(item)}`)
+                      .join(", ")}
+                  </p>
                 )}
                 <p>
                   Currency: {character.currency.gold}gp, {character.currency.silver}sp, {character.currency.copper}cp

@@ -58,6 +58,19 @@ export function getArmorClassBreakdown(character: Character): ArmorClassBreakdow
         }
     }
 
+    // Non-armor/weapon magic items (rings, wondrous items, etc.) that grant
+    // a flat AC bonus - e.g. a Ring of Protection. One line per item so the
+    // tooltip stays traceable to its source, same as the armor/shield magic
+    // bonus lines above. See MagicItem.bonuses' doc comment for why this
+    // applies unconditionally (no attunement-slot or "no armor" gating).
+    for (const item of character.magicItems ?? []) {
+        const bonus = item.bonuses?.armorClass;
+        if (bonus) {
+            total += bonus;
+            lines.push({ label: `${item.name} (magic item)`, value: formatSigned(bonus) });
+        }
+    }
+
     lines.push({ label: "Total AC", value: `${total}` });
     return { lines, total };
 }

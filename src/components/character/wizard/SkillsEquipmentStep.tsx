@@ -66,6 +66,12 @@ export function SkillsEquipmentStep({
   );
   const skillLimit = characterClass.proficiencies.skills.choose;
 
+  // Mundane starting equipment only - deliberately NOT merged with
+  // ruleset.magicWeapons/magicArmor (~1,900 entries). Magic weapons/armor
+  // are browsed and added from the Magic Items step instead, alongside
+  // every other kind of magic item, with type/rarity filters there - see
+  // MagicItemsStep.tsx. Keeping this step to the mundane list only is what
+  // keeps these pill lists short and scannable.
   const armorOptions = useMemo(
     () => ruleset.armor.filter((a) => a.category !== "shield" && classCanUseArmor(characterClass, a)),
     [ruleset.armor, characterClass]

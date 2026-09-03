@@ -4,7 +4,7 @@ import { CharacterDetails } from "@/interfaces/CharacterDetails";
 import { StoredCharacter } from "@/interfaces/StoredCharacter";
 import { Edition } from "@/interfaces/Edition";
 import { calculateAbilityModifiers } from "@/utils/abilityModifiers";
-import { calculateMaxHP } from "@/utils/calculateMaxHp";
+import { buildHpHistory, HpClassInput } from "@/utils/calculateMaxHp";
 import { generateId } from "@/utils/id";
 import { pointBuyStartingScores } from "@/utils/pointBuy";
 import { rollAbilityScoreSet } from "@/utils/dice";
@@ -54,7 +54,7 @@ export function abilityScoreStateForMethod(method: AbilityScoreMethod): AbilityS
 export function createEmptyDraft(edition?: Edition): CharacterDraft {
     return {
         edition,
-        classes: [{ level: 1 }],
+        classes: [{ level: 1, hpMethod: "average" }],
         abilityScores: abilityScoreStateForMethod("standard-array"),
         backgroundAbilityBonuses: {},
         skillProficiencies: [],
@@ -95,6 +95,21 @@ function cleanDetails(details: CharacterDetails): CharacterDetails | undefined {
 }
 
 /**
+ * Recovers the raw die rolls previously stored for one class entry (see
+ * `DraftClassEntry.hpRolls`), in ascending level order - only the levels
+ * that actually used `method: "roll"` contribute a value, so this comes
+ * back empty for an "average"-method class (nothing to recover) or for a
+ * character saved before per-level HP history existed at all.
+ */
+function hpRollsForClass(character: StoredCharacter, classIndex: number): number[] {
+    return (character.hpHistory ?? [])
+        .filter((entry) => entry.classIndex === classIndex && !entry.isFirstLevel && entry.method === "roll")
+        .sort((a, b) => a.levelInClass - b.levelInClass)
+        .map((entry) => entry.roll!)
+        .filter((roll) => roll !== undefined);
+}
+
+/**
  * Loads an existing character back into a draft for editing. Every class
  * the character has levels in becomes its own `classes` entry - the
  * subclass is only ever carried over on `classes[0]` (the main class),
@@ -110,6 +125,11 @@ function cleanDetails(details: CharacterDetails): CharacterDetails | undefined {
  * whatever background bonus it should have gotten but originally didn't -
  * `isDraftReadyToFinalize` will require the bonus to be (re-)allocated
  * before it can be saved again, which is the correct way to backfill it.
+ *
+ * Each entry's HP method/rolls are recovered too, from `character.hpHistory`
+ * (see `hpRollsForClass`) - so re-opening a character for editing doesn't
+ * silently reroll HP it already locked in for a "roll"-method class, the
+ * same way its ability scores aren't silently re-rolled either.
  */
 export function draftFromCharacter(character: StoredCharacter): CharacterDraft {
     const backgroundAbilityBonuses = character.backgroundAbilityBonuses ?? {};
@@ -119,10 +139,12 @@ export function draftFromCharacter(character: StoredCharacter): CharacterDraft {
         backgroundAbilityBonuses
     );
 
-    const classes: DraftClassEntry[] = character.classes.map(({ class: characterClass, subclass, level }, index) => ({
+    const classes: DraftClassEntry[] = character.classes.map(({ class: characterClass, subclass, level, hpMethod }, index) => ({
         characterClass,
         subclass: index === 0 ? subclass : undefined,
         level,
+        hpMethod: hpMethod ?? "average",
+        hpRolls: hpRollsForClass(character, index),
     }));
 
     return {
@@ -207,6 +229,7 @@ export function finalizeDraft(draft: CharacterDraft): StoredCharacter | null {
             class: entry.characterClass!,
             subclass: entry.subclass,
             level: entry.level,
+            hpMethod: entry.hpMethod ?? "average",
         })),
         race: draft.race,
         background: draft.background,
@@ -225,6 +248,7 @@ export function finalizeDraft(draft: CharacterDraft): StoredCharacter | null {
         initiative: 0,
         currentHP: 0,
         maxHP: 0,
+        hpHistory: [],
         // Was previously hardcoded to [] here regardless of what the Spells
         // step collected - the wizard step existed to fill in
         // `draft.spellsKnown`, but nothing ever read it back out.
@@ -234,7 +258,16 @@ export function finalizeDraft(draft: CharacterDraft): StoredCharacter | null {
     };
 
     base.initiative = calculateAbilityModifiers(base.abilityScores).dexterity;
-    base.maxHP = calculateMaxHP(base);
+
+    const conModifier = calculateAbilityModifiers(base.abilityScores).constitution;
+    const hpEntries: HpClassInput[] = draft.classes.map((entry) => ({
+        hitDie: entry.characterClass!.hitDie,
+        level: entry.level,
+        hpMethod: entry.hpMethod ?? "average",
+        rolls: entry.hpRolls,
+    }));
+    base.hpHistory = buildHpHistory(hpEntries, conModifier);
+    base.maxHP = base.hpHistory.reduce((total, entry) => total + entry.hpGained, 0);
     base.currentHP = base.maxHP;
 
     return base;

@@ -1,14 +1,15 @@
-import { getRuleset } from "@/data";
+import { getRulesetAsync } from "@/data";
 import { Edition } from "@/interfaces/Edition";
 import { StoredCharacter } from "@/interfaces/StoredCharacter";
 import { CharacterClass } from "@/interfaces/CharacterClass";
 import { Subclass } from "@/interfaces/Subclass";
 import { AbilityScores } from "@/interfaces/Characters";
-import { pickRandom, pickRandomN, randomAbilityScores } from "@/utils/dice";
+import { pickRandom, pickRandomN, randomAbilityScores, rollDie } from "@/utils/dice";
 import { randomAlignment, randomCharacterName } from "@/utils/randomNames";
 import { classCanUseArmor, classCanUseWeapon } from "@/utils/proficiencyMatch";
 import { calculateAbilityModifiers } from "@/utils/abilityModifiers";
-import { calculateMaxHP } from "@/utils/calculateMaxHp";
+import { buildHpHistory, HpClassInput, rollsNeededForClassEntry } from "@/utils/calculateMaxHp";
+import { HpMethod } from "@/interfaces/Hp";
 import { generateId } from "@/utils/id";
 import { randomBackgroundAllocation, sumAbilityScores } from "@/utils/abilityScoreBonuses";
 import { getSpellLimits } from "@/utils/spellcasting";
@@ -49,10 +50,16 @@ function randomLevel(): number {
  *   basics form (name/level/race/class/alignment); everything else -
  *   ability scores, subclass (if the level qualifies), background, skill
  *   choices, starting armor/weapons, and any basic left blank - is random.
+ *
+ * Async - fetches the chosen (or randomly picked) edition's compendium via
+ * `getRulesetAsync` rather than having it already loaded, since that data
+ * is no longer bundled/loaded eagerly (see data/index.ts). Cached there
+ * per edition, so a "Reroll" click after the first generate resolves
+ * immediately.
  */
-export function generateRandomCharacter(overrides: RandomCharacterOverrides = {}): StoredCharacter {
+export async function generateRandomCharacter(overrides: RandomCharacterOverrides = {}): Promise<StoredCharacter> {
     const edition = overrides.edition ?? pickRandom<Edition>(["2014", "2024"]);
-    const ruleset = getRuleset(edition);
+    const ruleset = await getRulesetAsync(edition);
 
     const race = ruleset.races.find((r) => r.name === overrides.raceName) ?? pickRandom(ruleset.races);
     const characterClass =
@@ -102,13 +109,22 @@ export function generateRandomCharacter(overrides: RandomCharacterOverrides = {}
     // ability-modifier formula, not a flat table.
     const spellsKnown = randomSpellsKnown(ruleset.spells, characterClass, subclass, level, abilityScores);
 
+    // Picked per generated character rather than fixed, purely for variety -
+    // a "random character" generator producing every sample with the exact
+    // same (average) HP method felt like it wasn't really random at all.
+    const hpMethod: HpMethod = pickRandom<HpMethod>(["average", "roll"]);
+    const hpRolls =
+        hpMethod === "roll"
+            ? Array.from({ length: rollsNeededForClassEntry(level, true) }, () => rollDie(characterClass.hitDie))
+            : undefined;
+
     const base: StoredCharacter = {
         id: generateId(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         edition,
         name: overrides.name?.trim() || randomCharacterName(),
-        classes: [{ class: characterClass, subclass, level }],
+        classes: [{ class: characterClass, subclass, level, hpMethod }],
         race,
         background,
         feats: [],
@@ -124,12 +140,17 @@ export function generateRandomCharacter(overrides: RandomCharacterOverrides = {}
         initiative: 0,
         currentHP: 0,
         maxHP: 0,
+        hpHistory: [],
         spellsKnown,
         languages: [...race.languages],
     };
 
     base.initiative = calculateAbilityModifiers(base.abilityScores).dexterity;
-    base.maxHP = calculateMaxHP(base);
+
+    const conModifier = calculateAbilityModifiers(base.abilityScores).constitution;
+    const hpEntries: HpClassInput[] = [{ hitDie: characterClass.hitDie, level, hpMethod, rolls: hpRolls }];
+    base.hpHistory = buildHpHistory(hpEntries, conModifier);
+    base.maxHP = base.hpHistory.reduce((total, entry) => total + entry.hpGained, 0);
     base.currentHP = base.maxHP;
 
     return base;

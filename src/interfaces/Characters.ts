@@ -11,6 +11,7 @@ import { SkillName } from "@/interfaces/Skill";
 import { Edition } from "@/interfaces/Edition";
 import { MagicItem } from "@/interfaces/MagicItem";
 import { CharacterDetails } from "@/interfaces/CharacterDetails";
+import { HpLevelEntry, HpMethod } from "@/interfaces/Hp";
 
 export type AbilityScores = {
     strength: number;
@@ -26,6 +27,15 @@ export interface CharacterClassLevel {
     class: CharacterClass;
     subclass?: Subclass;
     level: number;
+    /**
+     * How HP is granted at every level in THIS class after its first (see
+     * HpLevelEntry.isFirstLevel) - either the fixed RAW average or an
+     * actually-rolled hit die. Undefined for any character saved before
+     * this existed; every reader falls back to `"average"`, which is
+     * exactly what those characters were computed with anyway (see
+     * utils/calculateMaxHp.ts).
+     */
+    hpMethod?: HpMethod;
 }
 
 export interface Character {
@@ -51,6 +61,17 @@ export interface Character {
     initiative: number;
     currentHP: number;
     maxHP: number;
+    /**
+     * Level-by-level record of how `maxHP` was actually assembled - one
+     * entry per level across every class, in the order gained. This is the
+     * source of truth the HP info tooltip renders (see
+     * utils/calculateMaxHp.ts's `getMaxHpBreakdown`) and `maxHP` is always
+     * just the sum of its `hpGained` values. Undefined for any character
+     * saved before per-level HP history existed; the tooltip falls back to
+     * synthesizing an all-"average" history for those, matching how their
+     * `maxHP` was originally computed.
+     */
+    hpHistory?: HpLevelEntry[];
     /** Spells the character knows or has prepared, across all of their casting classes. */
     spellsKnown: Spell[];
     languages: string[];

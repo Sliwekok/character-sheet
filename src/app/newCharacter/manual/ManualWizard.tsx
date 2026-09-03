@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Nav from "../../layout/nav";
 import { Button, Card, CardContent, Container, SectionHeading } from "@/components/ui";
 import { CharacterDraft, DraftClassEntry } from "@/interfaces/CharacterDraft";
-import { getRuleset } from "@/data";
+import { getRulesetAsync, Ruleset } from "@/data";
 import {
   createEmptyDraft,
   draftFromCharacter,
@@ -92,6 +92,26 @@ function PrerequisiteNotice({
   );
 }
 
+/**
+ * Shown in place of a ruleset-dependent step while its compendium data
+ * (races/classes/spells/magic items/...) is being fetched - see
+ * `getRulesetAsync`'s doc comment in data/index.ts for why this is async at
+ * all. Distinct from `PrerequisiteNotice` above: the player HAS chosen an
+ * edition here, they're just waiting a moment for its data to load, so
+ * there's nothing to "jump to" - the step just resolves on its own once
+ * `ruleset` state below gets set.
+ */
+function RulesetLoadingNotice() {
+  return (
+    <Card>
+      <CardContent className="flex items-center gap-3 text-sm text-fontcolor-secondary">
+        <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-border-strong border-t-foreground" />
+        <p>Loading compendium data for this edition - this only happens once per visit…</p>
+      </CardContent>
+    </Card>
+  );
+}
+
 /** Stable string key for `draft.classes`, so the revalidation effect below can tell "the class selection actually changed" apart from "the draft object was recreated with the same classes" (e.g. every keystroke on the Details step) without re-running on every render. */
 function classesSignature(classes: DraftClassEntry[]): string {
   return classes.map((entry) => `${entry.characterClass?.name ?? ""}/${entry.subclass?.name ?? ""}/${entry.level}`).join("|");
@@ -120,7 +140,28 @@ export default function ManualWizard() {
     setDraft((current) => ({ ...current, ...patch }));
   }
 
-  const ruleset = useMemo(() => (draft.edition ? getRuleset(draft.edition) : null), [draft.edition]);
+  // The compendium (races/classes/subclasses/backgrounds/feats/spells/magic
+  // items) for the chosen edition is fetched on demand rather than bundled
+  // eagerly - see getRulesetAsync's doc comment in data/index.ts. `ruleset`
+  // is `null` both before an edition is chosen AND while its data is still
+  // loading; `RulesetLoadingNotice` below is what tells those two apart for
+  // the player. Cached per edition inside getRulesetAsync itself, so
+  // switching editions back and forth only pays the fetch cost once each.
+  const [ruleset, setRuleset] = useState<Ruleset | null>(null);
+  useEffect(() => {
+    if (!draft.edition) {
+      setRuleset(null);
+      return;
+    }
+    let cancelled = false;
+    setRuleset(null);
+    getRulesetAsync(draft.edition).then((loaded) => {
+      if (!cancelled) setRuleset(loaded);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [draft.edition]);
 
   const primaryClass = draft.classes[0]?.characterClass;
 
@@ -251,6 +292,8 @@ export default function ManualWizard() {
             {currentStep === "Race" &&
               (ruleset ? (
                 <RaceStep races={ruleset.races} race={draft.race} onSelect={(race) => updateDraft({ race })} />
+              ) : draft.edition ? (
+                <RulesetLoadingNotice />
               ) : (
                 <PrerequisiteNotice
                   message="Choose an edition first - it decides which races are available."
@@ -267,6 +310,8 @@ export default function ManualWizard() {
                   entries={draft.classes}
                   onChange={(classes) => updateDraft({ classes })}
                 />
+              ) : draft.edition ? (
+                <RulesetLoadingNotice />
               ) : (
                 <PrerequisiteNotice
                   message="Choose an edition first - it decides which classes are available."
@@ -282,6 +327,8 @@ export default function ManualWizard() {
                   background={draft.background}
                   onSelect={(background) => updateDraft({ background, backgroundAbilityBonuses: {} })}
                 />
+              ) : draft.edition ? (
+                <RulesetLoadingNotice />
               ) : (
                 <PrerequisiteNotice
                   message="Choose an edition first - it decides which backgrounds are available."
@@ -329,6 +376,8 @@ export default function ManualWizard() {
                   onShieldChange={(shield) => updateDraft({ shield })}
                   onWeaponsChange={(weapons) => updateDraft({ weapons })}
                 />
+              ) : draft.edition && !ruleset && primaryClass && draft.background ? (
+                <RulesetLoadingNotice />
               ) : (
                 <PrerequisiteNotice
                   message={
@@ -347,7 +396,15 @@ export default function ManualWizard() {
                   ruleset={ruleset}
                   magicItems={draft.magicItems}
                   onChange={(magicItems) => updateDraft({ magicItems })}
+                  equippedArmor={draft.equippedArmor}
+                  shield={draft.shield}
+                  weapons={draft.weapons}
+                  onArmorChange={(equippedArmor) => updateDraft({ equippedArmor })}
+                  onShieldChange={(shield) => updateDraft({ shield })}
+                  onWeaponsChange={(weapons) => updateDraft({ weapons })}
                 />
+              ) : draft.edition ? (
+                <RulesetLoadingNotice />
               ) : (
                 <PrerequisiteNotice
                   message="Choose an edition first - it decides which magic items are available to browse."
@@ -365,6 +422,8 @@ export default function ManualWizard() {
                   spellsKnown={draft.spellsKnown}
                   onChange={(spellsKnown) => updateDraft({ spellsKnown })}
                 />
+              ) : !ruleset && draft.edition && primaryClass ? (
+                <RulesetLoadingNotice />
               ) : (
                 <PrerequisiteNotice
                   message="Choose a class first - it decides which spells are available."

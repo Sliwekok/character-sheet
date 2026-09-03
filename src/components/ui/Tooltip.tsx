@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { ReactNode } from "react";
 import { cn } from "@/utils/cn";
 
@@ -16,6 +17,13 @@ type TooltipProps = {
   className?: string;
 };
 
+type Coords = { top: number; left: number; placement: "top" | "bottom" };
+
+// Gap between the trigger and the panel, and the margin kept from the
+// viewport edges when clamping the panel's position.
+const GAP = 8;
+const EDGE_MARGIN = 8;
+
 /**
  * Small circular "i" info button that reveals a breakdown panel - used
  * throughout the character sheet next to a derived number (ability
@@ -28,19 +36,36 @@ type TooltipProps = {
  * equivalent on touch devices and a click shouldn't be undone by the mouse
  * merely leaving). Either state showing is enough to render the panel.
  * Closes on outside click or Escape.
+ *
+ * The panel is rendered through a portal into `document.body` rather than
+ * as a normal absolutely-positioned child. Several ancestors in this app
+ * (e.g. `Card`'s `backdrop-blur`) create their own stacking context, which
+ * traps the panel's z-index inside it - the sticky nav bar (which has an
+ * explicit z-index of its own) would then paint over the panel no matter
+ * how high that trapped z-index was set. Portaling to `<body>` puts the
+ * panel in the same stacking context as the nav bar, so its z-index is
+ * compared directly against the nav bar's and wins. Position is then
+ * computed in JS (fixed, viewport-relative) from the trigger's bounding
+ * box, flipping from above to below the trigger when there isn't enough
+ * room above to show it without clipping off the top of the viewport.
  */
 export function Tooltip({ title, lines, children, className }: TooltipProps) {
   const [hovered, setHovered] = useState(false);
   const [pinned, setPinned] = useState(false);
   const open = hovered || pinned;
   const rootRef = useRef<HTMLSpanElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
+  const [coords, setCoords] = useState<Coords | null>(null);
 
   useEffect(() => {
     if (!pinned) return;
 
     function handleOutsideClick(event: MouseEvent) {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setPinned(false);
+      const target = event.target as Node;
+      const insideTrigger = rootRef.current?.contains(target);
+      const insidePanel = panelRef.current?.contains(target);
+      if (!insideTrigger && !insidePanel) setPinned(false);
     }
     function handleKey(event: KeyboardEvent) {
       if (event.key === "Escape") setPinned(false);
@@ -53,6 +78,78 @@ export function Tooltip({ title, lines, children, className }: TooltipProps) {
       document.removeEventListener("keydown", handleKey);
     };
   }, [pinned]);
+
+  // Position the portaled panel relative to the trigger. Runs as a layout
+  // effect so the (first hidden, then placed) render happens before the
+  // browser paints, avoiding a visible flash at the wrong spot.
+  useLayoutEffect(() => {
+    if (!open) {
+      setCoords(null);
+      return;
+    }
+
+    function place() {
+      const anchor = rootRef.current;
+      const panel = panelRef.current;
+      if (!anchor || !panel) return;
+
+      const anchorRect = anchor.getBoundingClientRect();
+      const panelRect = panel.getBoundingClientRect();
+
+      const placement: Coords["placement"] =
+        anchorRect.top - panelRect.height - GAP < 0 ? "bottom" : "top";
+      const top = placement === "top" ? anchorRect.top - GAP : anchorRect.bottom + GAP;
+
+      const halfWidth = panelRect.width / 2;
+      let left = anchorRect.left + anchorRect.width / 2;
+      left = Math.max(left, halfWidth + EDGE_MARGIN);
+      left = Math.min(left, window.innerWidth - halfWidth - EDGE_MARGIN);
+
+      setCoords({ top, left, placement });
+    }
+
+    // First frame: nothing is measurable/positioned yet, so the panel
+    // renders off-screen (see style below) purely to get real dimensions.
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [open]);
+
+  const panel = open && (
+    <div
+      ref={panelRef}
+      id={panelId}
+      role="tooltip"
+      style={
+        coords
+          ? {
+              position: "fixed",
+              top: coords.top,
+              left: coords.left,
+              transform: coords.placement === "top" ? "translate(-50%, -100%)" : "translate(-50%, 0)",
+            }
+          : { position: "fixed", top: -9999, left: -9999, visibility: "hidden" }
+      }
+      className="z-50 w-64 max-w-[80vw] rounded-(--radius-sm) border border-border bg-background-elevated px-3 py-2 text-left text-xs normal-case tracking-normal text-fontcolor-secondary shadow-[0_12px_30px_-16px_rgba(0,0,0,0.85)]"
+    >
+      {title && <p className="mb-1 font-semibold text-fontcolor">{title}</p>}
+      {lines && lines.length > 0 && (
+        <dl className="flex flex-col gap-0.5">
+          {lines.map((line, index) => (
+            <div key={`${line.label}-${index}`} className="flex items-baseline justify-between gap-3">
+              <dt>{line.label}</dt>
+              <dd className="shrink-0 font-medium text-fontcolor">{line.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {children}
+    </div>
+  );
 
   return (
     <span ref={rootRef} className={cn("relative inline-flex", className)}>
@@ -70,26 +167,7 @@ export function Tooltip({ title, lines, children, className }: TooltipProps) {
       >
         i
       </button>
-      {open && (
-        <div
-          id={panelId}
-          role="tooltip"
-          className="absolute bottom-full left-1/2 z-50 mb-2 w-64 max-w-[80vw] -translate-x-1/2 rounded-(--radius-sm) border border-border bg-background-elevated px-3 py-2 text-left text-xs normal-case tracking-normal text-fontcolor-secondary shadow-[0_12px_30px_-16px_rgba(0,0,0,0.85)]"
-        >
-          {title && <p className="mb-1 font-semibold text-fontcolor">{title}</p>}
-          {lines && lines.length > 0 && (
-            <dl className="flex flex-col gap-0.5">
-              {lines.map((line, index) => (
-                <div key={`${line.label}-${index}`} className="flex items-baseline justify-between gap-3">
-                  <dt>{line.label}</dt>
-                  <dd className="shrink-0 font-medium text-fontcolor">{line.value}</dd>
-                </div>
-              ))}
-            </dl>
-          )}
-          {children}
-        </div>
-      )}
+      {typeof document !== "undefined" && panel ? createPortal(panel, document.body) : null}
     </span>
   );
 }

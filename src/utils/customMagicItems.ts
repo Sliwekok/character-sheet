@@ -153,6 +153,7 @@ export function createCustomMagicItem(input: CustomMagicItemInput): MagicItem {
     requiresAttunement: input.requiresAttunement ?? false,
     description: input.description,
     charges: input.charges,
+    bonuses: input.bonuses,
     isCustom: true,
   };
 }

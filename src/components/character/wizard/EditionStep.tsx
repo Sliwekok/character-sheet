@@ -26,7 +26,7 @@ const EDITIONS: { value: Edition; title: string; description: string }[] = [
  * First step of the manual wizard, matching the PHB's own recommendation
  * to settle this before anything else - which edition a character is built
  * under decides which pool of races/classes/backgrounds/feats every later
- * step pulls from (see data/index.ts's getRuleset()).
+ * step pulls from (see data/index.ts's getRulesetAsync()).
  */
 export function EditionStep({ edition, onSelect }: EditionStepProps) {
   return (

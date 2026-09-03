@@ -4,7 +4,7 @@ Source rows: 2050
 Excluded as mundane (rarity none/unknown): 471
 
 ## Output
-- Magic items (MagicItem[]): 1219
+- Magic items (MagicItem[]): 1219 (39 with a parsed AC/attack/damage bonus - see MagicItem.bonuses)
 - Magic weapons: 155 named + 1286 expanded from templates = 1441
 - Magic armor/shields: 57 named + 408 expanded from templates = 465
 - Generic-variant template rows expanded into concrete entries: 1694

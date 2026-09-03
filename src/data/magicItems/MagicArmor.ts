@@ -10,9 +10,10 @@ import { GENERATED_MAGIC_ARMOR } from "./generated/GeneratedMagicArmor";
  * file's header comment for how a magic armor/shield fits into
  * `Character.equippedArmor`/`shield`.
  *
- * Not merged into `Ruleset.armor` (the mundane list used by the
- * character-creation wizard's starting-equipment picker) - exposed
- * separately as `Ruleset.magicArmor` instead, for a future "browse loot" UI.
- * See src/data/index.ts.
+ * Not merged into `Ruleset.armor` itself (the mundane list) - exposed
+ * separately as `Ruleset.magicArmor`. The character wizard's equipment step
+ * (SkillsEquipmentStep) appends this list after the mundane one when
+ * rendering its armor/shield pickers, rather than the two being combined
+ * here. See src/data/index.ts.
  */
 export const MAGIC_ARMOR: Armor[] = GENERATED_MAGIC_ARMOR;

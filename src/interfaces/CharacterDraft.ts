@@ -11,6 +11,7 @@ import { Currency } from "@/interfaces/Currency";
 import { Spell } from "@/interfaces/Spell";
 import { CharacterDetails } from "@/interfaces/CharacterDetails";
 import { MagicItem } from "@/interfaces/MagicItem";
+import { HpMethod } from "@/interfaces/Hp";
 
 export type AbilityScoreMethod = "standard-array" | "point-buy" | "roll" | "manual";
 
@@ -48,6 +49,21 @@ export interface DraftClassEntry {
     characterClass?: CharacterClass;
     subclass?: Subclass;
     level: number;
+    /** How this class's HP-per-level is decided beyond its first level - see `CharacterClassLevel.hpMethod`. Defaults to `"average"` wherever unset (ClassStep always sets it once a class is chosen; see `abilityScoreStateForMethod`'s sibling default in characterDraft.ts's `createEmptyDraft`). */
+    hpMethod?: HpMethod;
+    /**
+     * Pre-rolled d(hitDie) results for this entry's non-first levels, in
+     * ascending level order - e.g. index 0 is level 2 for `classes[0]`
+     * (whose level 1 always uses the max hit die, not a roll) but level 1
+     * for any other entry. Only meaningful while `hpMethod === "roll"`;
+     * ClassStep keeps this array's length in sync with `level` (rolling a
+     * fresh die whenever a new level needs one) so `finalizeDraft` never
+     * has to roll dice itself - see utils/calculateMaxHp.ts's
+     * `rollsNeededForClassEntry`/`buildHpHistory` for why that matters
+     * (finalizeDraft must stay a pure function of the draft, since
+     * ReviewStep calls it on every render just to preview the result).
+     */
+    hpRolls?: number[];
 }
 
 /**
