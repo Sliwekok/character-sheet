@@ -1,5 +1,5 @@
 import { AbilityScores } from "@/interfaces/Characters";
-import { AbilityScoreMethod, AbilityScoreState } from "@/interfaces/CharacterDraft";
+import {AbilityScoreMethod, AbilityScoreState, DraftClassEntry} from "@/interfaces/CharacterDraft";
 import { Race } from "@/interfaces/Race";
 import { Background } from "@/interfaces/Background";
 import { Badge, Select, TextInput, formatModifier } from "@/components/ui";
@@ -22,6 +22,7 @@ type AbilityScoresStepProps = {
   backgroundAbilityBonuses: Partial<AbilityScores>;
   onChange: (next: AbilityScoreState) => void;
   onBackgroundBonusesChange: (next: Partial<AbilityScores>) => void;
+  classes: DraftClassEntry[];
 };
 
 const ABILITIES: { key: keyof AbilityScores; label: string; short: string }[] = [
@@ -306,6 +307,8 @@ function BackgroundBonusPicker({
   const isTwoOne = options.allocation === "2-1";
   const selectedCount = Object.keys(bonuses).length;
   const complete = isTwoOne ? selectedCount === 2 : selectedCount === 3;
+
+  console.log()
 
   return (
     <div className="rounded-(--radius) border border-foreground/40 bg-background-elevated/40 p-4">

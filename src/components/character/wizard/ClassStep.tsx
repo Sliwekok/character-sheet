@@ -48,7 +48,7 @@ function classSummaryBlock(characterClass: CharacterClass): JSX.Element {
               // collided and React reused/misplaced list nodes across a
               // subclass switch, leaving stale feature lines behind.
               <span className="text-sm font-small text-fontcolor-secondary" key={`${index}-${feature.level}-${feature.name}`}>
-                  <b className="text-fontcolor">{feature.name}:</b> {feature.description}
+                  <b className="text-fontcolor">{feature.name} (level: {feature.level}):</b> {feature.description}
               </span>
           ))}
       </label>
@@ -78,7 +78,7 @@ function subclassSummary(subclass: Subclass): JSX.Element {
             // collided and React reused/misplaced list nodes across a
             // subclass switch, leaving stale feature lines behind.
             <span className="text-sm font-small text-fontcolor-secondary" key={`${index}-${feature.level}-${feature.name}`}>
-                <b className="text-fontcolor">{feature.name}:</b> {feature.description}
+                <b className="text-fontcolor">{feature.name}: (level: {feature.level})</b> {feature.description}
             </span>
         ))}
       </label>

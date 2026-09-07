@@ -348,6 +348,7 @@ export default function ManualWizard() {
                   onBackgroundBonusesChange={(backgroundAbilityBonuses) =>
                     updateDraft({ backgroundAbilityBonuses })
                   }
+                  classes={draft.classes}
                 />
               ) : (
                 <PrerequisiteNotice
