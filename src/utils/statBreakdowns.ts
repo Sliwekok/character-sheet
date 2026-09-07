@@ -44,7 +44,7 @@ export function getAbilityScoreBreakdown(character: Character, key: keyof Abilit
   if (raceBonus) lines.push({ label: `${character.race.name} bonus`, value: formatSigned(raceBonus) });
   if (backgroundBonus) lines.push({ label: `${character.background.name} bonus`, value: formatSigned(backgroundBonus) });
   lines.push({ label: "Final score", value: `${finalScore}` });
-  lines.push({ label: "Modifier", value: `floor((${finalScore} − 10) ÷ 2) = ${formatSigned(modifier)}` });
+  lines.push({ label: "Modifier", value: `${formatSigned(modifier)}` });
 
   return { lines, score: finalScore, modifier };
 }

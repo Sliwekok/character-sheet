@@ -32,20 +32,43 @@ function resizeRolls(hitDie: number, needed: number, existing: number[] | undefi
   return [...current, ...Array.from({ length: needed - current.length }, () => rollDie(hitDie))];
 }
 
+function classSummaryBlock(characterClass: CharacterClass): JSX.Element {
+
+  return (
+      <label className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-fontcolor-secondary">
+              Features:
+          </span>
+
+          {characterClass.features.map((feature, index) => (
+              // Keyed by index (plus name/level for readability), not just
+              // `feature.name` - several subclasses (e.g. Fighter's Battle
+              // Master) repeat a feature name at multiple levels ("Additional
+              // Maneuvers" at 7th, 10th, and 15th), so `feature.name` alone
+              // collided and React reused/misplaced list nodes across a
+              // subclass switch, leaving stale feature lines behind.
+              <span className="text-sm font-small text-fontcolor-secondary" key={`${index}-${feature.level}-${feature.name}`}>
+                  <b className="text-fontcolor">{feature.name}:</b> {feature.description}
+              </span>
+          ))}
+      </label>
+  );
+}
+
 function subclassSummary(subclass: Subclass): JSX.Element {
   return (
       <label className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-fontcolor-secondary">
+            <span className="text-sm font-medium">
                 Subclass description
             </span>
 
-        <span className="text-sm font-small">
+        <span className="text-sm font-small text-fontcolor-secondary">
                 {subclass.description}
             </span>
 
-        <span className="text-sm font-medium text-fontcolor-secondary">
-                Features:
-            </span>
+        <span className="text-sm font-medium">
+            Features:
+        </span>
 
         {subclass.features.map((feature, index) => (
             // Keyed by index (plus name/level for readability), not just
@@ -54,9 +77,9 @@ function subclassSummary(subclass: Subclass): JSX.Element {
             // Maneuvers" at 7th, 10th, and 15th), so `feature.name` alone
             // collided and React reused/misplaced list nodes across a
             // subclass switch, leaving stale feature lines behind.
-            <span className="text-sm font-small" key={`${index}-${feature.level}-${feature.name}`}>
-                    <b>{feature.name}:</b> {feature.description}
-                </span>
+            <span className="text-sm font-small text-fontcolor-secondary" key={`${index}-${feature.level}-${feature.name}`}>
+                <b className="text-fontcolor">{feature.name}:</b> {feature.description}
+            </span>
         ))}
       </label>
   );
@@ -246,6 +269,10 @@ export function ClassStep({ classes, subclasses, entries, onChange }: ClassStepP
 
             {!isPrimary && entry.characterClass && (
               <p className="text-xs text-fontcolor-secondary">{classSummary(entry.characterClass)}</p>
+            )}
+
+            {isPrimary && entry.characterClass && (
+                <p className="text-xs text-fontcolor-secondary">{classSummaryBlock(entry.characterClass)}</p>
             )}
 
             {isPrimary && entry.characterClass && (
