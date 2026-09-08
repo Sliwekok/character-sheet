@@ -14,6 +14,7 @@ import { generateId } from "@/utils/id";
 import { randomBackgroundAllocation, sumAbilityScores } from "@/utils/abilityScoreBonuses";
 import { getAsiSlots, randomAsiAllocations, sumAsiAllocations } from "@/utils/abilityScoreImprovements";
 import { getSpellLimits } from "@/utils/spellcasting";
+import { getAutoGrantedSpellNames, getFeatureChoices, resolveSpellsByName } from "@/utils/grantedSpells";
 import { Spell } from "@/interfaces/Spell";
 
 /**
@@ -114,12 +115,34 @@ export async function generateRandomCharacter(overrides: RandomCharacterOverride
     const shield = usableShields.length > 0 && Math.random() > 0.5 ? pickRandom(usableShields) : undefined;
     const weapons = usableWeapons.length > 0 ? pickRandomN(usableWeapons, Math.random() > 0.5 ? 2 : 1) : [];
 
+    // Randomly resolve any class/subclass feature choice reached at this
+    // level (a Warlock's Pact Boon, a Ranger's Fighting Style, a Circle of
+    // the Land druid's terrain, etc. - see utils/grantedSpells.ts) - purely
+    // a coin flip/pickRandom among that choice's options, same spirit as
+    // every other random pick in this generator. Needed before
+    // `randomSpellsKnown` below, since a resolved choice can widen the
+    // known-spell caps it enforces (e.g. Pact of the Tome's extra cantrips).
+    const featureChoices: Record<string, string> = {};
+    getFeatureChoices([{ characterClass, subclass, level }]).forEach((pending) => {
+        featureChoices[pending.key] = pickRandom(pending.choice.options).id;
+    });
+
     // `abilityScores` here is already the character's FINAL score (race +
     // background bonus + ASI allocations included), same as what
     // SpellsStep/ManualWizard pass to getSpellLimits - needed since a
     // "prepared" caster's cap is an ability-modifier formula, not a flat
     // table.
-    const spellsKnown = randomSpellsKnown(ruleset.spells, characterClass, subclass, level, abilityScores);
+    const spellsKnown = randomSpellsKnown(ruleset.spells, characterClass, subclass, level, abilityScores, featureChoices);
+
+    // Automatic class/subclass spell grants (e.g. a Psi Warrior's
+    // Telekinetic Master, or - once the feature choice above resolved it -
+    // a Circle of the Land druid's terrain spells) - see
+    // utils/grantedSpells.ts. Purely derived from class/subclass/level (and
+    // now the resolved feature choices), no further randomization needed.
+    const grantedSpells = resolveSpellsByName(
+        getAutoGrantedSpellNames([{ characterClass, subclass, level }], featureChoices),
+        ruleset.spells
+    );
 
     // Picked per generated character rather than fixed, purely for variety -
     // a "random character" generator producing every sample with the exact
@@ -155,6 +178,8 @@ export async function generateRandomCharacter(overrides: RandomCharacterOverride
         maxHP: 0,
         hpHistory: [],
         spellsKnown,
+        grantedSpells: grantedSpells.length > 0 ? grantedSpells : undefined,
+        featureChoices: Object.keys(featureChoices).length > 0 ? featureChoices : undefined,
         languages: [...race.languages],
     };
 
@@ -199,9 +224,10 @@ function randomSpellsKnown(
     characterClass: CharacterClass,
     subclass: Subclass | undefined,
     level: number,
-    abilityScores: AbilityScores
+    abilityScores: AbilityScores,
+    featureChoices: Record<string, string>
 ): Spell[] {
-    const limits = getSpellLimits([{ characterClass, subclass, level }], abilityScores);
+    const limits = getSpellLimits([{ characterClass, subclass, level }], abilityScores, featureChoices);
     if (limits.availableLevels.length === 0) return [];
 
     const pool = spells.filter((spell) => limits.availableLevels.includes(spell.level));

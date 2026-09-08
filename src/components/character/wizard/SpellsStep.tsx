@@ -16,6 +16,17 @@ type SpellsStepProps = {
   abilityScores: AbilityScores;
   spellsKnown: Spell[];
   onChange: (spellsKnown: Spell[]) => void;
+  /**
+   * Spells auto-granted by a class/subclass feature already reached at this
+   * level - see utils/grantedSpells.ts and Character.grantedSpells's
+   * header comment. Read-only here (ManualWizard recomputes this itself
+   * whenever `classes` changes - see its own effect); shown so the player
+   * can see what they're getting for free on top of the spells they pick
+   * below, without it eating into `spellsKnown`'s known/prepared caps.
+   */
+  grantedSpells: Spell[];
+  /** The player's resolved feature-choice picks (Pact Boon, Fighting Style, a Circle of the Land terrain, etc. - see utils/grantedSpells.ts) - folded into the caps below via getSpellLimits, exactly like `grantedSpells` above is folded into what's shown. Read-only here; ClassStep is where these get picked. */
+  featureChoices: Record<string, string>;
 };
 
 export function levelLabel(level: number): string {
@@ -106,13 +117,24 @@ function SpellDetailPanel({
  * selection itself changes (e.g. the player goes back and lowers a level
  * or drops a class after already picking spells).
  */
-export function SpellsStep({ spells, classes, abilityScores, spellsKnown, onChange }: SpellsStepProps) {
+export function SpellsStep({
+  spells,
+  classes,
+  abilityScores,
+  spellsKnown,
+  onChange,
+  grantedSpells,
+  featureChoices,
+}: SpellsStepProps) {
   const [search, setSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState<number | "all">("all");
   const [actionFilter, setActionFilter] = useState<string | "all">("all");
   const [previewSpell, setPreviewSpell] = useState<Spell | undefined>(spellsKnown[0]);
 
-  const limits = useMemo(() => getSpellLimits(classes, abilityScores), [classes, abilityScores]);
+  const limits = useMemo(
+    () => getSpellLimits(classes, abilityScores, featureChoices),
+    [classes, abilityScores, featureChoices]
+  );
   const availableLevels = limits.availableLevels;
   // Scoped to spells at an available level, same as `availableLevels` itself -
   // otherwise this could offer a casting-time pill (e.g. one only used by a
@@ -139,6 +161,11 @@ export function SpellsStep({ spells, classes, abilityScores, spellsKnown, onChan
 
   function isSelected(spell: Spell): boolean {
     return spellsKnown.some((known) => known.name === spell.name);
+  }
+
+  /** Whether `spell` is already known for free via a class/subclass feature - see `grantedSpells` above. Only affects the preview panel's badge (below); the main browser's selection/toggle logic is untouched, since granting doesn't change what the player can additionally pick. */
+  function isGranted(spell: Spell): boolean {
+    return grantedSpells.some((granted) => granted.name === spell.name);
   }
 
   /** A not-yet-known spell the player has no room left for - selectable to preview, but clicking it does nothing (see `toggleSpell`) until something else is removed. */
@@ -173,6 +200,31 @@ export function SpellsStep({ spells, classes, abilityScores, spellsKnown, onChan
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
       <div className="flex flex-col gap-4">
+        {grantedSpells.length > 0 && (
+          <Card>
+            <CardContent className="flex flex-col gap-2">
+              <p className="text-sm font-medium text-fontcolor-secondary">
+                Granted spells (free) - already known, don&apos;t count against the caps below
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {[...grantedSpells]
+                  .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))
+                  .map((spell) => (
+                    <button
+                      key={spell.name}
+                      type="button"
+                      onClick={() => setPreviewSpell(spell)}
+                      className={pillClass(true)}
+                      title="Preview"
+                    >
+                      {spell.name} ({levelLabel(spell.level)})
+                    </button>
+                  ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardContent className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center gap-3">
@@ -287,7 +339,7 @@ export function SpellsStep({ spells, classes, abilityScores, spellsKnown, onChan
 
       <SpellDetailPanel
         spell={previewSpell}
-        selected={previewSpell ? isSelected(previewSpell) : false}
+        selected={previewSpell ? isSelected(previewSpell) || isGranted(previewSpell) : false}
         className="lg:sticky lg:top-6"
       />
     </div>

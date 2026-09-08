@@ -32,6 +32,7 @@ import { WeaponEntry } from "@/components/character/WeaponEntry";
 import { SpellEntry } from "@/components/character/SpellEntry";
 import { FeatureEntry, FeatureLike } from "@/components/character/FeatureEntry";
 import { FeatEntry } from "@/components/character/FeatEntry";
+import { featureChoiceKey } from "@/utils/grantedSpells";
 import { Spell } from "@/interfaces/Spell";
 import { CharacterDetails } from "@/interfaces/CharacterDetails";
 import { MagicItem } from "@/interfaces/MagicItem";
@@ -91,13 +92,38 @@ function formatSlots(slots: Record<number, number> | null, label: string) {
  * Characters are stored in localStorage as full snapshots of the class/subclass data at save time (see
  * utils/storage.ts). A character saved before `features` existed on `CharacterClass`/`Subclass` - or from any
  * other older shape - won't have an array there, so this falls back to `[]` instead of crashing on `[...undefined]`.
+ *
+ * A feature gated behind a `FeatureChoice` (a Pact Boon, a Fighting Style,
+ * a Circle of the Land terrain, etc. - see utils/grantedSpells.ts) is
+ * resolved here before display: the chosen option's own `grantedSpells`
+ * are merged into the feature's (so FeatureEntry's badge/decoration just
+ * works, unaware any choice was involved), and a line naming the pick is
+ * appended to the description. `classIndex` and `featureChoices` are what
+ * `featureChoiceKey()` needs to look the pick up - see
+ * `CharacterDraft.featureChoices`'s header comment for the key shape.
  */
-function combinedFeatures(entry: StoredCharacter["classes"][number]): FeatureLike[] {
+function combinedFeatures(
+  entry: StoredCharacter["classes"][number],
+  classIndex: number,
+  featureChoices: Record<string, string> | undefined
+): FeatureLike[] {
   const classFeatures = Array.isArray(entry.class.features) ? entry.class.features : [];
   const subclassFeatures = Array.isArray(entry.subclass?.features) ? entry.subclass!.features : [];
-  return [...classFeatures, ...subclassFeatures].sort(
-    (a, b) => a.level - b.level || a.name.localeCompare(b.name)
-  );
+  return [...classFeatures, ...subclassFeatures]
+    .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))
+    .map((feature) => {
+      if (!feature.choice) return feature;
+      const key = featureChoiceKey(classIndex, feature);
+      const chosenOption = feature.choice.options.find((option) => option.id === featureChoices?.[key]);
+      if (!chosenOption) {
+        return { ...feature, description: `${feature.description}\n\n(Choice not yet made - edit this character to pick one.)` };
+      }
+      return {
+        ...feature,
+        description: `${feature.description}\n\nChosen: ${chosenOption.label}${chosenOption.summary ? ` — ${chosenOption.summary}` : ""}`,
+        grantedSpells: [...(feature.grantedSpells ?? []), ...(chosenOption.grantedSpells ?? [])],
+      };
+    });
 }
 
 /** True if `details` has anything worth its own card - a character created before CharacterDetails existed, or from the random generator, has no `details` at all (see CharacterDetails.ts), and one from the wizard can still have every field left blank. */
@@ -347,7 +373,7 @@ export default function CharacterDetailsPage() {
             </CardHeader>
             <CardContent className="flex flex-col gap-6 text-sm text-fontcolor-secondary">
               {character.classes.map((entry, index) => {
-                const features = combinedFeatures(entry);
+                const features = combinedFeatures(entry, index, character.featureChoices);
                 const subclassPending = !entry.subclass && entry.level < entry.class.subclassLevel;
                 return (
                   <div key={`${entry.class.name}-${index}`} className="flex flex-col gap-2">
@@ -366,6 +392,7 @@ export default function CharacterDetailsPage() {
                           key={`${feature.name}-${feature.level}-${featureIndex}`}
                           feature={feature}
                           reached={feature.level <= entry.level}
+                          edition={character.edition}
                         />
                       ))}
                     </div>
@@ -431,6 +458,25 @@ export default function CharacterDetailsPage() {
                     </div>
                   </div>
                 ))
+              )}
+
+              {character.grantedSpells && character.grantedSpells.length > 0 && (
+                <div className="flex flex-col gap-2 border-t border-border pt-3">
+                  <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-foreground">
+                    Granted spells (free)
+                    <Badge variant="muted">{character.grantedSpells.length}</Badge>
+                  </p>
+                  <p className="text-xs">
+                    Always known and castable without expending a spell slot, on top of the spells above - see the
+                    granting class/subclass feature (under &quot;Class &amp; subclass features&quot;) for its own
+                    free-cast limit.
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {character.grantedSpells.map((spell) => (
+                      <SpellEntry key={spell.name} spell={spell} spellcasting={spellcasting} />
+                    ))}
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>

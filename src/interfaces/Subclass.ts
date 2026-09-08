@@ -1,4 +1,4 @@
-import { CasterProgression } from "@/interfaces/CharacterClass";
+import { CasterProgression, ClassFeature } from "@/interfaces/CharacterClass";
 import { Edition } from "@/interfaces/Edition";
 
 export interface Subclass {
@@ -26,5 +26,5 @@ export interface Subclass {
    * same as `grantedAtLevel`, which is only when the subclass itself is
    * chosen).
    */
-  features: { name: string; level: number; description: string }[];
+  features: ClassFeature[];
 }

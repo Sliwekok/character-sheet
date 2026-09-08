@@ -116,7 +116,13 @@ export default function PrintCharacterSheet() {
       if (total > 0) slotsByLevel[level] = total;
     }
 
-    const spellGroups = groupSpellsByLevel(character.spellsKnown);
+    // Includes `grantedSpells` (auto-granted by a class/subclass feature -
+    // see utils/grantedSpells.ts) alongside `spellsKnown` - the printed
+    // sheet has no separate "free spells" section, and a granted spell is
+    // just as much a spell the character can cast as anything picked on
+    // the Spells step, so it belongs on this list too rather than being
+    // silently left off the printed character sheet.
+    const spellGroups = groupSpellsByLevel([...character.spellsKnown, ...(character.grantedSpells ?? [])]);
 
     const featureLines = [
       ...character.classes.flatMap((entry) =>

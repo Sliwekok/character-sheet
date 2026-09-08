@@ -120,7 +120,12 @@ function ClassDetails({ characterClass }: { characterClass: CharacterClass }) {
             <p className="mb-2 font-semibold text-fontcolor">Features</p>
             <div className="flex flex-col gap-2">
               {sortedFeatures.map((feature) => (
-                <FeatureEntry key={`${feature.level}-${feature.name}`} feature={feature} reached />
+                <FeatureEntry
+                  key={`${feature.level}-${feature.name}`}
+                  feature={feature}
+                  reached
+                  edition={characterClass.edition}
+                />
               ))}
             </div>
           </div>
@@ -180,7 +185,12 @@ function SubclassDetails({ subclass }: { subclass: Subclass }) {
         {sortedFeatures.length > 0 && (
           <div className="flex flex-col gap-2">
             {sortedFeatures.map((feature) => (
-              <FeatureEntry key={`${feature.level}-${feature.name}`} feature={feature} reached />
+              <FeatureEntry
+                key={`${feature.level}-${feature.name}`}
+                feature={feature}
+                reached
+                edition={subclass.edition}
+              />
             ))}
           </div>
         )}

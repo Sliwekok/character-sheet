@@ -143,6 +143,32 @@ export interface CharacterDraft {
      * `Character.spellsKnown` by `finalizeDraft()`.
      */
     spellsKnown: Spell[];
+    /**
+     * Spells automatically granted by a class/subclass feature - see
+     * `Character.grantedSpells`'s header comment (interfaces/Characters.ts)
+     * for what qualifies. Unlike `spellsKnown`, this isn't filled in by any
+     * wizard step the player interacts with - ManualWizard recomputes it
+     * with utils/grantedSpells.ts whenever `classes` (or the loaded
+     * ruleset) changes, the same way `revalidateDraftForClasses` reacts to
+     * a class change for everything else. Always `[]` rather than
+     * undefined, same convention as `weapons`/`magicItems`; `finalizeDraft`
+     * drops it back to `undefined` on `Character.grantedSpells` when empty.
+     */
+    grantedSpells: Spell[];
+    /**
+     * The player's resolved pick for every class/subclass `FeatureChoice`
+     * reached so far (e.g. a Warlock's Pact Boon, a Ranger's Fighting
+     * Style, a Circle of the Land druid's terrain) - keyed by
+     * utils/grantedSpells.ts's `featureChoiceKey()`, valued by the chosen
+     * `FeatureChoiceOption.id`. Not every choice affects `grantedSpells`
+     * (e.g. Divine Order's "Protector" grants a proficiency this app
+     * doesn't track, not a spell) - this still records the pick either way,
+     * same "always a valid, possibly-empty object" convention as
+     * `backgroundAbilityBonuses`/`abilityScoreImprovements` above. Pruned
+     * back down to only currently-reached choices in
+     * `revalidateDraftForClasses`, same as `abilityScoreImprovements`.
+     */
+    featureChoices: Record<string, string>;
     /** Flavor/print-only fields, edited on the Details step - see CharacterDetails.ts. Always a valid (possibly empty) object, same convention as `backgroundAbilityBonuses` above. */
     details: CharacterDetails;
 }

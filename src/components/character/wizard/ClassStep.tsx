@@ -1,10 +1,13 @@
-import { CharacterClass } from "@/interfaces/CharacterClass";
+import { CharacterClass, GrantedSpell } from "@/interfaces/CharacterClass";
 import { Subclass } from "@/interfaces/Subclass";
 import { HpMethod } from "@/interfaces/Hp";
+import { Edition } from "@/interfaces/Edition";
 import { DraftClassEntry } from "@/interfaces/CharacterDraft";
-import { Button, Card, CardContent, Combobox, Select, TextInput } from "@/components/ui";
+import { Badge, Button, Card, CardContent, Combobox, Select, TextInput } from "@/components/ui";
 import { rollsNeededForClassEntry } from "@/utils/calculateMaxHp";
 import { rollDie } from "@/utils/dice";
+import { TextWithSpellMentions } from "@/components/character/SpellMention";
+import { getFeatureChoices } from "@/utils/grantedSpells";
 import {JSX} from "react";
 
 type ClassStepProps = {
@@ -13,6 +16,11 @@ type ClassStepProps = {
   /** `draft.classes` - entries[0] is the main class (see DraftClassEntry's header comment). */
   entries: DraftClassEntry[];
   onChange: (entries: DraftClassEntry[]) => void;
+  /** Needed only to link a decorated spell mention to its own page - see SpellMention.tsx's `spellSearchHref`. */
+  edition: Edition;
+  /** `draft.featureChoices` - the player's resolved picks for every reached `FeatureChoice` (a Pact Boon, a Fighting Style, a Circle of the Land terrain, etc.) - see utils/grantedSpells.ts. */
+  featureChoices: Record<string, string>;
+  onFeatureChoicesChange: (choices: Record<string, string>) => void;
 };
 
 function classSummary(characterClass: CharacterClass): string {
@@ -32,7 +40,21 @@ function resizeRolls(hitDie: number, needed: number, existing: number[] | undefi
   return [...current, ...Array.from({ length: needed - current.length }, () => rollDie(hitDie))];
 }
 
-function classSummaryBlock(characterClass: CharacterClass): JSX.Element {
+/** Short badge label for one `GrantedSpell` entry - see FeatureEntry.tsx's `grantedSpellBadgeLabel`, which this mirrors (ClassStep inlines its own feature rendering instead of reusing FeatureEntry - see this file's own header comment). */
+function grantedSpellBadgeLabel(grant: GrantedSpell): string {
+  if (grant.spellName) return `Free spell: ${grant.spellName}`;
+  if (grant.choice) {
+    const { count, spellLevel } = grant.choice;
+    return `Free spell: choose ${count} level ${spellLevel} spell${count === 1 ? "" : "s"}`;
+  }
+  return "Free spell";
+}
+
+function grantedSpellNames(grantedSpells: GrantedSpell[] | undefined): string[] {
+  return (grantedSpells ?? []).map((grant) => grant.spellName).filter((name): name is string => Boolean(name));
+}
+
+function classSummaryBlock(characterClass: CharacterClass, edition: Edition): JSX.Element {
 
   return (
       <label className="flex flex-col gap-2">
@@ -48,14 +70,20 @@ function classSummaryBlock(characterClass: CharacterClass): JSX.Element {
               // collided and React reused/misplaced list nodes across a
               // subclass switch, leaving stale feature lines behind.
               <span className="text-sm font-small text-fontcolor-secondary" key={`${index}-${feature.level}-${feature.name}`}>
-                  <b className="text-fontcolor">{feature.name} (level: {feature.level}):</b> {feature.description}
+                  <b className="text-fontcolor">{feature.name} (level: {feature.level}):</b>{" "}
+                  <TextWithSpellMentions text={feature.description} spellNames={grantedSpellNames(feature.grantedSpells)} edition={edition} />
+                  {(feature.grantedSpells ?? []).map((grant, grantIndex) => (
+                    <Badge key={grantIndex} variant="solid" className="ml-1">
+                      {grantedSpellBadgeLabel(grant)}
+                    </Badge>
+                  ))}
               </span>
           ))}
       </label>
   );
 }
 
-function subclassSummary(subclass: Subclass): JSX.Element {
+function subclassSummary(subclass: Subclass, edition: Edition): JSX.Element {
   return (
       <label className="flex flex-col gap-2">
             <span className="text-sm font-medium">
@@ -78,7 +106,13 @@ function subclassSummary(subclass: Subclass): JSX.Element {
             // collided and React reused/misplaced list nodes across a
             // subclass switch, leaving stale feature lines behind.
             <span className="text-sm font-small text-fontcolor-secondary" key={`${index}-${feature.level}-${feature.name}`}>
-                <b className="text-fontcolor">{feature.name}: (level: {feature.level})</b> {feature.description}
+                <b className="text-fontcolor">{feature.name}: (level: {feature.level})</b>{" "}
+                <TextWithSpellMentions text={feature.description} spellNames={grantedSpellNames(feature.grantedSpells)} edition={edition} />
+                {(feature.grantedSpells ?? []).map((grant, grantIndex) => (
+                  <Badge key={grantIndex} variant="solid" className="ml-1">
+                    {grantedSpellBadgeLabel(grant)}
+                  </Badge>
+                ))}
             </span>
         ))}
       </label>
@@ -100,9 +134,26 @@ function subclassSummary(subclass: Subclass): JSX.Element {
  * .ts's `revalidateDraftForClasses`) whenever `entries` changes underneath
  * it, so this component only needs to report the new array.
  */
-export function ClassStep({ classes, subclasses, entries, onChange }: ClassStepProps) {
+export function ClassStep({
+  classes,
+  subclasses,
+  entries,
+  onChange,
+  edition,
+  featureChoices,
+  onFeatureChoicesChange,
+}: ClassStepProps) {
   const primary = entries[0];
   const usedClassNames = new Set(entries.map((entry) => entry.characterClass?.name).filter(Boolean));
+  // Every class/subclass FeatureChoice any entry has reached so far (a Pact
+  // Boon, a Fighting Style, a Circle of the Land terrain, ...), regardless
+  // of whether the player has resolved it yet - see utils/grantedSpells.ts.
+  // Filtered per-entry below by `pending.classIndex` when rendered.
+  const pendingChoices = getFeatureChoices(entries);
+
+  function setFeatureChoice(key: string, optionId: string) {
+    onFeatureChoicesChange({ ...featureChoices, [key]: optionId });
+  }
 
   function optionsFor(index: number): CharacterClass[] {
     const ownClassName = entries[index]?.characterClass?.name;
@@ -272,7 +323,7 @@ export function ClassStep({ classes, subclasses, entries, onChange }: ClassStepP
             )}
 
             {isPrimary && entry.characterClass && (
-                <p className="text-xs text-fontcolor-secondary">{classSummaryBlock(entry.characterClass)}</p>
+                <p className="text-xs text-fontcolor-secondary">{classSummaryBlock(entry.characterClass, edition)}</p>
             )}
 
             {isPrimary && entry.characterClass && (
@@ -295,9 +346,39 @@ export function ClassStep({ classes, subclasses, entries, onChange }: ClassStepP
                   onClear={() => updateEntry(index, { subclass: undefined })}
                   placeholder={eligibleSubclasses.length === 0 ? "No subclasses available" : "Search subclasses..."}
                 />
-                {entry.subclass && subclassSummary(entry.subclass)}
+                {entry.subclass && subclassSummary(entry.subclass, edition)}
               </label>
             )}
+
+            {pendingChoices
+              .filter((pending) => pending.classIndex === index)
+              .map((pending) => {
+                const chosenId = featureChoices[pending.key];
+                const chosenOption = pending.choice.options.find((option) => option.id === chosenId);
+                return (
+                  <label key={pending.key} className="flex flex-col gap-2">
+                    <span className="text-sm font-medium text-fontcolor-secondary">
+                      {pending.featureName} — {pending.choice.prompt}
+                    </span>
+                    <Select
+                      value={chosenId ?? ""}
+                      onChange={(event) => setFeatureChoice(pending.key, event.target.value)}
+                    >
+                      <option value="" disabled>
+                        Choose...
+                      </option>
+                      {pending.choice.options.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </Select>
+                    {chosenOption?.summary && (
+                      <p className="text-xs text-fontcolor-secondary">{chosenOption.summary}</p>
+                    )}
+                  </label>
+                );
+              })}
           </div>
         );
       })}

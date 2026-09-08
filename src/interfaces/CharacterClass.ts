@@ -35,6 +35,118 @@ export interface ClassSpellcasting {
   pactMagic?: SpellcastingProgression;
 }
 
+/**
+ * One spell a class/subclass feature grants outright - the classic
+ * "innate/bonus spell" mechanic (e.g. a Warlock's Mystic Arcanum, a Psi
+ * Warrior's Telekinetic Master, a Wizard's Improved Minor Illusion): a
+ * permanent addition to the character's known spells that the feature
+ * itself also lets you cast without expending a spell slot (usually with a
+ * per-rest limit, sometimes at-will for a cantrip). NOT the same as a
+ * "Domain Spells"/"Expanded Spell List"/"Circle Spells" table - those stay
+ * plain description text, since they're always-prepared but still cost a
+ * normal slot to cast, and NOT a temporary/situational spell-like ability
+ * that's just one of several menu options (e.g. a Diviner's "The Third
+ * Eye") - those aren't modeled here either. See utils/grantedSpells.ts for
+ * how this is turned into an actual bonus known spell.
+ */
+export interface GrantedSpell {
+  /**
+   * Exact `Spell.name` this grant provides, when the feature names a fixed
+   * spell (the common case - e.g. "Telekinesis", "Polymorph"). Omitted
+   * when `choice` describes a player-picked spell instead (a feature can't
+   * set both).
+   */
+  spellName?: string;
+  /**
+   * Present when the feature instead lets the player pick which spell
+   * fills the grant, scoped by level only - e.g. a Warlock's Mystic
+   * Arcanum ("choose one 6th-level spell"). This app has no per-class
+   * spell list (see utils/spellcasting.ts's header comment on
+   * getSpellLimits), so - same simplification used everywhere else spell
+   * limits are enforced - `count` extra known spells of exactly
+   * `spellLevel` simply become pickable in the Spells step, from the full
+   * spell list, on top of the character's normal known/prepared caps.
+   */
+  choice?: { count: number; spellLevel: number };
+  /** Short human-readable note on the free-cast limit, e.g. "once per long rest", "at will (cantrip)", "twice per long rest, scales with level". Purely descriptive - shown next to the spell, never enforced mechanically (this app doesn't track resource/rest state at all). */
+  limit?: string;
+  /**
+   * Overrides the enclosing `ClassFeature.level` for gating THIS grant
+   * specifically - e.g. Circle of the Land's terrain spells unlock
+   * progressively at 3rd/5th/7th/9th level even though the "Circle
+   * Spells"/"Circle of the Land Spells" feature that grants them is itself
+   * listed at an earlier level (the level the subclass - and so this
+   * choice of terrain - is gained at). Defaults to the feature's own
+   * `level` when unset, same as every other grant.
+   */
+  atLevel?: number;
+}
+
+/**
+ * One option in a `FeatureChoice` (see its header comment) - a small,
+ * fixed, named alternative the player picks between, e.g. "Pact of the
+ * Tome" as one of a Warlock's three Pact Boon options, or "Protector" as
+ * one of a Cleric's two Divine Order options. `grantedSpells` is optional -
+ * an option can grant nothing mechanically tracked here (e.g. Divine
+ * Order's "Protector" just grants weapon/armor proficiency, which this app
+ * doesn't model at the feature-choice level - only the option's NAME is
+ * shown for those).
+ */
+export interface FeatureChoiceOption {
+  /** Stable identifier for this option, used as the value stored in `CharacterDraft.featureChoices`/`Character.featureChoices` - e.g. "tome", "protector". Never shown to the player directly; see `label` for that. */
+  id: string;
+  /** Player-facing name, e.g. "Pact of the Tome", "Protector". */
+  label: string;
+  /** Short note on what choosing this option does, shown alongside the option in the picker (and, once chosen, next to the feature) - e.g. "Learn 3 cantrips from any class's spell list, cast at will" or "Martial weapon and heavy armor proficiency". Purely descriptive, same spirit as GrantedSpell.limit. */
+  summary?: string;
+  grantedSpells?: GrantedSpell[];
+}
+
+/**
+ * A feature that requires the player to pick exactly one of a small, fixed
+ * set of named options before its mechanical benefit (if any is modeled
+ * here) applies - e.g. a Warlock's Pact Boon (Chain/Blade/Tome), a
+ * Ranger's Fighting Style (a combat feat, or the spell-granting "Druidic
+ * Warrior" option), a Path of the Giant barbarian's Giant Power
+ * (Druidcraft or Thaumaturgy), a Cleric's Divine Order or a Druid's Primal
+ * Order (Protector/Thaumaturge, Warden/Magician), or a Circle of the Land
+ * druid's terrain (arid/polar/temperate/tropical, or the 2014 8-terrain
+ * list) - each of which decides which spells that class/subclass feature
+ * grants. The player's pick is stored in `CharacterDraft.featureChoices`/
+ * `Character.featureChoices`, keyed by `utils/grantedSpells.ts`'s
+ * `featureChoiceKey()`; see that file for how a pick turns into actual
+ * granted spells (and `utils/spellcasting.ts`'s bonus-cap folding for
+ * choice-type grants).
+ */
+export interface FeatureChoice {
+  /** Stable identifier for this choice WITHIN its feature (a feature only ever has one `choice`, but the key still needs to be distinct from other data shape changes over time) - used as part of `featureChoiceKey()`'s stored key. */
+  key: string;
+  /** Shown as the picker's label, e.g. "Choose your Pact Boon", "Choose a terrain". */
+  prompt: string;
+  options: FeatureChoiceOption[];
+}
+
+/**
+ * One named mechanical benefit a class or subclass grants at a given
+ * level - shared shape for `CharacterClass.features` and
+ * `Subclass.features` (see each field's own header comment for how they're
+ * ordered/merged). `grantedSpells` is optional and only set on the small
+ * number of features that grant a bonus known spell unconditionally - see
+ * `GrantedSpell`'s header comment for exactly which features qualify.
+ * `choice` is optional and only set when the grant (or a class of grants)
+ * is instead gated behind a small named player choice - see
+ * `FeatureChoice`'s header comment. A feature can have both (e.g. an
+ * unconditional grant alongside a separate choice-gated one), though none
+ * of the currently-tagged data does.
+ */
+export interface ClassFeature {
+  name: string;
+  level: number;
+  description: string;
+  grantedSpells?: GrantedSpell[];
+  choice?: FeatureChoice;
+}
+
 export interface CharacterClass {
   name: string;
   edition: Edition;
@@ -80,5 +192,5 @@ export interface CharacterClass {
    * `level` to the character's class level - not just the ones already
    * unlocked.
    */
-  features: { name: string; level: number; description: string }[];
+  features: ClassFeature[];
 }

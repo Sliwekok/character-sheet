@@ -5,6 +5,7 @@ import { CasterProgression, CharacterClass } from "@/interfaces/CharacterClass";
 import { Subclass } from "@/interfaces/Subclass";
 import { Spell } from "@/interfaces/Spell";
 import { calculateAbilityModifiers } from "@/utils/abilityModifiers";
+import { getBonusSpellCaps } from "@/utils/grantedSpells";
 
 /** A single class/subclass/level - the shape both `Character.classes` (via a small field-name adapter) and `CharacterDraft.classes` reduce to for every calculation below. `characterClass` is optional to tolerate a draft row where the player hasn't picked a class yet. */
 export type SpellcasterEntry = { characterClass?: CharacterClass; subclass?: Subclass; level: number };
@@ -234,8 +235,22 @@ export interface SpellLimits {
  * `spellsKnown` list down to whenever a class, subclass, or level changes.
  * Works for both a solo class (`entries` of length 1) and a multiclassed
  * character (`entries` of length 2+).
+ *
+ * Also folds in `getBonusSpellCaps` - extra cantrip/leveled-spell caps (and,
+ * for something like a Warlock's Mystic Arcanum, spell levels the
+ * character wouldn't otherwise have access to at all) from any earned
+ * "choose a spell" class/subclass feature - see utils/grantedSpells.ts's
+ * header comment for why that's handled here rather than a separate
+ * picker UI. `featureChoices` is the player's resolved picks for any
+ * choice-gated grant among those (e.g. Pact of the Tome) - see
+ * `CharacterDraft.featureChoices`; defaults to `{}` so callers with no
+ * choice-gated data don't need to pass anything.
  */
-export function getSpellLimits(entries: SpellcasterEntry[], abilityScores: AbilityScores): SpellLimits {
+export function getSpellLimits(
+    entries: SpellcasterEntry[],
+    abilityScores: AbilityScores,
+    featureChoices: Record<string, string> = {}
+): SpellLimits {
     const availableLevels = getAvailableSpellLevelsForClasses(entries);
     const totals = entries.reduce(
         (sum, entry) => {
@@ -244,7 +259,13 @@ export function getSpellLimits(entries: SpellcasterEntry[], abilityScores: Abili
         },
         { cantrips: 0, leveled: 0 }
     );
-    return { availableLevels, maxCantrips: totals.cantrips, maxLeveled: totals.leveled };
+    const bonus = getBonusSpellCaps(entries, featureChoices);
+    const mergedLevels = [...new Set([...availableLevels, ...bonus.extraLevels])].sort((a, b) => a - b);
+    return {
+        availableLevels: mergedLevels,
+        maxCantrips: totals.cantrips + bonus.cantrips,
+        maxLeveled: totals.leveled + bonus.leveled,
+    };
 }
 
 /** Trims `spells` down to `limits`, dropping anything at a no-longer-available level first, then keeping only the first `maxCantrips`/`maxLeveled` of what's left (in existing order - i.e. "keep whatever was picked first"). Used both live in SpellsStep and by the class-change revalidation in utils/characterDraft.ts. */

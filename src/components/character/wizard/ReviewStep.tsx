@@ -106,6 +106,15 @@ export function ReviewStep({ draft, isEditing, onSave, extraActions }: ReviewSte
                   .join(", ")}
               </p>
             )}
+            {preview.grantedSpells && preview.grantedSpells.length > 0 && (
+              <p className="sm:col-span-2">
+                Granted spells (free):{" "}
+                {[...preview.grantedSpells]
+                  .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))
+                  .map((spell) => `${spell.name} (${levelLabel(spell.level)})`)
+                  .join(", ")}
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>

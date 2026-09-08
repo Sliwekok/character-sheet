@@ -12,6 +12,7 @@ import { isValidBackgroundAllocation, subtractAbilityScores, sumAbilityScores } 
 import { areAsiSlotsComplete, getAsiSlots, pruneAsiAllocations, sumAsiAllocations } from "@/utils/abilityScoreImprovements";
 import { classCanUseArmor, classCanUseWeapon } from "@/utils/proficiencyMatch";
 import { getSpellLimits, pruneSpellsToLimits } from "@/utils/spellcasting";
+import { pruneFeatureChoices } from "@/utils/grantedSpells";
 
 const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
 
@@ -67,6 +68,8 @@ export function createEmptyDraft(edition?: Edition): CharacterDraft {
         alignment: "",
         languages: [],
         spellsKnown: [],
+        grantedSpells: [],
+        featureChoices: {},
         details: {},
     };
 }
@@ -178,6 +181,15 @@ export function draftFromCharacter(character: StoredCharacter): CharacterDraft {
         alignment: character.alignment,
         languages: character.languages.filter((language) => !character.race.languages.includes(language)),
         spellsKnown: character.spellsKnown,
+        // Seeded from the stored character so it's not empty for a beat
+        // before ManualWizard's ruleset-driven effect gets a chance to
+        // recompute it (and confirm it's still current) - see
+        // `CharacterDraft.grantedSpells`'s header comment.
+        grantedSpells: character.grantedSpells ?? [],
+        // Same head-start-seed reasoning as `grantedSpells` above - ManualWizard's
+        // effect re-derives `grantedSpells` from this (and prunes stale entries)
+        // once the ruleset has loaded.
+        featureChoices: character.featureChoices ?? {},
         details: character.details ?? {},
     };
 }
@@ -272,6 +284,8 @@ export function finalizeDraft(draft: CharacterDraft): StoredCharacter | null {
         // step collected - the wizard step existed to fill in
         // `draft.spellsKnown`, but nothing ever read it back out.
         spellsKnown: draft.spellsKnown,
+        grantedSpells: draft.grantedSpells.length > 0 ? draft.grantedSpells : undefined,
+        featureChoices: Object.keys(draft.featureChoices).length > 0 ? draft.featureChoices : undefined,
         languages: [...draft.race.languages, ...draft.languages],
         details: cleanDetails(draft.details),
     };
@@ -323,14 +337,28 @@ export function revalidateDraftForClasses(draft: CharacterDraft): CharacterDraft
     const abilityScoreImprovements = pruneAsiAllocations(asiSlots, draft.abilityScoreImprovements);
     const asiBonuses = sumAsiAllocations(asiSlots, abilityScoreImprovements);
 
+    // Drop any feature-choice pick (Pact Boon, Fighting Style, a Circle of
+    // the Land terrain, etc. - see utils/grantedSpells.ts) the class change
+    // no longer offers, same reasoning as `abilityScoreImprovements` above.
+    const featureChoices = pruneFeatureChoices(draft.classes, draft.featureChoices);
+
     const abilityScores = sumAbilityScores(
         draft.abilityScores.scores,
         draft.race?.abilityModifiers ?? {},
         draft.backgroundAbilityBonuses,
         asiBonuses
     );
-    const limits = getSpellLimits(draft.classes, abilityScores);
+    const limits = getSpellLimits(draft.classes, abilityScores, featureChoices);
     const spellsKnown = pruneSpellsToLimits(draft.spellsKnown, limits);
 
-    return { ...draft, skillProficiencies, equippedArmor, shield, weapons, abilityScoreImprovements, spellsKnown };
+    return {
+        ...draft,
+        skillProficiencies,
+        equippedArmor,
+        shield,
+        weapons,
+        abilityScoreImprovements,
+        featureChoices,
+        spellsKnown,
+    };
 }

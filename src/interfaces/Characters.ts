@@ -74,6 +74,28 @@ export interface Character {
     hpHistory?: HpLevelEntry[];
     /** Spells the character knows or has prepared, across all of their casting classes. */
     spellsKnown: Spell[];
+    /**
+     * Spells automatically granted by a class/subclass feature (e.g. a Psi
+     * Warrior's Telekinetic Master, a Warlock's Mystic Arcanum) - always
+     * known and castable without expending a spell slot (per that
+     * feature's own limit, usually a per-rest cap this app doesn't track),
+     * on top of `spellsKnown` rather than counted against it. Purely
+     * derived from `classes` - see utils/grantedSpells.ts - so this is
+     * undefined rather than `[]` whenever there's nothing to show, same
+     * convention as `magicItems` above. Not player-editable in the wizard;
+     * ManualWizard recomputes it whenever the class selection changes.
+     */
+    grantedSpells?: Spell[];
+    /**
+     * The player's resolved pick for every class/subclass `FeatureChoice`
+     * reached (e.g. a Warlock's Pact Boon, a Circle of the Land druid's
+     * terrain) - see `CharacterDraft.featureChoices`'s header comment for
+     * the key/value shape. Undefined rather than `{}` whenever there's
+     * nothing to show, same convention as `magicItems`/`grantedSpells`
+     * above. Feeds into `grantedSpells` above wherever the chosen option
+     * itself grants a spell - see utils/grantedSpells.ts.
+     */
+    featureChoices?: Record<string, string>;
     languages: string[];
     /**
      * Magic items carried/owned that aren't the equipped armor, shield, or

@@ -16,6 +16,7 @@ import {
 import { isValidBackgroundAllocation, sumAbilityScores } from "@/utils/abilityScoreBonuses";
 import { areAsiSlotsComplete, getAsiSlots, sumAsiAllocations } from "@/utils/abilityScoreImprovements";
 import { getEffectiveCasterProgression } from "@/utils/spellcasting";
+import { getAutoGrantedSpellNames, resolveSpellsByName } from "@/utils/grantedSpells";
 import { loadCharacter, saveCharacter } from "@/utils/storage";
 import { StepProgress } from "@/components/character/wizard/StepProgress";
 import { EditionStep } from "@/components/character/wizard/EditionStep";
@@ -256,6 +257,39 @@ export default function ManualWizard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft.classes]);
 
+  // Requirement: keep `draft.grantedSpells` in sync with whatever
+  // class/subclass features the current build has actually reached - see
+  // utils/grantedSpells.ts and Character.grantedSpells's doc comment for
+  // what qualifies. This is NOT gated behind the classesSignature ref above:
+  // a level-only change (no class/subclass swap) can still cross a
+  // feature's granting level (e.g. reaching Psi Warrior 18), and the
+  // ruleset itself only becomes available asynchronously after the class
+  // has already been picked (see the ruleset-loading effect above) - both
+  // cases need their own recompute here rather than piggybacking on that
+  // signature. `grantedSpellNames` is memoized so the effect below only
+  // re-runs when the actual resolved name SET could have changed, not on
+  // every unrelated draft update.
+  const grantedSpellNames = useMemo(
+    () => getAutoGrantedSpellNames(draft.classes, draft.featureChoices),
+    [draft.classes, draft.featureChoices]
+  );
+  useEffect(() => {
+    if (!ruleset) return;
+    const resolved = resolveSpellsByName(grantedSpellNames, ruleset.spells);
+    setDraft((current) => {
+      const currentNames = current.grantedSpells
+        .map((spell) => spell.name)
+        .sort()
+        .join("|");
+      const nextNames = resolved
+        .map((spell) => spell.name)
+        .sort()
+        .join("|");
+      if (currentNames === nextNames) return current;
+      return { ...current, grantedSpells: resolved };
+    });
+  }, [grantedSpellNames, ruleset]);
+
   function handleSave() {
     const finalized = finalizeDraft(draft);
     if (!finalized) return;
@@ -313,6 +347,9 @@ export default function ManualWizard() {
                   subclasses={ruleset.subclasses}
                   entries={draft.classes}
                   onChange={(classes) => updateDraft({ classes })}
+                  edition={draft.edition!}
+                  featureChoices={draft.featureChoices}
+                  onFeatureChoicesChange={(featureChoices) => updateDraft({ featureChoices })}
                 />
               ) : draft.edition ? (
                 <RulesetLoadingNotice />
@@ -430,6 +467,8 @@ export default function ManualWizard() {
                   abilityScores={finalAbilityScores}
                   spellsKnown={draft.spellsKnown}
                   onChange={(spellsKnown) => updateDraft({ spellsKnown })}
+                  grantedSpells={draft.grantedSpells}
+                  featureChoices={draft.featureChoices}
                 />
               ) : !ruleset && draft.edition && primaryClass ? (
                 <RulesetLoadingNotice />
