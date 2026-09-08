@@ -7,6 +7,7 @@ import { cn } from "@/utils/cn";
 import { abilityScoreStateForMethod } from "@/utils/characterDraft";
 import { rollAbilityScoreSet } from "@/utils/dice";
 import { sumAbilityScores } from "@/utils/abilityScoreBonuses";
+import { AsiSlot, getAsiSlots, isValidAsiAllocation, sumAsiAllocations } from "@/utils/abilityScoreImprovements";
 import { calculateAbilityModifiers } from "@/utils/abilityModifiers";
 import {
   POINT_BUY_COSTS,
@@ -23,6 +24,9 @@ type AbilityScoresStepProps = {
   onChange: (next: AbilityScoreState) => void;
   onBackgroundBonusesChange: (next: Partial<AbilityScores>) => void;
   classes: DraftClassEntry[];
+  /** The player's chosen allocation of every earned Ability Score Improvement so far - see `AbilityScoreImprovementPicker` below and utils/abilityScoreImprovements.ts. */
+  abilityScoreImprovements: Record<string, Partial<AbilityScores>>;
+  onAbilityScoreImprovementsChange: (next: Record<string, Partial<AbilityScores>>) => void;
 };
 
 const ABILITIES: { key: keyof AbilityScores; label: string; short: string }[] = [
@@ -50,10 +54,15 @@ const METHODS: { value: AbilityScoreMethod; label: string; description: string }
  *
  * `state.scores` is the BASE score only. This step also owns the
  * background's ability-score bonus allocation (2024 - see
- * `BackgroundBonusPicker` below) and shows a live "final scores" preview -
- * base + race's flat modifiers (2014) + background bonus (2024), via
- * utils/abilityScoreBonuses.ts's `sumAbilityScores()` - since that's what
- * actually gets saved (see utils/characterDraft.ts's `finalizeDraft`).
+ * `BackgroundBonusPicker` below) and every earned Ability Score
+ * Improvement's allocation (see `AbilityScoreImprovementPicker` below,
+ * driven by `classes` - each class entry's own level against its own
+ * `features` list decides how many ASIs it has granted so far). It shows a
+ * live "final scores" preview - base + race's flat modifiers (2014) +
+ * background bonus (2024) + every ASI's bonus, via
+ * utils/abilityScoreBonuses.ts's `sumAbilityScores()` and
+ * utils/abilityScoreImprovements.ts's `sumAsiAllocations()` - since that's
+ * what actually gets saved (see utils/characterDraft.ts's `finalizeDraft`).
  */
 export function AbilityScoresStep({
   state,
@@ -62,8 +71,13 @@ export function AbilityScoresStep({
   backgroundAbilityBonuses,
   onChange,
   onBackgroundBonusesChange,
+  classes,
+  abilityScoreImprovements,
+  onAbilityScoreImprovementsChange,
 }: AbilityScoresStepProps) {
   const usesPool = state.method === "standard-array" || state.method === "roll";
+  const asiSlots = getAsiSlots(classes);
+  const asiBonuses = sumAsiAllocations(asiSlots, abilityScoreImprovements);
 
   /** Assigns one pool value to `ability` - removes that value from the pool and, if `ability` already held a different value, returns it to the pool. */
   function assignPoolValue(ability: keyof AbilityScores, rawValue: string) {
@@ -100,7 +114,17 @@ export function AbilityScoresStep({
     onChange({ ...state, scores: { ...state.scores, [ability]: Number.isFinite(parsed) ? parsed : 0 } });
   }
 
-  const finalScores = sumAbilityScores(state.scores, race.abilityModifiers, backgroundAbilityBonuses);
+  function updateAsiSlot(slotKey: string, allocation: Partial<AbilityScores>) {
+    const next = { ...abilityScoreImprovements };
+    if (Object.keys(allocation).length === 0) {
+      delete next[slotKey];
+    } else {
+      next[slotKey] = allocation;
+    }
+    onAbilityScoreImprovementsChange(next);
+  }
+
+  const finalScores = sumAbilityScores(state.scores, race.abilityModifiers, backgroundAbilityBonuses, asiBonuses);
   const finalModifiers = calculateAbilityModifiers(finalScores);
 
   return (
@@ -224,9 +248,22 @@ export function AbilityScoresStep({
         onChange={onBackgroundBonusesChange}
       />
 
+      {asiSlots.length > 0 && (
+        <div className="flex flex-col gap-3">
+          {asiSlots.map((slot) => (
+            <AbilityScoreImprovementPicker
+              key={slot.key}
+              slot={slot}
+              allocation={abilityScoreImprovements[slot.key]}
+              onChange={(allocation) => updateAsiSlot(slot.key, allocation)}
+            />
+          ))}
+        </div>
+      )}
+
       <div className="rounded-(--radius) border border-border-strong bg-background-elevated/40 p-4">
         <p className="mb-3 text-sm font-medium text-fontcolor-secondary">
-          Final ability scores (base + race + background)
+          Final ability scores (base + race + background + Ability Score Improvements)
         </p>
         <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
           {ABILITIES.map(({ key, short }) => (
@@ -308,8 +345,6 @@ function BackgroundBonusPicker({
   const selectedCount = Object.keys(bonuses).length;
   const complete = isTwoOne ? selectedCount === 2 : selectedCount === 3;
 
-  console.log()
-
   return (
     <div className="rounded-(--radius) border border-foreground/40 bg-background-elevated/40 p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -378,6 +413,107 @@ function BackgroundBonusPicker({
                   +1
                 </button>
               )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Lets the player allocate ONE earned Ability Score Improvement: +2 to a
+ * single ability, or +1 to two different abilities - the two legal shapes
+ * RAW allows for this feature, in both the 2014 and 2024 rules (see
+ * utils/abilityScoreImprovements.ts's `isValidAsiAllocation`). Unlike
+ * `BackgroundBonusPicker`'s "2-1" allocation (which always uses BOTH a +2
+ * and a +1, on two different abilities, for 3 points total), an ASI is
+ * always exactly 2 points, spent either as a single +2 or as two +1s - so
+ * picking +2 on one ability always clears any +1s already chosen, and vice
+ * versa, rather than combining.
+ */
+function AbilityScoreImprovementPicker({
+  slot,
+  allocation,
+  onChange,
+}: {
+  slot: AsiSlot;
+  allocation: Partial<AbilityScores> | undefined;
+  onChange: (next: Partial<AbilityScores>) => void;
+}) {
+  const bonuses = allocation ?? {};
+  const plusOneAbilities = (Object.entries(bonuses) as [keyof AbilityScores, number][]).filter(
+    ([, value]) => value === 1
+  );
+  const complete = isValidAsiAllocation(bonuses);
+
+  function togglePlusTwo(ability: keyof AbilityScores) {
+    onChange(bonuses[ability] === 2 ? {} : { [ability]: 2 });
+  }
+
+  function togglePlusOne(ability: keyof AbilityScores) {
+    if (bonuses[ability] === 1) {
+      const next = { ...bonuses };
+      delete next[ability];
+      onChange(next);
+      return;
+    }
+    if (plusOneAbilities.length >= 2) return;
+    const next = Object.fromEntries(plusOneAbilities) as Partial<AbilityScores>;
+    next[ability] = 1;
+    onChange(next);
+  }
+
+  return (
+    <div className="rounded-(--radius) border border-foreground/40 bg-background-elevated/40 p-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-medium text-fontcolor">
+          {slot.className} - Ability Score Improvement (level {slot.level})
+        </p>
+        <Badge variant={complete ? "solid" : "outline"}>{complete ? "Assigned" : "Choose +2, or two +1"}</Badge>
+      </div>
+      <p className="mb-3 text-xs text-fontcolor-secondary">
+        Increase one ability score by +2, or two different ability scores by +1 each.
+      </p>
+
+      <div className="flex flex-col gap-2">
+        {ABILITIES.map(({ key, label }) => {
+          const currentBonus = bonuses[key];
+          const plusOneDisabled = currentBonus !== 1 && plusOneAbilities.length >= 2;
+
+          return (
+            <div
+              key={key}
+              className="flex items-center justify-between gap-3 rounded-(--radius-sm) bg-background-darken/60 px-3 py-2"
+            >
+              <span className="text-sm text-fontcolor-secondary">{label}</span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => togglePlusTwo(key)}
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+                    currentBonus === 2
+                      ? "border-foreground bg-foreground text-background-darken"
+                      : "border-border-strong text-fontcolor-secondary hover:border-foreground"
+                  )}
+                >
+                  +2
+                </button>
+                <button
+                  type="button"
+                  onClick={() => togglePlusOne(key)}
+                  disabled={plusOneDisabled}
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+                    currentBonus === 1
+                      ? "border-foreground bg-foreground text-background-darken"
+                      : "border-border-strong text-fontcolor-secondary hover:border-foreground disabled:opacity-40"
+                  )}
+                >
+                  +1
+                </button>
+              </div>
             </div>
           );
         })}

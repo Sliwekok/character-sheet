@@ -97,6 +97,17 @@ export interface Character {
      */
     backgroundAbilityBonuses?: Partial<AbilityScores>;
     /**
+     * The player's chosen allocation of every Ability Score Improvement the
+     * character has earned from class level progression, keyed by slot -
+     * see utils/abilityScoreImprovements.ts's `getAsiSlots()`/`AsiSlot.key`
+     * (`${classIndex}:${level}`). `abilityScores` above already has this
+     * baked in; this field exists only so editing a character can recover
+     * the original per-slot allocation, the same reason
+     * `backgroundAbilityBonuses` exists above. Undefined for any character
+     * saved before this existed, or one with no ASI slots earned yet.
+     */
+    abilityScoreImprovements?: Record<string, Partial<AbilityScores>>;
+    /**
      * Flavor/print-only fields (backstory, appearance, personality traits,
      * death saves, etc.) - see CharacterDetails.ts. Undefined for any
      * character created before this existed, or from the random generator;

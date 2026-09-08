@@ -92,7 +92,7 @@ export interface CharacterDraft {
      * see DraftClassEntry.
      */
     classes: DraftClassEntry[];
-    /** Base ability scores only - race/background bonuses are NOT baked in here, see `backgroundAbilityBonuses` below and utils/abilityScoreBonuses.ts's `sumAbilityScores()`. */
+    /** Base ability scores only - race/background/ASI bonuses are NOT baked in here, see `backgroundAbilityBonuses`/`abilityScoreImprovements` below and utils/abilityScoreBonuses.ts's `sumAbilityScores()`. */
     abilityScores: AbilityScoreState;
     background?: Background;
     /**
@@ -103,6 +103,19 @@ export interface CharacterDraft {
      * enforces exactly that.
      */
     backgroundAbilityBonuses: Partial<AbilityScores>;
+    /**
+     * The player's chosen allocation of every Ability Score Improvement
+     * earned so far from class level progression, keyed by slot - see
+     * utils/abilityScoreImprovements.ts's `getAsiSlots()`/`AsiSlot.key`
+     * (`${classIndex}:${level}`, e.g. `"0:4"` for the main class's first
+     * ASI). Each entry is either `{ ability: 2 }` (the "+2 to one score"
+     * choice) or two entries at `1` each (the "+1 to two scores" choice) -
+     * see `isValidAsiAllocation()`. A slot the player hasn't allocated yet,
+     * or that no longer exists because the class selection changed, is
+     * simply absent - same "always a valid, possibly-empty object"
+     * convention as `backgroundAbilityBonuses` above.
+     */
+    abilityScoreImprovements: Record<string, Partial<AbilityScores>>;
     /** Skills chosen at the class-skill step. Skills granted automatically by `background` are NOT duplicated in here. */
     skillProficiencies: SkillName[];
     equippedArmor?: Armor;

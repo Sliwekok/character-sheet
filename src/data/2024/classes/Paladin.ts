@@ -1,9 +1,6 @@
 import { CharacterClass } from "@/interfaces/CharacterClass";
 import { halfCasterProgression } from "@/interfaces/SpellSlotsProgression";
 
-// weaponMasteryProgression was previously missing entirely. Filled in to match the
-// same {1,4,10} breakpoints and counts already sourced from 5etools for Barbarian
-// (Fighter alone gets an extra step at 16) - worth a cross-check against your book.
 export const Paladin: CharacterClass = {
     name: "Paladin",
     edition: "2024",
@@ -26,26 +23,28 @@ export const Paladin: CharacterClass = {
         progression: halfCasterProgression,
     },
     subclassLevel: 3,
-    weaponMasteryProgression: { 1: 2, 4: 3, 10: 4 },
-    // features text pulled and verified against 5etools' class-paladin.json (XPHB source) - https://5e.tools/classes.html#paladin_xphb
-    // Corrected from an earlier from-memory pass: Channel Divinity and Divine Sense (now a
-    // level 3 Channel Divinity option, not a level 1 feature) were both missing entirely;
-    // Radiant Strikes at level 11 was missing entirely; "Divine Smite" at level 2 was actually
-    // the old 2014 spell-slot-expenditure mechanic under the wrong name - it's now "Paladin's
-    // Smite," which keeps Divine Smite always prepared and castable once per Long Rest without
-    // a slot; Lay on Hands is now a Bonus Action and only removes the Poisoned condition (no
-    // more disease-curing); Spellcasting was rewritten for the redesigned prepared-spells-by-
-    // table mechanic; Fighting Style now grants a Fighting Style feat; Faithful Steed now keeps
-    // Find Steed always prepared; Aura of Protection is now a 10-foot Emanation inactive while
-    // Incapacitated; Aura of Courage no longer has its own separate range, instead riding along
-    // with Aura of Protection; Abjure Foes had the wrong action type and mechanic entirely
-    // (it's a Channel Divinity option, not a bare Bonus Action); Aura Expansion only affects
-    // Aura of Protection directly; and level 19 is Epic Boon (Boon of Truesight recommended),
-    // not a fifth Ability Score Improvement.
+    // weaponMasteryProgression corrected: the previous {1:2, 4:3, 10:4} was copied from
+    // Barbarian's numbers and flagged in its own comment as unverified. Re-checked against
+    // Roll20's D&D 2024 Compendium ("Paladin Features" table) -
+    // https://roll20.net/compendium/dnd5e/Classes:Paladin - Paladin's Weapon Mastery does not
+    // have a level-scaling table column or an "at higher levels" clause; it's a flat 2 weapons
+    // for the whole class, unlike Barbarian/Fighter.
+    weaponMasteryProgression: { 1: 2 },
+    // features text re-scraped and verified against Roll20's D&D 2024 Compendium ("Paladin
+    // Features" table) - https://roll20.net/compendium/dnd5e/Classes:Paladin (2024 source)
+    // Corrected from an earlier pass: weaponMasteryProgression (see above comment) and Weapon
+    // Mastery's description both falsely implied the weapon count scales with level - it doesn't,
+    // so the closing "This number increases as you gain levels in this class." sentence was
+    // removed; Spellcasting was missing the "always prepared spells don't count against your
+    // total" clause and the worked example showing how many spells a 5th-level paladin prepares.
+    // Everything else (Lay on Hands, Fighting Style, Paladin's Smite, Channel Divinity, Divine
+    // Sense, Ability Score Improvement, Extra Attack, Faithful Steed, Aura of Protection, Abjure
+    // Foes, Aura of Courage, Radiant Strikes, Restoring Touch, Aura Expansion, Epic Boon) was
+    // already accurate and is unchanged.
     features: [
         { name: "Lay on Hands", level: 1, description: "Your blessed touch can heal wounds. You have a pool of healing power that replenishes when you finish a Long Rest, with a number of hit points equal to five times your paladin level. As a Bonus Action, you can touch a creature (which could be yourself) and draw power from the pool of healing to restore a number of hit points to that creature, up to the maximum amount remaining in the pool. You can also expend 5 hit points from the pool of healing power to remove the Poisoned condition from the creature; those points don't also restore hit points to the creature." },
-        { name: "Spellcasting", level: 1, description: "You have learned to cast spells through prayer and meditation. See the Spells section of this sheet for the spells you have prepared, your spell save DC, and your spell attack bonus.\nSpell Slots: You regain all expended spell slots when you finish a Long Rest.\nPrepared Spells of Level 1+: You prepare the list of level 1+ spells that are available for you to cast with this feature. To start, choose two level 1 paladin spells; Heroism and Searing Smite are recommended. The number of spells on your list increases as you gain paladin levels. The chosen spells must be of a level for which you have spell slots.\nChanging Your Prepared Spells: Whenever you finish a Long Rest, you can replace one spell on your list with another paladin spell for which you have spell slots.\nSpellcasting Ability: Charisma is your spellcasting ability for your paladin spells.\nSpellcasting Focus: You can use a holy symbol as a spellcasting focus for your paladin spells." },
-        { name: "Weapon Mastery", level: 1, description: "Your training with weapons allows you to use the mastery properties of two kinds of weapons of your choice with which you have proficiency. Whenever you finish a Long Rest, you can change the kinds of weapons you chose. This number increases as you gain levels in this class." },
+        { name: "Spellcasting", level: 1, description: "You have learned to cast spells through prayer and meditation. See the Spells section of this sheet for the spells you have prepared, your spell save DC, and your spell attack bonus.\nSpell Slots: You regain all expended spell slots when you finish a Long Rest.\nPrepared Spells of Level 1+: You prepare the list of level 1+ spells that are available for you to cast with this feature. To start, choose two level 1 paladin spells; Heroism and Searing Smite are recommended. The number of spells on your list increases as you gain paladin levels. The chosen spells must be of a level for which you have spell slots. If another paladin feature gives you spells that you always have prepared, those spells don't count against the number of spells you can prepare with this feature, but those spells otherwise count as paladin spells for you. For example, if you're a level 5 paladin, your list of prepared spells can include six paladin spells of level 1 or 2 in any combination.\nChanging Your Prepared Spells: Whenever you finish a Long Rest, you can replace one spell on your list with another paladin spell for which you have spell slots.\nSpellcasting Ability: Charisma is your spellcasting ability for your paladin spells.\nSpellcasting Focus: You can use a holy symbol as a spellcasting focus for your paladin spells." },
+        { name: "Weapon Mastery", level: 1, description: "Your training with weapons allows you to use the mastery properties of two kinds of weapons of your choice with which you have proficiency. Whenever you finish a Long Rest, you can change the kinds of weapons you chose." },
         { name: "Fighting Style", level: 2, description: "You gain a Fighting Style feat of your choice. Instead of choosing one of those feats, you can choose the Blessed Warrior feat." },
         { name: "Paladin's Smite", level: 2, description: "You always have the Divine Smite spell prepared. In addition, you can cast it without expending a spell slot, but you must finish a Long Rest before you can cast it in this way again." },
         { name: "Channel Divinity", level: 3, description: "You can channel divine energy directly from the Outer Planes, using it to fuel magical effects. You start with one such effect: Divine Sense. Other paladin features give additional Channel Divinity effect options. Each time you use this class's Channel Divinity, you choose which effect from this class to create.\nYou can use this class's Channel Divinity twice. You regain one of its expended uses when you finish a Short Rest, and you regain all expended uses when you finish a Long Rest. You gain an additional use when you reach paladin level 11.\nIf a Channel Divinity effect requires a saving throw, the DC equals the spell save DC from this class's Spellcasting feature." },

@@ -14,6 +14,7 @@ import {
   revalidateDraftForClasses,
 } from "@/utils/characterDraft";
 import { isValidBackgroundAllocation, sumAbilityScores } from "@/utils/abilityScoreBonuses";
+import { areAsiSlotsComplete, getAsiSlots, sumAsiAllocations } from "@/utils/abilityScoreImprovements";
 import { getEffectiveCasterProgression } from "@/utils/spellcasting";
 import { loadCharacter, saveCharacter } from "@/utils/storage";
 import { StepProgress } from "@/components/character/wizard/StepProgress";
@@ -57,7 +58,8 @@ function canProceed(stepName: string, draft: CharacterDraft): boolean {
     case "Ability Scores":
       return (
         draft.abilityScores.unassignedPool.length === 0 &&
-        isValidBackgroundAllocation(draft.background, draft.backgroundAbilityBonuses)
+        isValidBackgroundAllocation(draft.background, draft.backgroundAbilityBonuses) &&
+        areAsiSlotsComplete(getAsiSlots(draft.classes), draft.abilityScoreImprovements)
       );
     case "Skills & Equipment":
     case "Magic Items":
@@ -265,10 +267,12 @@ export default function ManualWizard() {
   const canGoNext = canProceed(currentStep, draft);
   const isLastStep = stepIndex === STEPS.length - 1;
 
+  const asiSlots = getAsiSlots(draft.classes);
   const finalAbilityScores = sumAbilityScores(
     draft.abilityScores.scores,
     draft.race?.abilityModifiers ?? {},
-    draft.backgroundAbilityBonuses
+    draft.backgroundAbilityBonuses,
+    sumAsiAllocations(asiSlots, draft.abilityScoreImprovements)
   );
 
   return (
@@ -349,6 +353,10 @@ export default function ManualWizard() {
                     updateDraft({ backgroundAbilityBonuses })
                   }
                   classes={draft.classes}
+                  abilityScoreImprovements={draft.abilityScoreImprovements}
+                  onAbilityScoreImprovementsChange={(abilityScoreImprovements) =>
+                    updateDraft({ abilityScoreImprovements })
+                  }
                 />
               ) : (
                 <PrerequisiteNotice

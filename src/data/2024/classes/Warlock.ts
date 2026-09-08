@@ -28,22 +28,17 @@ export const Warlock: CharacterClass = {
         pactMagic: pactMagicProgression,
     },
     subclassLevel: 3,
-    // features text pulled and verified against 5etools' class-warlock.json (XPHB source) - https://5e.tools/classes.html#warlock_xphb
-    // Corrected from an earlier from-memory pass: "Pact Boon" no longer exists as a standalone
-    // level 3 feature in 2024 - Pact of the Blade/Chain/Tome were folded into the Eldritch
-    // Invocations list as prerequisite-free options instead, so the fabricated level 3 entry was
-    // removed and Eldritch Invocations' description now reflects that; Magical Cunning's recovery
-    // math was wrong (it caps at half your maximum Pact Magic slots, not "combined level <= half
-    // your warlock level", and isn't tied to being "part of a Short Rest"); Contact Patron was
-    // rewritten to its real 2024 mechanic (always-prepared Contact Other Plane, cast free with an
-    // automatic save, once per Long Rest) rather than the old "one-word reply" text; Mystic
-    // Arcanum's name dropped the "(Nth level)" suffix XPHB no longer uses; Eldritch Master now
-    // correctly ties into Magical Cunning instead of its own "1 minute entreating your patron"
-    // text; and level 19 is a genuine "Epic Boon" named feature, not an Ability Score Improvement
-    // with an Epic Boon option bolted on - the ASI entries at 4/8/12/16 had that reference removed.
+    // features text re-scraped and verified against Roll20's D&D 2024 Compendium ("Warlock
+    // Features" table) - https://roll20.net/compendium/dnd5e/Classes:Warlock (2024 source)
+    // Corrected from an earlier pass: Pact Magic had been reduced to a stub pointing at "the
+    // Spells section of this sheet" instead of the actual rules text (cantrips gained at 1st/4th/
+    // 10th, the all-slots-share-one-level mechanic with a worked example, prepared spells with the
+    // "always prepared" clause, changing prepared spells on level-up, spellcasting ability and
+    // focus). Eldritch Invocations, Magical Cunning, Ability Score Improvement, Contact Patron,
+    // Mystic Arcanum, Epic Boon, and Eldritch Master were already accurate and are unchanged.
     features: [
         { name: "Eldritch Invocations", level: 1, description: "You have unearthed Eldritch Invocations, fragments of forbidden knowledge that imbue you with an abiding magical ability or other lesson. You gain one invocation of your choice, such as Pact of the Blade, Pact of the Chain, or Pact of the Tome. If an invocation has a prerequisite, you must meet it to learn it, and you can't replace an invocation if it's a prerequisite for another invocation you have. You gain additional invocations as you gain levels in this class, and whenever you gain a level you can replace one you know with another for which you qualify." },
-        { name: "Pact Magic", level: 1, description: "Your arcane research and the magic bestowed on you by your patron give you facility with spells. You regain all expended Pact Magic spell slots when you finish a Short or Long Rest, unlike other spellcasters. See the Spells section of this sheet for the spells you have prepared, your spell save DC, and your spell attack bonus." },
+        { name: "Pact Magic", level: 1, description: "Through occult ceremony, you have formed a pact with a mysterious entity to gain magical powers. See the Spells section of this sheet for the spells you have prepared, your spell save DC, and your spell attack bonus.\nCantrips: You know two Warlock cantrips of your choice. Whenever you gain a Warlock level, you can replace one of your cantrips from this feature with another Warlock cantrip of your choice. When you reach Warlock levels 4 and 10, you learn another Warlock cantrip of your choice.\nSpell Slots: The Warlock table shows how many spell slots you have to cast your Warlock spells of levels 1-5. The table also shows the level of those slots, all of which are the same level. You regain all expended Pact Magic spell slots when you finish a Short or Long Rest. For example, when you're a level 5 Warlock, you have two level 3 spell slots. To cast the level 1 spell Witch Bolt, you must spend one of those slots, and you cast it as a level 3 spell.\nPrepared Spells of Level 1+: You prepare the list of level 1+ spells that are available for you to cast with this feature. To start, choose two level 1 Warlock spells. The number of spells on your list increases as you gain Warlock levels. Whenever that number increases, choose additional Warlock spells until the number of spells on your list matches your new total. The chosen spells must be of a level no higher than your slot level. If another Warlock feature gives you spells that you always have prepared, those spells don't count against the number of spells you can prepare with this feature, but those spells otherwise count as Warlock spells for you.\nChanging Your Prepared Spells: Whenever you gain a Warlock level, you can replace one spell on your list with another Warlock spell of an eligible level.\nSpellcasting Ability: Charisma is the spellcasting ability for your Warlock spells.\nSpellcasting Focus: You can use an Arcane Focus as a Spellcasting Focus for your Warlock spells." },
         { name: "Magical Cunning", level: 2, description: "You can perform an esoteric rite for 1 minute. At the end of it, you regain expended Pact Magic spell slots, but no more than a number equal to half your maximum (rounded up). Once you use this feature, you can't do so again until you finish a Long Rest." },
         { name: "Ability Score Improvement", level: 4, description: "You gain the Ability Score Improvement feat or another feat of your choice for which you qualify. You gain this feature again at Warlock levels 8, 12, and 16." },
         { name: "Ability Score Improvement", level: 8, description: "You gain the Ability Score Improvement feat or another feat of your choice for which you qualify." },

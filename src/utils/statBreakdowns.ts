@@ -1,6 +1,7 @@
 import { AbilityScores, Character } from "@/interfaces/Characters";
 import { calculateAbilityModifiers } from "@/utils/abilityModifiers";
 import { subtractAbilityScores } from "@/utils/abilityScoreBonuses";
+import { getAsiSlots, sumAsiAllocations } from "@/utils/abilityScoreImprovements";
 import { StatLine, formatSigned } from "@/utils/statLine";
 
 export const ABILITY_LABELS: Record<keyof AbilityScores, string> = {
@@ -21,28 +22,38 @@ export type AbilityScoreBreakdown = {
 /**
  * Explains how one FINAL ability score was assembled, for the info tooltip
  * next to each ability modifier on the character sheet. `character
- * .abilityScores` only ever stores the final number (race + background
- * bonuses already baked in - see interfaces/Characters.ts), so this
- * recovers the pre-bonus base the same way utils/characterDraft.ts's
- * `draftFromCharacter` does when re-opening a character for editing -
- * purely to show the breakdown back to the player here, not to change any
- * stored data. Doesn't account for feat-granted ability increases, since
- * `Character.feats` isn't wired up to actually modify scores anywhere yet
- * (utils/characterDraft.ts's finalizeDraft always saves `feats: []`).
+ * .abilityScores` only ever stores the final number (race + background +
+ * Ability Score Improvement bonuses already baked in - see
+ * interfaces/Characters.ts), so this recovers the pre-bonus base the same
+ * way utils/characterDraft.ts's `draftFromCharacter` does when re-opening a
+ * character for editing - purely to show the breakdown back to the player
+ * here, not to change any stored data. Doesn't account for a chosen FEAT's
+ * own ability increase (e.g. picking Resilient instead of the Ability Score
+ * Improvement feat at a 2024 ASI level), since `Character.feats` isn't
+ * wired up to actually modify scores anywhere yet
+ * (utils/characterDraft.ts's finalizeDraft always saves `feats: []`) - only
+ * the classic class-level Ability Score Improvement is.
  */
 export function getAbilityScoreBreakdown(character: Character, key: keyof AbilityScores): AbilityScoreBreakdown {
   const backgroundBonuses = character.backgroundAbilityBonuses ?? {};
+  const asiSlots = getAsiSlots(character.classes.map((entry) => ({ characterClass: entry.class, level: entry.level })));
+  const asiBonuses = sumAsiAllocations(asiSlots, character.abilityScoreImprovements ?? {});
   const raceBonus = character.race.abilityModifiers[key] ?? 0;
   const backgroundBonus = backgroundBonuses[key] ?? 0;
+  const asiBonus = asiBonuses[key] ?? 0;
   const finalScore = character.abilityScores[key];
-  const baseScore = subtractAbilityScores(character.abilityScores, character.race.abilityModifiers, backgroundBonuses)[
-    key
-  ];
+  const baseScore = subtractAbilityScores(
+    character.abilityScores,
+    character.race.abilityModifiers,
+    backgroundBonuses,
+    asiBonuses
+  )[key];
   const modifier = calculateAbilityModifiers(character.abilityScores)[key];
 
   const lines: StatLine[] = [{ label: "Base score", value: `${baseScore}` }];
   if (raceBonus) lines.push({ label: `${character.race.name} bonus`, value: formatSigned(raceBonus) });
   if (backgroundBonus) lines.push({ label: `${character.background.name} bonus`, value: formatSigned(backgroundBonus) });
+  if (asiBonus) lines.push({ label: "Ability Score Improvement", value: formatSigned(asiBonus) });
   lines.push({ label: "Final score", value: `${finalScore}` });
   lines.push({ label: "Modifier", value: `${formatSigned(modifier)}` });
 

@@ -23,19 +23,17 @@ export const Sorcerer: CharacterClass = {
         progression: fullCasterProgression,
     },
     subclassLevel: 3,
-    // features text pulled and verified against 5etools' class-sorcerer.json (XPHB source) - https://5e.tools/classes.html#sorcerer_xphb
-    // Corrected from an earlier from-memory pass: Innate Sorcery had wrongly added a flat +1 to spell
-    // attack bonus (the source only raises the spell save DC by 1); the two Metamagic-gain entries at
-    // 10th/17th level were renamed "Metamagic (additional option)" and said a single new option instead
-    // of the source's two; Sorcerous Restoration was placed at level 10 instead of its actual level 5,
-    // and level 7's Sorcery Incarnate feature was missing entirely; every Ability Score Improvement entry
-    // used 2014's "+2, or +1/+1 to ability scores" wording instead of 2024's actual "gain the Ability
-    // Score Improvement feat or another feat" wording; level 19 was wrongly labeled Ability Score
-    // Improvement instead of Epic Boon; and Arcane Apotheosis's text was invented (a "convert Sorcery
-    // Points into a 6th-level slot" effect that doesn't exist) instead of the source's actual
-    // free-Metamagic-while-Innate-Sorcery-is-active effect.
+    // features text re-scraped and verified against Roll20's D&D 2024 Compendium ("Sorcerer
+    // Features" table) - https://roll20.net/compendium/dnd5e/Classes:Sorcerer (2024 source)
+    // Corrected from an earlier pass: Spellcasting had been reduced to a stub pointing at "the
+    // Spells section of this sheet" instead of the actual rules text (cantrips gained at 1st/4th/
+    // 10th, spell slots, prepared spells with the "always prepared" clause and worked example, and
+    // the level-up-only prepared-spell-swap timing, spellcasting ability, and focus). Innate
+    // Sorcery, Font of Magic, Metamagic (both the 2nd-level grant and the 10th/17th-level
+    // increases), Ability Score Improvement, Sorcerous Restoration, Sorcery Incarnate, Epic Boon,
+    // and Arcane Apotheosis were already accurate and are unchanged.
     features: [
-        { name: "Spellcasting", level: 1, description: "An event in your past, or in the life of a parent or ancestor, left an indelible mark on you, infusing you with arcane magic. See the Spells section of this sheet for the spells you have prepared, your spell save DC, and your spell attack bonus." },
+        { name: "Spellcasting", level: 1, description: "Drawing from your innate magic, you can cast spells. See the Spells section of this sheet for the spells you have prepared, your spell save DC, and your spell attack bonus.\nCantrips: You know four Sorcerer cantrips of your choice. Whenever you gain a Sorcerer level, you can replace one of your cantrips from this feature with another Sorcerer cantrip of your choice. When you reach Sorcerer levels 4 and 10, you learn another Sorcerer cantrip of your choice.\nSpell Slots: You regain all expended spell slots when you finish a Long Rest.\nPrepared Spells of Level 1+: You prepare the list of level 1+ spells that are available for you to cast with this feature. To start, choose two level 1 Sorcerer spells. The number of spells on your list increases as you gain Sorcerer levels. Whenever that number increases, choose additional Sorcerer spells until the number of spells on your list matches your new total. The chosen spells must be of a level for which you have spell slots. For example, if you're a level 3 Sorcerer, your list of prepared spells can include six Sorcerer spells of level 1 or 2 in any combination. If another Sorcerer feature gives you spells that you always have prepared, those spells don't count against the number of spells you can prepare with this feature, but those spells otherwise count as Sorcerer spells for you.\nChanging Your Prepared Spells: Whenever you gain a Sorcerer level, you can replace one spell on your list with another Sorcerer spell for which you have spell slots.\nSpellcasting Ability: Charisma is your spellcasting ability for your Sorcerer spells.\nSpellcasting Focus: You can use an Arcane Focus as a Spellcasting Focus for your Sorcerer spells." },
         { name: "Innate Sorcery", level: 1, description: "An event in your past left an indelible mark on you, infusing you with simmering magic. As a Bonus Action, you can unleash that magic for 1 minute: your Sorcerer spells' save DC increases by 1, and you have advantage on the attack rolls of Sorcerer spells you cast. You can use this feature twice, regaining all expended uses when you finish a Long Rest." },
         { name: "Font of Magic", level: 2, description: "You tap into a deep wellspring of magic within yourself, represented by Sorcery Points. You have 2 Sorcery Points at 2nd level, gaining more as you reach higher levels (per the Sorcerer table), and you regain all expended points when you finish a Long Rest. As a Bonus Action, you can transform unexpended Sorcery Points into one spell slot of no higher than 5th level, with the cost and the minimum Sorcerer level set by the Sorcerer table; the slot vanishes at the end of a Long Rest. You can also expend a spell slot, no action required, to gain a number of Sorcery Points equal to the slot's level." },
         { name: "Metamagic", level: 2, description: "Because your magic flows from within, you can alter your spells to suit your needs. You gain two Metamagic options of your choice, such as Careful Spell, Distant Spell, Empowered Spell, Extended Spell, Heightened Spell, Quickened Spell, Seeking Spell, Subtle Spell, Transmuted Spell, or Twinned Spell. You can use only one Metamagic option on a spell when you cast it, unless the option says otherwise. Whenever you gain a Sorcerer level, you can replace one of your Metamagic options with one you don't know. You gain two more options at Sorcerer level 10 and two more at Sorcerer level 17." },

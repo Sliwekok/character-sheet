@@ -286,6 +286,18 @@ export default function CharacterDetailsPage() {
                       .join(", ")}
                   </p>
                 )}
+                {character.abilityScoreImprovements && Object.keys(character.abilityScoreImprovements).length > 0 && (
+                  <p>
+                    Ability Score Improvements:{" "}
+                    {Object.values(character.abilityScoreImprovements)
+                      .map((allocation) =>
+                        Object.entries(allocation)
+                          .map(([ability, bonus]) => `${ability} +${bonus}`)
+                          .join("/")
+                      )
+                      .join(", ")}
+                  </p>
+                )}
                 <p>Skills: {character.skillProficiencies.join(", ") || "None"}</p>
                 <p>Saving throws: {character.savingThrowProficiencies.join(", ") || "None"}</p>
                 <p>Languages: {character.languages.join(", ") || "None"}</p>

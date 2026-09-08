@@ -12,6 +12,7 @@ import { buildHpHistory, HpClassInput, rollsNeededForClassEntry } from "@/utils/
 import { HpMethod } from "@/interfaces/Hp";
 import { generateId } from "@/utils/id";
 import { randomBackgroundAllocation, sumAbilityScores } from "@/utils/abilityScoreBonuses";
+import { getAsiSlots, randomAsiAllocations, sumAsiAllocations } from "@/utils/abilityScoreImprovements";
 import { getSpellLimits } from "@/utils/spellcasting";
 import { Spell } from "@/interfaces/Spell";
 
@@ -73,13 +74,23 @@ export async function generateRandomCharacter(overrides: RandomCharacterOverride
             : undefined;
 
     const background = pickRandom(ruleset.backgrounds);
-    // Base rolled scores, then race's flat modifiers (2014) and the
-    // background's randomly-allocated bonus (2024) on top - see
-    // utils/abilityScoreBonuses.ts. Previously neither was applied at all,
-    // so a random character's final scores never actually reflected its
-    // race or background.
+    // Base rolled scores, then race's flat modifiers (2014), the
+    // background's randomly-allocated bonus (2024), and every earned
+    // Ability Score Improvement's randomly-allocated bonus on top - see
+    // utils/abilityScoreBonuses.ts and utils/abilityScoreImprovements.ts.
+    // Previously neither the background bonus nor any ASI were applied at
+    // all, so a random character's final scores never actually reflected
+    // its race, background, or level progression.
     const backgroundAbilityBonuses = randomBackgroundAllocation(background);
-    const abilityScores = sumAbilityScores(randomAbilityScores(), race.abilityModifiers, backgroundAbilityBonuses);
+    const asiSlots = getAsiSlots([{ characterClass, level }]);
+    const abilityScoreImprovements = randomAsiAllocations(asiSlots);
+    const asiBonuses = sumAsiAllocations(asiSlots, abilityScoreImprovements);
+    const abilityScores = sumAbilityScores(
+        randomAbilityScores(),
+        race.abilityModifiers,
+        backgroundAbilityBonuses,
+        asiBonuses
+    );
 
     // Class-granted skills, minus anything the background already grants (see
     // the same simplification noted in components/character/wizard/SkillsEquipmentStep.tsx -
@@ -104,9 +115,10 @@ export async function generateRandomCharacter(overrides: RandomCharacterOverride
     const weapons = usableWeapons.length > 0 ? pickRandomN(usableWeapons, Math.random() > 0.5 ? 2 : 1) : [];
 
     // `abilityScores` here is already the character's FINAL score (race +
-    // background bonus included), same as what SpellsStep/ManualWizard pass
-    // to getSpellLimits - needed since a "prepared" caster's cap is an
-    // ability-modifier formula, not a flat table.
+    // background bonus + ASI allocations included), same as what
+    // SpellsStep/ManualWizard pass to getSpellLimits - needed since a
+    // "prepared" caster's cap is an ability-modifier formula, not a flat
+    // table.
     const spellsKnown = randomSpellsKnown(ruleset.spells, characterClass, subclass, level, abilityScores);
 
     // Picked per generated character rather than fixed, purely for variety -
@@ -131,6 +143,7 @@ export async function generateRandomCharacter(overrides: RandomCharacterOverride
         alignment: overrides.alignment || randomAlignment(),
         abilityScores,
         backgroundAbilityBonuses: Object.keys(backgroundAbilityBonuses).length > 0 ? backgroundAbilityBonuses : undefined,
+        abilityScoreImprovements: Object.keys(abilityScoreImprovements).length > 0 ? abilityScoreImprovements : undefined,
         skillProficiencies,
         savingThrowProficiencies: characterClass.proficiencies.savingThrows,
         equippedArmor,

@@ -23,22 +23,17 @@ export const Cleric: CharacterClass = {
         progression: fullCasterProgression,
     },
     subclassLevel: 3,
-    // features text pulled and verified against 5etools' class-cleric.json (XPHB source) - https://5e.tools/classes.html#cleric_xphb
-    // Corrected from an earlier from-memory pass: Thaumaturge's bonus applies to Intelligence
-    // (Arcana or Religion) checks, not Religion alone; Channel Divinity's two starting options
-    // are the base-class Divine Spark and Turn Undead (not one granted by the subclass), and its
-    // uses/regain rules (2 uses, one back on a short rest, all on a long rest, rising to 3 at 6th
-    // and 4 at 18th) were filled in; Ability Score Improvement now uses the real 2024 feat
-    // wording instead of 2014's "+2/+1+1" text; Sear Undead deals Wisdom-modifier d8s of damage,
-    // not damage equal to cleric level; the level 7 Blessed Strikes (Divine Strike/Potent
-    // Spellcasting choice) and its level 14 Improved Blessed Strikes upgrade were missing
-    // entirely; Divine Intervention's wording (Magic action, no Reaction spells, Material
-    // components only) was tightened; and level 19 is Epic Boon (not a fifth Ability Score
-    // Improvement) while the real Greater Divine Intervention (Wish, recharging after 2d4 long
-    // rests) belongs at level 20, not a fabricated level 17 effect - level 17 is only a subclass
-    // feature, omitted here like other subclass placeholders.
+    // features text re-scraped and verified against Roll20's D&D 2024 Compendium (Free Rules
+    // 2024 source, "Cleric Features" table) - https://roll20.net/compendium/dnd5e/Classes:Cleric
+    // Corrected from an earlier pass: Spellcasting had been reduced to a two-sentence stub
+    // pointing at "the Spells section of this sheet" instead of the actual rules text (cantrip
+    // progression at levels 4/10, the level-1-spells-known/Prepared Spells table progression,
+    // changing prepared spells on a Long Rest, spellcasting ability, and spellcasting focus) -
+    // the rest of the table (Divine Order, Channel Divinity's two starting options and their
+    // uses/regain rules, Sear Undead, Blessed Strikes/Improved Blessed Strikes, Divine
+    // Intervention, Epic Boon, Greater Divine Intervention) was already accurate and is unchanged.
     features: [
-        { name: "Spellcasting", level: 1, description: "As a conduit for divine power, you can cast cleric spells. See the Spells section of this sheet for the spells you have prepared, your spell save DC, and your spell attack bonus." },
+        { name: "Spellcasting", level: 1, description: "You have learned to cast spells through prayer and meditation. See the rules on spellcasting for how you use those rules with Cleric spells, which appear on the Cleric spell list in this class's description.\nCantrips: You know three cantrips of your choice from the Cleric spell list. Guidance, Sacred Flame, and Thaumaturgy are recommended. Whenever you gain a Cleric level, you can replace one of your cantrips with another cantrip of your choice from the Cleric spell list. When you reach Cleric levels 4 and 10, you learn another cantrip of your choice from the Cleric spell list, as shown in the Cantrips column of the Cleric Features table.\nSpell Slots: The Cleric Features table shows how many spell slots you have to cast your level 1+ spells. You regain all expended slots when you finish a Long Rest.\nPrepared Spells of Level 1+: You prepare the list of level 1+ spells that are available for you to cast with this feature. To start, choose four level 1 spells from the Cleric spell list. Bless, Cure Wounds, Guiding Bolt, and Shield of Faith are recommended. The number of spells on your list increases as you gain Cleric levels, as shown in the Prepared Spells column of the Cleric Features table. Whenever that number increases, choose additional spells from the Cleric spell list until the number of spells on your list matches the number on the table. The chosen spells must be of a level for which you have spell slots. For example, if you're a level 3 Cleric, your list of prepared spells can include six spells of levels 1 and 2 in any combination. If another Cleric feature gives you spells that you always have prepared, those spells don't count against the number of spells you can prepare with this feature, but those spells otherwise count as Cleric spells for you.\nChanging Your Prepared Spells: Whenever you finish a Long Rest, you can change your list of prepared spells, replacing any of the spells there with other Cleric spells for which you have spell slots.\nSpellcasting Ability: Wisdom is your spellcasting ability for your Cleric spells.\nSpellcasting Focus: You can use a Holy Symbol as a Spellcasting Focus for your Cleric spells." },
         { name: "Divine Order", level: 1, description: "You have dedicated yourself to one of the following sacred roles of your choice.\nProtector: you gain proficiency with Martial weapons and training with Heavy armor.\nThaumaturge: you learn one extra cantrip from the cleric spell list, and you gain a bonus to your Intelligence (Arcana or Religion) checks equal to your Wisdom modifier (minimum +1)." },
         { name: "Channel Divinity", level: 2, description: "You can channel divine energy directly from the Outer Planes to fuel magical effects. You start with two such effects, each usable as a Magic action.\nDivine Spark: you point your holy symbol at a creature within 30 feet and roll 1d8 + your Wisdom modifier, either restoring that many hit points to it or forcing a Constitution saving throw for that much Necrotic or Radiant damage (your choice), half as much on a success. You roll an additional d8 at 7th level (2d8), 13th level (3d8), and 18th level (4d8).\nTurn Undead: each undead of your choice within 30 feet must succeed on a Wisdom saving throw or gain the Frightened and Incapacitated conditions for 1 minute, trying to move as far from you as it can; the effect ends early if the creature takes any damage, if you're Incapacitated, or if you die.\nYou can use this Channel Divinity twice, regaining one expended use when you finish a short rest and all expended uses when you finish a long rest. Your uses increase to three at 6th level and four at 18th level." },
         { name: "Ability Score Improvement", level: 4, description: "You gain the Ability Score Improvement feat or another feat of your choice for which you qualify. You gain this feature again at Cleric levels 8, 12, and 16." },

@@ -9,6 +9,7 @@ import { generateId } from "@/utils/id";
 import { pointBuyStartingScores } from "@/utils/pointBuy";
 import { rollAbilityScoreSet } from "@/utils/dice";
 import { isValidBackgroundAllocation, subtractAbilityScores, sumAbilityScores } from "@/utils/abilityScoreBonuses";
+import { areAsiSlotsComplete, getAsiSlots, pruneAsiAllocations, sumAsiAllocations } from "@/utils/abilityScoreImprovements";
 import { classCanUseArmor, classCanUseWeapon } from "@/utils/proficiencyMatch";
 import { getSpellLimits, pruneSpellsToLimits } from "@/utils/spellcasting";
 
@@ -57,6 +58,7 @@ export function createEmptyDraft(edition?: Edition): CharacterDraft {
         classes: [{ level: 1, hpMethod: "average" }],
         abilityScores: abilityScoreStateForMethod("standard-array"),
         backgroundAbilityBonuses: {},
+        abilityScoreImprovements: {},
         skillProficiencies: [],
         weapons: [],
         magicItems: [],
@@ -117,14 +119,16 @@ function hpRollsForClass(character: StoredCharacter, classIndex: number): number
  * class you took it in" rule simplified to "always the main class".
  *
  * The Ability Scores step edits BASE scores, not final ones - `character
- * .abilityScores` is always final (race + background bonuses already
- * added in, see utils/abilityScoreBonuses.ts), so this subtracts the
- * race's modifiers and the character's stored `backgroundAbilityBonuses`
- * back out. A character saved before that field existed has no bonus on
- * record (`?? {}` below), so its base scores here will still include
- * whatever background bonus it should have gotten but originally didn't -
- * `isDraftReadyToFinalize` will require the bonus to be (re-)allocated
- * before it can be saved again, which is the correct way to backfill it.
+ * .abilityScores` is always final (race + background bonus + ASI
+ * allocations already added in, see utils/abilityScoreBonuses.ts and
+ * utils/abilityScoreImprovements.ts), so this subtracts the race's
+ * modifiers, the character's stored `backgroundAbilityBonuses`, and its
+ * stored `abilityScoreImprovements` back out. A character saved before
+ * those fields existed has no bonus on record (`?? {}` below), so its base
+ * scores here will still include whatever bonus it should have gotten but
+ * originally didn't - `isDraftReadyToFinalize` will require the bonus to be
+ * (re-)allocated before it can be saved again, which is the correct way to
+ * backfill it.
  *
  * Each entry's HP method/rolls are recovered too, from `character.hpHistory`
  * (see `hpRollsForClass`) - so re-opening a character for editing doesn't
@@ -133,11 +137,6 @@ function hpRollsForClass(character: StoredCharacter, classIndex: number): number
  */
 export function draftFromCharacter(character: StoredCharacter): CharacterDraft {
     const backgroundAbilityBonuses = character.backgroundAbilityBonuses ?? {};
-    const baseAbilityScores = subtractAbilityScores(
-        character.abilityScores,
-        character.race.abilityModifiers,
-        backgroundAbilityBonuses
-    );
 
     const classes: DraftClassEntry[] = character.classes.map(({ class: characterClass, subclass, level, hpMethod }, index) => ({
         characterClass,
@@ -147,6 +146,17 @@ export function draftFromCharacter(character: StoredCharacter): CharacterDraft {
         hpRolls: hpRollsForClass(character, index),
     }));
 
+    const abilityScoreImprovements = character.abilityScoreImprovements ?? {};
+    const asiSlots = getAsiSlots(classes.map((entry) => ({ characterClass: entry.characterClass, level: entry.level })));
+    const asiBonuses = sumAsiAllocations(asiSlots, abilityScoreImprovements);
+
+    const baseAbilityScores = subtractAbilityScores(
+        character.abilityScores,
+        character.race.abilityModifiers,
+        backgroundAbilityBonuses,
+        asiBonuses
+    );
+
     return {
         id: character.id,
         edition: character.edition,
@@ -155,6 +165,7 @@ export function draftFromCharacter(character: StoredCharacter): CharacterDraft {
         abilityScores: { method: "manual", scores: baseAbilityScores, unassignedPool: [] },
         background: character.background,
         backgroundAbilityBonuses,
+        abilityScoreImprovements,
         skillProficiencies: character.skillProficiencies.filter(
             (skill) => !character.background.skillProficiencies.includes(skill)
         ),
@@ -182,7 +193,8 @@ export function isDraftReadyToFinalize(draft: CharacterDraft): boolean {
             draft.name.trim().length > 0 &&
             draft.alignment &&
             draft.abilityScores.unassignedPool.length === 0 &&
-            isValidBackgroundAllocation(draft.background, draft.backgroundAbilityBonuses)
+            isValidBackgroundAllocation(draft.background, draft.backgroundAbilityBonuses) &&
+            areAsiSlotsComplete(getAsiSlots(draft.classes), draft.abilityScoreImprovements)
     );
 }
 
@@ -197,7 +209,9 @@ export function isDraftReadyToFinalize(draft: CharacterDraft): boolean {
  *
  * `abilityScores` on the result is the FINAL score: the base scores from
  * the Ability Scores step, plus the race's flat modifiers (2014), plus the
- * background's chosen allocation (2024) - see utils/abilityScoreBonuses.ts.
+ * background's chosen allocation (2024), plus every earned Ability Score
+ * Improvement's chosen allocation - see utils/abilityScoreBonuses.ts and
+ * utils/abilityScoreImprovements.ts.
  *
  * `classes[0]` (the main class) supplies saving throw proficiencies and
  * (via calculateMaxHP) the first hit die - see DraftClassEntry's header
@@ -210,10 +224,13 @@ export function finalizeDraft(draft: CharacterDraft): StoredCharacter | null {
     }
 
     const now = new Date().toISOString();
+    const asiSlots = getAsiSlots(draft.classes);
+    const asiBonuses = sumAsiAllocations(asiSlots, draft.abilityScoreImprovements);
     const abilityScores = sumAbilityScores(
         draft.abilityScores.scores,
         draft.race.abilityModifiers,
-        draft.backgroundAbilityBonuses
+        draft.backgroundAbilityBonuses,
+        asiBonuses
     );
 
     const base: StoredCharacter = {
@@ -238,6 +255,8 @@ export function finalizeDraft(draft: CharacterDraft): StoredCharacter | null {
         abilityScores,
         backgroundAbilityBonuses:
             Object.keys(draft.backgroundAbilityBonuses).length > 0 ? draft.backgroundAbilityBonuses : undefined,
+        abilityScoreImprovements:
+            Object.keys(draft.abilityScoreImprovements).length > 0 ? draft.abilityScoreImprovements : undefined,
         skillProficiencies: [...draft.background.skillProficiencies, ...draft.skillProficiencies],
         savingThrowProficiencies: primary.proficiencies.savingThrows,
         equippedArmor: draft.equippedArmor,
@@ -277,15 +296,17 @@ export function finalizeDraft(draft: CharacterDraft): StoredCharacter | null {
  * Re-checks everything that depends on `draft.classes` and drops whatever
  * the current class/subclass/level selection no longer allows - called
  * whenever that selection changes (see ManualWizard's revalidation effect),
- * so a player can't carry forward a skill, armor, weapon, or spell picked
- * under a since-abandoned class choice.
+ * so a player can't carry forward a skill, armor, weapon, spell, or
+ * Ability Score Improvement allocation picked under a since-abandoned
+ * class choice.
  *
  * Skill and equipment proficiency are checked against `classes[0]` (the
  * main class) only - the wizard doesn't offer secondary classes' own
  * (RAW-reduced) multiclass proficiency choices, so there's nothing
- * class-specific from them to validate here. Spell limits, on the other
- * hand, are genuinely combined across every entry - see
- * utils/spellcasting.ts's `getSpellLimits`.
+ * class-specific from them to validate here. Spell limits and Ability
+ * Score Improvement slots, on the other hand, are genuinely combined
+ * across every entry - see utils/spellcasting.ts's `getSpellLimits` and
+ * utils/abilityScoreImprovements.ts's `getAsiSlots`.
  */
 export function revalidateDraftForClasses(draft: CharacterDraft): CharacterDraft {
     const primary = draft.classes[0]?.characterClass;
@@ -298,13 +319,18 @@ export function revalidateDraftForClasses(draft: CharacterDraft): CharacterDraft
     const shield = primary && draft.shield && classCanUseArmor(primary, draft.shield) ? draft.shield : undefined;
     const weapons = primary ? draft.weapons.filter((weapon) => classCanUseWeapon(primary, weapon)) : [];
 
+    const asiSlots = getAsiSlots(draft.classes);
+    const abilityScoreImprovements = pruneAsiAllocations(asiSlots, draft.abilityScoreImprovements);
+    const asiBonuses = sumAsiAllocations(asiSlots, abilityScoreImprovements);
+
     const abilityScores = sumAbilityScores(
         draft.abilityScores.scores,
         draft.race?.abilityModifiers ?? {},
-        draft.backgroundAbilityBonuses
+        draft.backgroundAbilityBonuses,
+        asiBonuses
     );
     const limits = getSpellLimits(draft.classes, abilityScores);
     const spellsKnown = pruneSpellsToLimits(draft.spellsKnown, limits);
 
-    return { ...draft, skillProficiencies, equippedArmor, shield, weapons, spellsKnown };
+    return { ...draft, skillProficiencies, equippedArmor, shield, weapons, abilityScoreImprovements, spellsKnown };
 }

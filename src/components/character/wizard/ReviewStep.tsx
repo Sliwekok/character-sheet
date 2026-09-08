@@ -24,7 +24,8 @@ export function ReviewStep({ draft, isEditing, onSave, extraActions }: ReviewSte
         <CardContent className="text-sm text-fontcolor-secondary">
           A few required steps aren&apos;t finished yet — go back and fill in edition, race,
           class, background, ability scores (including the background&apos;s ability score
-          bonus, for a 2024 character), name, and alignment before reviewing.
+          bonus for a 2024 character, and any Ability Score Improvements your class levels
+          have earned), name, and alignment before reviewing.
         </CardContent>
       </Card>
     );
@@ -74,6 +75,18 @@ export function ReviewStep({ draft, isEditing, onSave, extraActions }: ReviewSte
                 Background bonus:{" "}
                 {Object.entries(preview.backgroundAbilityBonuses)
                   .map(([ability, bonus]) => `${ability} +${bonus}`)
+                  .join(", ")}
+              </p>
+            )}
+            {preview.abilityScoreImprovements && Object.keys(preview.abilityScoreImprovements).length > 0 && (
+              <p>
+                Ability Score Improvements:{" "}
+                {Object.values(preview.abilityScoreImprovements)
+                  .map((allocation) =>
+                    Object.entries(allocation)
+                      .map(([ability, bonus]) => `${ability} +${bonus}`)
+                      .join("/")
+                  )
                   .join(", ")}
               </p>
             )}

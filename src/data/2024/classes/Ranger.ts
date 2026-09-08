@@ -1,9 +1,6 @@
 import { CharacterClass } from "@/interfaces/CharacterClass";
 import { halfCasterProgression } from "@/interfaces/SpellSlotsProgression";
 
-// weaponMasteryProgression was previously missing entirely. Filled in to match the
-// same {1,4,10} breakpoints and counts already sourced from 5etools for Barbarian
-// (Fighter alone gets an extra step at 16) - worth a cross-check against your book.
 export const Ranger: CharacterClass = {
     name: "Ranger",
     edition: "2024",
@@ -28,27 +25,28 @@ export const Ranger: CharacterClass = {
         progression: halfCasterProgression,
     },
     subclassLevel: 3,
-    weaponMasteryProgression: { 1: 2, 4: 3, 10: 4 },
-    // features text pulled and verified against 5etools' class-ranger.json (XPHB source) - https://5e.tools/classes.html#ranger_xphb
-    // Corrected from an earlier from-memory pass, which mixed up several 2014 mechanics with the
-    // redesigned 2024 ones: Favored Enemy grants two free Hunter's Mark casts (not a number equal
-    // to proficiency bonus); Deft Explorer grants two languages and does NOT include a prepared
-    // guidance cantrip - that cantrip choice actually belongs to the 2nd-level Fighting Style
-    // feature's Druidic Warrior option, which is now correctly a Fighting Style feat choice
-    // rather than a named 2014-style fighting style; a missing 9th-level "Expertise" feature has
-    // been added; Tireless is actually gained at 10th level, not 9th (it was misplaced at 9,
-    // displacing Nature's Veil, which is actually gained at 14th, not 10th), and it uses a Magic
-    // action with Wisdom-modifier-limited uses rather than an unlimited Bonus Action; Precise
-    // Hunter now correctly grants advantage on attack rolls against your Hunter's Mark target
-    // rather than save advantage vs. Charmed/Frightened; Feral Senses now correctly grants
-    // Blindsight 30 ft. rather than the 2014 "ignore disadvantage vs. unseen attackers" text;
-    // level 19 is a distinctly-named "Epic Boon" feature (Boon of Dimensional Travel
-    // recommended), not a fifth Ability Score Improvement; and Foe Slayer now correctly upgrades
-    // Hunter's Mark's damage die to a d10 rather than granting a damage-maximizing effect.
+    // weaponMasteryProgression corrected: the previous {1:2, 4:3, 10:4} was copied from
+    // Barbarian's numbers and flagged in its own comment as unverified. Re-checked against
+    // Roll20's D&D 2024 Compendium ("Ranger Class Features" table) -
+    // https://roll20.net/compendium/dnd5e/Classes:Ranger (2024 source) - the table has no
+    // "Weapon Mastery" column and the Weapon Mastery feature's text has no level-scaling clause;
+    // it's a flat 2 weapons for the whole class, unlike Barbarian/Fighter.
+    weaponMasteryProgression: { 1: 2 },
+    // features text re-scraped and verified against Roll20's D&D 2024 Compendium ("Ranger
+    // Features" table) - https://roll20.net/compendium/dnd5e/Classes:Ranger (2024 source)
+    // Corrected from an earlier pass: weaponMasteryProgression (see above comment) and Weapon
+    // Mastery's description both falsely implied the weapon count scales with level - it doesn't,
+    // so the closing "This number increases as you gain levels in this class." sentence was
+    // removed; Spellcasting had been reduced to a stub pointing at "the Spells section of this
+    // sheet" instead of the actual rules text (spell slots, prepared spells with the "always
+    // prepared" clause and worked example, changing prepared spells, spellcasting ability and
+    // focus). Favored Enemy, Deft Explorer, Fighting Style, Ability Score Improvement, Extra
+    // Attack, Roving, Expertise, Tireless, Relentless Hunter, Nature's Veil, Precise Hunter, Feral
+    // Senses, Epic Boon, and Foe Slayer were already accurate and are unchanged.
     features: [
-        { name: "Spellcasting", level: 1, description: "You have learned to channel the magical essence of nature to cast spells. See the Spells section of this sheet for the spells you have prepared, your spell save DC, and your spell attack bonus." },
+        { name: "Spellcasting", level: 1, description: "You have learned to channel the magical essence of nature to cast spells. See the Spells section of this sheet for the spells you have prepared, your spell save DC, and your spell attack bonus.\nSpell Slots: You regain all expended spell slots when you finish a Long Rest.\nPrepared Spells of Level 1+: You prepare the list of level 1+ spells that are available for you to cast with this feature. To start, choose two level 1 Ranger spells. The number of spells on your list increases as you gain Ranger levels. Whenever that number increases, choose additional Ranger spells until the number of spells on your list matches your new total. The chosen spells must be of a level for which you have spell slots. For example, if you're a level 5 Ranger, your list of prepared spells can include six Ranger spells of level 1 or 2 in any combination. If another Ranger feature gives you spells that you always have prepared, those spells don't count against the number of spells you can prepare with this feature, but those spells otherwise count as Ranger spells for you.\nChanging Your Prepared Spells: Whenever you finish a Long Rest, you can replace one spell on your list with another Ranger spell for which you have spell slots.\nSpellcasting Ability: Wisdom is your spellcasting ability for your Ranger spells.\nSpellcasting Focus: You can use a Druidic Focus as a Spellcasting Focus for your Ranger spells." },
         { name: "Favored Enemy", level: 1, description: "You always have the Hunter's Mark spell prepared. You can cast it twice without expending a spell slot, and you regain all expended uses when you finish a Long Rest.\nThe number of times you can cast the spell this way increases as you gain levels in this class." },
-        { name: "Weapon Mastery", level: 1, description: "Your training allows you to use the mastery properties of two kinds of weapons of your choice with which you have proficiency. Whenever you finish a Long Rest, you can change one of your choices. This number increases as you gain levels in this class." },
+        { name: "Weapon Mastery", level: 1, description: "Your training allows you to use the mastery properties of two kinds of weapons of your choice with which you have proficiency. Whenever you finish a Long Rest, you can change one of your choices." },
         { name: "Deft Explorer", level: 2, description: "Thanks to your travels, you gain the following benefits: you gain Expertise in one skill proficiency of your choice, and you learn two languages of your choice." },
         { name: "Fighting Style", level: 2, description: "You gain a Fighting Style feat of your choice, such as Archery, Defense, Dueling, or Two-Weapon Fighting. Instead of one of those feats, you can choose the Druidic Warrior option: you learn two Druid cantrips of your choice, which count as Ranger spells for you and use Wisdom as their spellcasting ability, and you can replace one of them whenever you gain a Ranger level." },
         { name: "Ability Score Improvement", level: 4, description: "You gain the Ability Score Improvement feat or another feat of your choice for which you qualify. You gain this feature again at Ranger levels 8, 12, and 16." },

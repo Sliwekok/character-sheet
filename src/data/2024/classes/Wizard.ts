@@ -20,21 +20,17 @@ export const Wizard: CharacterClass = {
         progression: fullCasterProgression,
     },
     subclassLevel: 3,
-    // features text verified against 5etools' class-wizard.json (XPHB source) - https://5e.tools/classes.html#wizard_xphb
-    // Corrected from an earlier from-memory pass: Ritual Adept had the prepared-spell condition
-    // backwards (you needn't have the spell prepared to ritual-cast it, not the opposite); Arcane
-    // Recovery's recharge was reworded to the XPHB "can't do so again until you finish a Long
-    // Rest" phrasing rather than 2014's "once per day"; Scholar was an entirely wrong effect (it
-    // grants expertise in one proficient Arcana/History/Investigation/Medicine/Nature/Religion
-    // skill of your choice, not advantage on all of them, and was missing Medicine from the
-    // list); Memorize Spell actually triggers on finishing a Short Rest, not "spending 1 minute"
-    // at will; Spell Mastery gained the XPHB "casting time of an action" restriction and its
-    // Long Rest spell-swap clause; Signature Spells regained its "expend a spell slot to cast
-    // higher" clause; and level 19 is a distinctly-named Epic Boon feature (Boon of Spell Recall
-    // recommended), not a fifth Ability Score Improvement - the other four ASI entries were
-    // rewritten to the XPHB "gain the Ability Score Improvement feat or another feat" wording.
+    // features text re-scraped and verified against Roll20's D&D 2024 Compendium ("Wizard
+    // Features" table) - https://roll20.net/compendium/dnd5e/Classes:Wizard (2024 source)
+    // Corrected from an earlier pass: Spellcasting had been reduced to a stub pointing at "the
+    // Spells section of this sheet" instead of the actual rules text (cantrips gained at 1st/4th/
+    // 10th, the spellbook, prepared spells with the "always prepared" clause and worked example,
+    // changing prepared spells on a Long Rest, spellcasting ability, and spellcasting focus -
+    // which can be an Arcane Focus or the spellbook itself). Ritual Adept, Arcane Recovery,
+    // Scholar, Ability Score Improvement, Memorize Spell, Spell Mastery, Epic Boon, and Signature
+    // Spells were already accurate and are unchanged.
     features: [
-        { name: "Spellcasting", level: 1, description: "As a student of arcane magic, you have a spellbook containing spells that show the first glimmerings of your true power. See the Spells section of this sheet for the spells you have prepared, your spell save DC, and your spell attack bonus." },
+        { name: "Spellcasting", level: 1, description: "As a student of arcane magic, you have learned to cast spells. See the Spells section of this sheet for the spells you have prepared, your spell save DC, and your spell attack bonus.\nCantrips: You know three Wizard cantrips of your choice. Whenever you finish a Long Rest, you can replace one of your cantrips from this feature with another Wizard cantrip of your choice. When you reach Wizard levels 4 and 10, you learn another Wizard cantrip of your choice.\nSpellbook: Your wizardly apprenticeship culminated in the creation of a unique book: your spellbook. It contains the level 1+ spells you know. It starts with six level 1 Wizard spells of your choice. Whenever you gain a Wizard level after 1, add two Wizard spells of your choice to your spellbook, each of a level for which you have spell slots.\nSpell Slots: You regain all expended spell slots when you finish a Long Rest.\nPrepared Spells of Level 1+: You prepare the list of level 1+ spells that are available for you to cast with this feature. To do so, choose four spells from your spellbook. The chosen spells must be of a level for which you have spell slots. The number of spells on your list increases as you gain Wizard levels. Whenever that number increases, choose additional Wizard spells until the number of spells on your list matches your new total, chosen from your spellbook. For example, if you're a level 3 Wizard, your list of prepared spells can include six spells of levels 1 and 2 in any combination, chosen from your spellbook. If another Wizard feature gives you spells that you always have prepared, those spells don't count against the number of spells you can prepare with this feature, but those spells otherwise count as Wizard spells for you.\nChanging Your Prepared Spells: Whenever you finish a Long Rest, you can change your list of prepared spells, replacing any of the spells there with spells from your spellbook.\nSpellcasting Ability: Intelligence is your spellcasting ability for your Wizard spells.\nSpellcasting Focus: You can use an Arcane Focus or your spellbook as a Spellcasting Focus for your Wizard spells." },
         { name: "Ritual Adept", level: 1, description: "You can cast any spell as a Ritual if that spell has the Ritual tag and the spell is in your spellbook. You needn't have the spell prepared, but you must read from the book to cast a spell in this way." },
         { name: "Arcane Recovery", level: 1, description: "You can regain some of your magical energy by studying your spellbook. When you finish a Short Rest, you can choose expended spell slots to recover, with a combined level equal to or less than half your wizard level (rounded up), and none of the slots can be 6th level or higher. Once you use this feature, you can't do so again until you finish a Long Rest." },
         { name: "Scholar", level: 2, description: "While studying magic, you also specialized in another field of study. Choose one of the following skills in which you have proficiency: Arcana, History, Investigation, Medicine, Nature, or Religion. You have expertise in the chosen skill." },

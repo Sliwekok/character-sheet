@@ -6,7 +6,11 @@ export const Monk: CharacterClass = {
     hitDie: 8,
     proficiencies: {
         armor: [],
-        weapons: ["Simple weapons", "Martial weapons that have the type=martial weapon property"],
+        // Fixed: this read "Martial weapons that have the type=martial weapon property" - a
+        // garbled placeholder. Per Roll20's D&D 2024 Compendium ("Weapon Proficiencies" row,
+        // https://roll20.net/compendium/dnd5e/Classes:Monk, 2024 source), it's Martial weapons
+        // that have the Light property.
+        weapons: ["Simple weapons", "Martial weapons that have the Light property"],
         tools: ["Choose one type of Artisan's Tools or Musical Instrument"],
         savingThrows: ["strength", "dexterity"],
         skills: { choose: 2, from: ["Acrobatics", "Athletics", "History", "Insight", "Religion", "Stealth"] },
@@ -15,6 +19,9 @@ export const Monk: CharacterClass = {
     casterProgression: "none",
     subclassLevel: 3,
     // features text pulled and verified against 5etools' class-monk.json (XPHB source) - https://5e.tools/classes.html#monk_xphb
+    // Re-checked against Roll20's D&D 2024 Compendium ("Monk Features" table) -
+    // https://roll20.net/compendium/dnd5e/Classes:Monk - features text already matched; only the
+    // weapons proficiency string above was corrupted and has been fixed.
     // Corrected from an earlier from-memory pass: Uncanny Metabolism is gained at level 2 (not 3)
     // and regains HP equal to Monk level plus a Martial Arts die roll, not a flat Wisdom-modifier
     // amount; Deflect Attacks is gained at level 3 (not 4), only works against
