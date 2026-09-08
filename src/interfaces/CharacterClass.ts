@@ -83,6 +83,33 @@ export interface GrantedSpell {
 }
 
 /**
+ * The mechanically-tracked benefit of one Fighting Style option (Archery,
+ * Defense, Dueling, ...) - set on the `FeatureChoiceOption` for any style
+ * this app actually folds into a stat, so `utils/fightingStyles.ts` can
+ * apply it wherever the corresponding number is calculated
+ * (utils/calculateArmorClass.ts, utils/attackCalculations.ts) instead of
+ * leaving it as descriptive-only text. Not every real Fighting Style has an
+ * entry here - Great Weapon Fighting's damage-die reroll, Protection's
+ * reaction, Blind Fighting's blindsight, Interception's reaction, and
+ * Unarmed Fighting's bigger unarmed-strike die all stay text-only, the same
+ * "not modeled mechanically here" simplification this app already uses for
+ * things like a Ranger's Druidic Warrior cantrips (see grantedSpells
+ * instead) or a Divine Order's proficiency grant.
+ */
+export interface FightingStyleEffect {
+  /** Player-facing style name (e.g. "Defense") - used to label the stat-breakdown line this bonus produces, kept alongside the numbers rather than re-derived from the enclosing option's `label`. */
+  styleName: string;
+  /** Defense: +1 (RAW) bonus to AC while wearing armor - applies with or without a shield, and isn't affected by which armor it is. */
+  armorClassBonusWhileArmored?: number;
+  /** Archery: +2 (RAW) bonus to attack rolls made with ranged weapons. */
+  rangedAttackRollBonus?: number;
+  /** Dueling: +2 (RAW) bonus to damage rolls with a one-handed melee weapon, while wielding no other weapon. */
+  meleeOneHandedDamageBonus?: number;
+  /** Thrown Weapon Fighting (2024): +2 (RAW) bonus to damage rolls with a weapon that has the thrown property, while wielding no other weapon. */
+  thrownWeaponDamageBonus?: number;
+}
+
+/**
  * One option in a `FeatureChoice` (see its header comment) - a small,
  * fixed, named alternative the player picks between, e.g. "Pact of the
  * Tome" as one of a Warlock's three Pact Boon options, or "Protector" as
@@ -90,7 +117,8 @@ export interface GrantedSpell {
  * an option can grant nothing mechanically tracked here (e.g. Divine
  * Order's "Protector" just grants weapon/armor proficiency, which this app
  * doesn't model at the feature-choice level - only the option's NAME is
- * shown for those).
+ * shown for those). `fightingStyleEffect` is the same idea for a Fighting
+ * Style option - see its header comment.
  */
 export interface FeatureChoiceOption {
   /** Stable identifier for this option, used as the value stored in `CharacterDraft.featureChoices`/`Character.featureChoices` - e.g. "tome", "protector". Never shown to the player directly; see `label` for that. */
@@ -100,6 +128,8 @@ export interface FeatureChoiceOption {
   /** Short note on what choosing this option does, shown alongside the option in the picker (and, once chosen, next to the feature) - e.g. "Learn 3 cantrips from any class's spell list, cast at will" or "Martial weapon and heavy armor proficiency". Purely descriptive, same spirit as GrantedSpell.limit. */
   summary?: string;
   grantedSpells?: GrantedSpell[];
+  /** Set only on a Fighting Style option whose benefit this app tracks as a real stat bonus - see `FightingStyleEffect`'s header comment. */
+  fightingStyleEffect?: FightingStyleEffect;
 }
 
 /**

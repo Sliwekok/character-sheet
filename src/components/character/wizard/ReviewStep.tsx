@@ -23,7 +23,8 @@ export function ReviewStep({ draft, isEditing, onSave, extraActions }: ReviewSte
       <Card>
         <CardContent className="text-sm text-fontcolor-secondary">
           A few required steps aren&apos;t finished yet — go back and fill in edition, race,
-          class, background, ability scores (including the background&apos;s ability score
+          class (including any Fighting Style or other feature choice your class/subclass
+          requires), background, ability scores (including the background&apos;s ability score
           bonus for a 2024 character, and any Ability Score Improvements your class levels
           have earned), name, and alignment before reviewing.
         </CardContent>

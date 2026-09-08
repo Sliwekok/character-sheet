@@ -358,14 +358,15 @@ export function ClassStep({
                 return (
                   <label key={pending.key} className="flex flex-col gap-2">
                     <span className="text-sm font-medium text-fontcolor-secondary">
-                      {pending.featureName} — {pending.choice.prompt}
+                      {pending.featureName} — {pending.choice.prompt}{" "}
+                      <span className="text-red-500" title="Required before you can continue">*</span>
                     </span>
                     <Select
                       value={chosenId ?? ""}
                       onChange={(event) => setFeatureChoice(pending.key, event.target.value)}
                     >
                       <option value="" disabled>
-                        Choose...
+                        Choose... (required)
                       </option>
                       {pending.choice.options.map((option) => (
                         <option key={option.id} value={option.id}>

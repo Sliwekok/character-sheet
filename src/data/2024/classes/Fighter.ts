@@ -1,4 +1,5 @@
 import { CharacterClass } from "@/interfaces/CharacterClass";
+import { FIGHTER_FIGHTING_STYLES_2024 } from "@/data/2024/fightingStyles/FightingStyles";
 
 // weaponMasteryProgression sourced directly from 5etools' class table data (not
 // hand-recalled) - still worth a quick cross-check against your book.
@@ -43,7 +44,7 @@ export const Fighter: CharacterClass = {
     // Improvement - the erroneous "At 19th level you can instead take an Epic Boon feat" clause
     // was removed from the other Ability Score Improvement entries accordingly.
     features: [
-        { name: "Fighting Style", level: 1, description: "You have honed your martial prowess and gain a Fighting Style feat of your choice. Defense is recommended.\nWhenever you gain a Fighter level, you can replace the feat you chose with a different Fighting Style feat." },
+        { name: "Fighting Style", level: 1, description: "You have honed your martial prowess and gain a Fighting Style feat of your choice. Defense is recommended.\nWhenever you gain a Fighter level, you can replace the feat you chose with a different Fighting Style feat.", choice: { key: "fightingStyle", prompt: "Choose your Fighting Style", options: FIGHTER_FIGHTING_STYLES_2024 } },
         { name: "Second Wind", level: 1, description: "You have a limited well of physical and mental stamina that you can draw on. As a Bonus Action, you can use it to regain hit points equal to 1d10 plus your Fighter level.\nYou can use this feature twice. You regain one expended use when you finish a Short Rest, and you regain all expended uses when you finish a Long Rest.\nWhen you reach certain Fighter levels, you gain more uses of this feature: three uses at 4th level and four uses at 10th level." },
         { name: "Weapon Mastery", level: 1, description: "Your training with weapons allows you to use the mastery properties of three kinds of Simple or Martial weapons of your choice. Whenever you finish a Long Rest, you can practice weapon drills and change one of those weapon choices. When you reach certain Fighter levels, you gain the ability to use the mastery property of more kinds of weapons, as shown in the Weapon Mastery column of the class table." },
         { name: "Action Surge", level: 2, description: "You can push yourself beyond your normal limits for a moment. On your turn, you can take one additional action, except the Magic action. Once you use this feature, you can't do so again until you finish a Short or Long Rest. Starting at 17th level, you can use it twice before a rest, but only once on the same turn." },

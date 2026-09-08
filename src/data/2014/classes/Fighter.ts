@@ -1,4 +1,5 @@
 import { CharacterClass } from "@/interfaces/CharacterClass";
+import { FIGHTER_FIGHTING_STYLES_2014 } from "@/data/2014/fightingStyles/FightingStyles";
 
 export const Fighter: CharacterClass = {
     name: "Fighter",
@@ -25,7 +26,7 @@ export const Fighter: CharacterClass = {
     // just named "Action Surge" / "Indomitable". Ability Score Improvement levels
     // (4/6/8/12/14/16/19) and the Extra Attack progression (5/11/20) were already accurate.
     features: [
-        { name: "Fighting Style", level: 1, description: "You adopt a particular style of fighting as your specialty, choosing from options such as Archery, Defense, Dueling, Great Weapon Fighting, Protection, or Two-Weapon Fighting. You can't take the same Fighting Style option more than once, even if you get to choose again from a different class feature." },
+        { name: "Fighting Style", level: 1, description: "You adopt a particular style of fighting as your specialty, choosing from options such as Archery, Defense, Dueling, Great Weapon Fighting, Protection, or Two-Weapon Fighting. You can't take the same Fighting Style option more than once, even if you get to choose again from a different class feature.", choice: { key: "fightingStyle", prompt: "Choose your Fighting Style", options: FIGHTER_FIGHTING_STYLES_2014 } },
         { name: "Second Wind", level: 1, description: "You have a limited well of stamina that you can draw on to protect yourself from harm. On your turn, you can use a bonus action to regain hit points equal to 1d10 + your fighter level. Once you use this feature, you must finish a short or long rest before you can use it again." },
         { name: "Action Surge", level: 2, description: "You can push yourself beyond your normal limits for a moment. On your turn, you can take one additional action on top of your regular action and a possible bonus action. Once you use this feature, you must finish a short or long rest before you can use it again. Starting at 17th level, you can use it twice before a rest, but only once on the same turn." },
         { name: "Ability Score Improvement", level: 4, description: "When you reach 4th level, and again at 6th, 8th, 12th, 14th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each. As normal, you can't increase an ability score above 20 using this feature." },

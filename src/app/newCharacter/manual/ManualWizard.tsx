@@ -16,7 +16,7 @@ import {
 import { isValidBackgroundAllocation, sumAbilityScores } from "@/utils/abilityScoreBonuses";
 import { areAsiSlotsComplete, getAsiSlots, sumAsiAllocations } from "@/utils/abilityScoreImprovements";
 import { getEffectiveCasterProgression } from "@/utils/spellcasting";
-import { getAutoGrantedSpellNames, resolveSpellsByName } from "@/utils/grantedSpells";
+import { areFeatureChoicesComplete, getAutoGrantedSpellNames, resolveSpellsByName } from "@/utils/grantedSpells";
 import { loadCharacter, saveCharacter } from "@/utils/storage";
 import { StepProgress } from "@/components/character/wizard/StepProgress";
 import { EditionStep } from "@/components/character/wizard/EditionStep";
@@ -53,7 +53,15 @@ function canProceed(stepName: string, draft: CharacterDraft): boolean {
     case "Race":
       return Boolean(draft.race);
     case "Class":
-      return draft.classes.length > 0 && draft.classes.every((entry) => entry.characterClass);
+      // Every class must be chosen, AND every FeatureChoice reached so far
+      // (a Fighting Style, a Pact Boon, a Circle of the Land terrain, ...)
+      // must be resolved - e.g. a Fighter can't move on without picking a
+      // Fighting Style. See utils/grantedSpells.ts's `areFeatureChoicesComplete`.
+      return (
+        draft.classes.length > 0 &&
+        draft.classes.every((entry) => entry.characterClass) &&
+        areFeatureChoicesComplete(draft.classes, draft.featureChoices)
+      );
     case "Background":
       return Boolean(draft.background);
     case "Ability Scores":

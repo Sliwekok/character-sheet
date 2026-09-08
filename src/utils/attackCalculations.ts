@@ -4,6 +4,7 @@ import { calculateAbilityModifiers } from "@/utils/abilityModifiers";
 import { calculateProficiencyBonus } from "@/utils/calculateProficiencyBonus";
 import { ABILITY_LABELS } from "@/utils/statBreakdowns";
 import { StatLine, formatEquationTerm, formatSigned } from "@/utils/statLine";
+import { getChosenFightingStyleEffects } from "@/utils/fightingStyles";
 
 /**
  * Which ability a weapon's attack/damage rolls use. Finesse weapons use
@@ -73,6 +74,56 @@ function magicItemBonusTotal(
   return { total, lines };
 }
 
+/**
+ * Sum of every chosen Fighting Style's `rangedAttackRollBonus` (e.g.
+ * Archery's +2) - only applies to a ranged weapon, matching RAW. Returns 0
+ * (with no lines) for a melee weapon or a character with no such style.
+ */
+function fightingStyleAttackBonus(character: Character, weapon: Weapon): { total: number; lines: StatLine[] } {
+  if (weapon.type !== "ranged") return { total: 0, lines: [] };
+  let total = 0;
+  const lines: StatLine[] = [];
+  for (const effect of getChosenFightingStyleEffects(character)) {
+    if (effect.rangedAttackRollBonus) {
+      total += effect.rangedAttackRollBonus;
+      lines.push({ label: `${effect.styleName} (Fighting Style)`, value: formatSigned(effect.rangedAttackRollBonus) });
+    }
+  }
+  return { total, lines };
+}
+
+/**
+ * Sum of every chosen Fighting Style's damage bonus that applies to THIS
+ * weapon - Dueling's +2 for a one-handed melee weapon, or Thrown Weapon
+ * Fighting's +2 for a thrown weapon - each only while wielding no other
+ * weapon (approximated here as `character.weapons.length === 1`, since
+ * this app doesn't separately track which carried weapon is in-hand versus
+ * stowed - the same kind of simplification `isProficientWithWeapon` above
+ * already documents). `useVersatile` (wielding a versatile weapon
+ * two-handed) disqualifies Dueling, same as RAW.
+ */
+function fightingStyleDamageBonus(
+  character: Character,
+  weapon: Weapon,
+  useVersatile: boolean
+): { total: number; lines: StatLine[] } {
+  const wieldingAlone = character.weapons.length === 1;
+  const isOneHandedMelee = weapon.type === "melee" && !useVersatile && !weapon.properties.includes("two-handed");
+  const isThrown = weapon.properties.includes("thrown");
+  if (!wieldingAlone || (!isOneHandedMelee && !isThrown)) return { total: 0, lines: [] };
+
+  let total = 0;
+  const lines: StatLine[] = [];
+  for (const effect of getChosenFightingStyleEffects(character)) {
+    const bonus = isOneHandedMelee ? effect.meleeOneHandedDamageBonus : isThrown ? effect.thrownWeaponDamageBonus : undefined;
+    if (bonus) {
+      total += bonus;
+      lines.push({ label: `${effect.styleName} (Fighting Style)`, value: formatSigned(bonus) });
+    }
+  }
+  return { total, lines };
+}
+
 export type WeaponAttackInfo = {
   ability: keyof AbilityScores;
   abilityModifier: number;
@@ -81,6 +132,8 @@ export type WeaponAttackInfo = {
   magicBonus: number;
   /** Sum of `bonuses.attackRolls` across carried magic items (rings, wondrous items, ammunition, ...) - separate from `magicBonus`, which is the weapon's own. */
   magicItemBonus: number;
+  /** Sum of any chosen Fighting Style's ranged attack-roll bonus (e.g. Archery's +2) - 0 for a melee weapon. */
+  fightingStyleBonus: number;
   attackBonus: number;
   lines: StatLine[];
 };
@@ -93,7 +146,8 @@ export function getWeaponAttackInfo(character: Character, weapon: Weapon): Weapo
   const proficiencyBonus = proficient ? calculateProficiencyBonus(character) : 0;
   const magicBonus = weapon.bonus ?? 0;
   const magicItems = magicItemBonusTotal(character, "attackRolls");
-  const attackBonus = abilityModifier + proficiencyBonus + magicBonus + magicItems.total;
+  const fightingStyle = fightingStyleAttackBonus(character, weapon);
+  const attackBonus = abilityModifier + proficiencyBonus + magicBonus + magicItems.total + fightingStyle.total;
 
   const lines: StatLine[] = [
     { label: `${ABILITY_LABELS[ability]} modifier`, value: formatSigned(abilityModifier) },
@@ -101,6 +155,7 @@ export function getWeaponAttackInfo(character: Character, weapon: Weapon): Weapo
   ];
   if (magicBonus) lines.push({ label: "Magic bonus", value: formatSigned(magicBonus) });
   lines.push(...magicItems.lines);
+  lines.push(...fightingStyle.lines);
   lines.push({ label: "Attack bonus", value: formatSigned(attackBonus) });
 
   return {
@@ -110,6 +165,7 @@ export function getWeaponAttackInfo(character: Character, weapon: Weapon): Weapo
     proficiencyBonus,
     magicBonus,
     magicItemBonus: magicItems.total,
+    fightingStyleBonus: fightingStyle.total,
     attackBonus,
     lines,
   };
@@ -122,6 +178,8 @@ export type WeaponDamageInfo = {
   magicBonus: number;
   /** Sum of `bonuses.damageRolls` across carried magic items - separate from `magicBonus`, which is the weapon's own. */
   magicItemBonus: number;
+  /** Sum of any chosen Fighting Style's damage bonus that applies to this weapon (Dueling, Thrown Weapon Fighting) - see `fightingStyleDamageBonus`'s header comment for the conditions. */
+  fightingStyleBonus: number;
   flatBonus: number;
   lines: StatLine[];
 };
@@ -132,7 +190,8 @@ export function getWeaponDamageInfo(character: Character, weapon: Weapon, useVer
   const abilityModifier = calculateAbilityModifiers(character.abilityScores)[ability];
   const magicBonus = weapon.bonus ?? 0;
   const magicItems = magicItemBonusTotal(character, "damageRolls");
-  const flatBonus = abilityModifier + magicBonus + magicItems.total;
+  const fightingStyle = fightingStyleDamageBonus(character, weapon, useVersatile);
+  const flatBonus = abilityModifier + magicBonus + magicItems.total + fightingStyle.total;
   const diceFormula = useVersatile && weapon.versatileDamage ? weapon.versatileDamage : weapon.damage.dice;
 
   const lines: StatLine[] = [
@@ -141,6 +200,7 @@ export function getWeaponDamageInfo(character: Character, weapon: Weapon, useVer
   ];
   if (magicBonus) lines.push({ label: "Magic bonus", value: formatSigned(magicBonus) });
   lines.push(...magicItems.lines);
+  lines.push(...fightingStyle.lines);
   lines.push({ label: "Damage type", value: weapon.damage.type });
 
   return {
@@ -149,6 +209,7 @@ export function getWeaponDamageInfo(character: Character, weapon: Weapon, useVer
     abilityModifier,
     magicBonus,
     magicItemBonus: magicItems.total,
+    fightingStyleBonus: fightingStyle.total,
     flatBonus,
     lines,
   };

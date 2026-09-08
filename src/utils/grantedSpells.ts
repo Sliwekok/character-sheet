@@ -67,6 +67,20 @@ export function getFeatureChoices(classes: GrantEntryInput[]): PendingFeatureCho
     return result;
 }
 
+/**
+ * Whether every currently-reached `FeatureChoice` (a Pact Boon, a Fighting
+ * Style, a Circle of the Land terrain, ...) has actually been resolved -
+ * used to gate the Class step (and the final Review check) the same way
+ * `areAsiSlotsComplete` gates Ability Score Improvements, so a player can't
+ * finish building a Fighter without picking a Fighting Style.
+ */
+export function areFeatureChoicesComplete(
+    classes: GrantEntryInput[],
+    choices: Record<string, string>
+): boolean {
+    return getFeatureChoices(classes).every((pending) => Boolean(choices[pending.key]));
+}
+
 /** Drops any `featureChoices` entry that no longer corresponds to a currently-reached `FeatureChoice` - e.g. the class/subclass that offered it was swapped away, or the level dropped back below it. Mirrors utils/abilityScoreImprovements.ts's `pruneAsiAllocations`. */
 export function pruneFeatureChoices(
     classes: GrantEntryInput[],

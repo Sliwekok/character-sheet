@@ -1,5 +1,6 @@
 import { CharacterClass } from "@/interfaces/CharacterClass";
 import { halfCasterProgression } from "@/interfaces/SpellSlotsProgression";
+import { RANGER_FIGHTING_STYLES_2024 } from "@/data/2024/fightingStyles/FightingStyles";
 
 export const Ranger: CharacterClass = {
     name: "Ranger",
@@ -48,10 +49,7 @@ export const Ranger: CharacterClass = {
         { name: "Favored Enemy", level: 1, description: "You always have the Hunter's Mark spell prepared. You can cast it twice without expending a spell slot, and you regain all expended uses when you finish a Long Rest.\nThe number of times you can cast the spell this way increases as you gain levels in this class.", grantedSpells: [{ spellName: "Hunter's Mark", limit: "per long rest, uses scale with level (2+)" }] },
         { name: "Weapon Mastery", level: 1, description: "Your training allows you to use the mastery properties of two kinds of weapons of your choice with which you have proficiency. Whenever you finish a Long Rest, you can change one of your choices." },
         { name: "Deft Explorer", level: 2, description: "Thanks to your travels, you gain the following benefits: you gain Expertise in one skill proficiency of your choice, and you learn two languages of your choice." },
-        { name: "Fighting Style", level: 2, description: "You gain a Fighting Style feat of your choice, such as Archery, Defense, Dueling, or Two-Weapon Fighting. Instead of one of those feats, you can choose the Druidic Warrior option: you learn two Druid cantrips of your choice, which count as Ranger spells for you and use Wisdom as their spellcasting ability, and you can replace one of them whenever you gain a Ranger level.", choice: { key: "fightingStyle", prompt: "Choose your Fighting Style", options: [
-            { id: "combatFeat", label: "A Fighting Style feat", summary: "Archery, Defense, Dueling, Two-Weapon Fighting, or another Fighting Style feat you qualify for - not modeled mechanically here." },
-            { id: "druidicWarrior", label: "Druidic Warrior", summary: "Learn 2 Druid cantrips, castable as Ranger spells using Wisdom.", grantedSpells: [{ choice: { count: 2, spellLevel: 0 }, limit: "at will (cantrip), uses Wisdom" }] },
-        ] } },
+        { name: "Fighting Style", level: 2, description: "You gain a Fighting Style feat of your choice, such as Archery, Defense, Dueling, or Two-Weapon Fighting. Instead of one of those feats, you can choose the Druidic Warrior option: you learn two Druid cantrips of your choice, which count as Ranger spells for you and use Wisdom as their spellcasting ability, and you can replace one of them whenever you gain a Ranger level.", choice: { key: "fightingStyle", prompt: "Choose your Fighting Style", options: RANGER_FIGHTING_STYLES_2024 } },
         { name: "Ability Score Improvement", level: 4, description: "You gain the Ability Score Improvement feat or another feat of your choice for which you qualify. You gain this feature again at Ranger levels 8, 12, and 16." },
         { name: "Extra Attack", level: 5, description: "You can attack twice, instead of once, whenever you take the Attack action on your turn." },
         { name: "Roving", level: 6, description: "Your speed increases by 10 feet while you aren't wearing Heavy armor. You also gain a Climb Speed and a Swim Speed equal to your Speed." },

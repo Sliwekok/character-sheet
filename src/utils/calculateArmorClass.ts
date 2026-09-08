@@ -1,6 +1,7 @@
 import { Character } from '@/interfaces/Characters';
 import { calculateAbilityModifiers } from './abilityModifiers';
 import { StatLine, formatSigned } from './statLine';
+import { getChosenFightingStyleEffects } from './fightingStyles';
 
 export type ArmorClassBreakdown = {
     lines: StatLine[];
@@ -55,6 +56,21 @@ export function getArmorClassBreakdown(character: Character): ArmorClassBreakdow
         if (shield.bonus) {
             total += shield.bonus;
             lines.push({ label: "Shield magic bonus", value: formatSigned(shield.bonus) });
+        }
+    }
+
+    // A chosen Fighting Style that grants a flat AC bonus (e.g. Defense's
+    // +1 AC) only applies while actually wearing armor - matches RAW, and
+    // means switching `equippedArmor` off correctly drops this bonus too.
+    if (armor) {
+        for (const effect of getChosenFightingStyleEffects(character)) {
+            if (effect.armorClassBonusWhileArmored) {
+                total += effect.armorClassBonusWhileArmored;
+                lines.push({
+                    label: `${effect.styleName} (Fighting Style)`,
+                    value: formatSigned(effect.armorClassBonusWhileArmored),
+                });
+            }
         }
     }
 

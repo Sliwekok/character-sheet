@@ -12,7 +12,7 @@ import { isValidBackgroundAllocation, subtractAbilityScores, sumAbilityScores } 
 import { areAsiSlotsComplete, getAsiSlots, pruneAsiAllocations, sumAsiAllocations } from "@/utils/abilityScoreImprovements";
 import { classCanUseArmor, classCanUseWeapon } from "@/utils/proficiencyMatch";
 import { getSpellLimits, pruneSpellsToLimits } from "@/utils/spellcasting";
-import { pruneFeatureChoices } from "@/utils/grantedSpells";
+import { areFeatureChoicesComplete, pruneFeatureChoices } from "@/utils/grantedSpells";
 
 const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
 
@@ -206,7 +206,8 @@ export function isDraftReadyToFinalize(draft: CharacterDraft): boolean {
             draft.alignment &&
             draft.abilityScores.unassignedPool.length === 0 &&
             isValidBackgroundAllocation(draft.background, draft.backgroundAbilityBonuses) &&
-            areAsiSlotsComplete(getAsiSlots(draft.classes), draft.abilityScoreImprovements)
+            areAsiSlotsComplete(getAsiSlots(draft.classes), draft.abilityScoreImprovements) &&
+            areFeatureChoicesComplete(draft.classes, draft.featureChoices)
     );
 }
 

@@ -1,4 +1,5 @@
 import { Subclass } from "@/interfaces/Subclass";
+import { FIGHTER_FIGHTING_STYLES_2024 } from "@/data/2024/fightingStyles/FightingStyles";
 
 /**
  * `features` is every named subclassFeature entry 5etools tracks for this
@@ -86,7 +87,7 @@ export const FighterSubclasses: Subclass[] = [
         features: [
             { name: "Improved Critical", level: 3, description: "Your attack rolls with weapons and Unarmed Strikes can score a Critical Hit on a roll of 19 or 20 on the d20." },
             { name: "Remarkable Athlete", level: 3, description: "Thanks to your athleticism, you have Advantage on Initiative rolls and Strength (Athletics) checks.\nIn addition, immediately after you score a Critical Hit, you can move up to half your Speed without provoking Opportunity Attack." },
-            { name: "Additional Fighting Style", level: 7, description: "You gain another Fighting Style feat of your choice." },
+            { name: "Additional Fighting Style", level: 7, description: "You gain another Fighting Style feat of your choice.", choice: { key: "fightingStyle2", prompt: "Choose your second Fighting Style", options: FIGHTER_FIGHTING_STYLES_2024 } },
             { name: "Heroic Warrior", level: 10, description: "The thrill of battle drives you toward victory. During combat, you can give yourself Heroic Inspiration whenever you start your turn without it." },
             { name: "Superior Critical", level: 15, description: "Your attack rolls with weapons and Unarmed Strikes can now score a Critical Hit on a roll of 18–20 on the d20." },
             { name: "Survivor", level: 18, description: "You attain the pinnacle of resilience in battle, giving you these benefits.\nDefy Death: You have Advantage on Death Saving Throw. Moreover, when you roll 18–20 on a Death Saving Throw, you gain the benefit of rolling a 20 on it.\nHeroic Rally: At the start of each of your turns, you regain Hit Points equal to 5 plus your Constitution modifier if you are Bloodied and have at least 1 Hit Points." },
