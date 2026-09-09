@@ -36,6 +36,7 @@ import { featureChoiceKey } from "@/utils/grantedSpells";
 import { Spell } from "@/interfaces/Spell";
 import { CharacterDetails } from "@/interfaces/CharacterDetails";
 import { MagicItem } from "@/interfaces/MagicItem";
+import {calculateProficiencyBonus, getProficiencyBonusBreakdown} from "@/utils/calculateProficiencyBonus";
 
 const ABILITY_LABELS: { key: keyof StoredCharacter["abilityScores"]; label: string }[] = [
   { key: "strength", label: "STR" },
@@ -288,6 +289,10 @@ export default function CharacterDetailsPage() {
                   <span className="flex items-center gap-1">
                     <Badge variant="muted">Initiative {formatModifier(character.initiative)}</Badge>
                     <Tooltip title="Initiative" lines={initiative.lines} />
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Badge variant="muted">Proficiency {formatModifier(calculateProficiencyBonus(character))}</Badge>
+                    <Tooltip title="Initiative" lines={getProficiencyBonusBreakdown(character)} />
                   </span>
                 </div>
                 <Badge variant="outline">{character.alignment}</Badge>
