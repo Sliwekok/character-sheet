@@ -1,14 +1,15 @@
-import { useMemo, useState } from "react";
+import {useEffect, useMemo, useState} from "react";
 import { CharacterClass } from "@/interfaces/CharacterClass";
 import { Background } from "@/interfaces/Background";
 import { Armor } from "@/interfaces/Armor";
 import { Weapon } from "@/interfaces/Weapon";
 import { SkillName } from "@/interfaces/Skill";
 import { Ruleset } from "@/data";
-import { Card, CardContent } from "@/components/ui";
+import {Card, CardContent, Combobox} from "@/components/ui";
 import { classCanUseArmor, classCanUseWeapon } from "@/utils/proficiencyMatch";
 import { cn } from "@/utils/cn";
 import { ItemDetailPanel, SelectedEquipmentItem } from "./ItemDetailPanel";
+import {Feat} from '@/interfaces/Feat';
 
 type SkillsEquipmentStepProps = {
   ruleset: Ruleset;
@@ -18,10 +19,12 @@ type SkillsEquipmentStepProps = {
   equippedArmor: Armor | undefined;
   shield: Armor | undefined;
   weapons: Weapon[];
+  feats: Feat[];
   onSkillsChange: (skills: SkillName[]) => void;
   onArmorChange: (armor: Armor | undefined) => void;
   onShieldChange: (shield: Armor | undefined) => void;
   onWeaponsChange: (weapons: Weapon[]) => void;
+  onFeatsChange: (feats: Feat[]) => void;
 };
 
 function pillClass(selected: boolean, disabled?: boolean): string {
@@ -54,17 +57,33 @@ export function SkillsEquipmentStep({
   equippedArmor,
   shield,
   weapons,
+  feats,
   onSkillsChange,
   onArmorChange,
   onShieldChange,
   onWeaponsChange,
+  onFeatsChange,
 }: SkillsEquipmentStepProps) {
   const [selectedItem, setSelectedItem] = useState<SelectedEquipmentItem | undefined>(undefined);
+  const [pickedBoon, setPickedBoon] = useState<Feat | undefined>(undefined);
 
   const skillPool = characterClass.proficiencies.skills.from.filter(
     (skill) => !background.skillProficiencies.includes(skill)
   );
   const skillLimit = characterClass.proficiencies.skills.choose;
+
+  // Epic boons come straight from `ruleset.feats`, which is already scoped
+  // to the current edition (see data/index.ts's `buildRuleset`) - no need
+  // to branch on `characterClass.edition` or reach for the 2014/2024 feat
+  // barrels directly here.
+  const epicBoons = useMemo(() => ruleset.feats.filter((f) => f.category === "epic-boon"), [ruleset.feats]);
+  // Already-taken boons stay off the combobox's option list - selecting one
+  // is an "add" action, not a toggle, so there's nothing to pick again.
+
+  const availableEpicBoons = useMemo(
+    () => epicBoons.filter((boon) => !feats.some((f) => f.name === boon.name)),
+    [epicBoons, feats]
+  );
 
   // Mundane starting equipment only - deliberately NOT merged with
   // ruleset.magicWeapons/magicArmor (~1,900 entries). Magic weapons/armor
@@ -123,6 +142,20 @@ export function SkillsEquipmentStep({
   function clearShield() {
     onShieldChange(undefined);
     setSelectedItem(undefined);
+  }
+
+  function selectEpicBoon(boon: Feat) {
+    onFeatsChange([...feats, boon]);
+    setSelectedItem({ kind: "feat", feat: boon, selected: true });
+    // Reset the combobox back to its placeholder after adding, same
+    // "pick to add, don't leave it showing the last pick" pattern
+    // MagicItemsStep's compendium combobox uses.
+    setPickedBoon(undefined);
+  }
+
+  function removeEpicBoon(boon: Feat) {
+    onFeatsChange(feats.filter((f) => f.name !== boon.name));
+    setSelectedItem({ kind: "feat", feat: boon, selected: false });
   }
 
   return (
@@ -211,6 +244,7 @@ export function SkillsEquipmentStep({
           </Card>
         </div>
 
+        {/* Weapons */}
         <Card>
           <CardContent className="flex flex-col gap-3">
             <p className="text-sm font-medium text-fontcolor-secondary">Weapons</p>
@@ -231,9 +265,45 @@ export function SkillsEquipmentStep({
             </div>
           </CardContent>
         </Card>
+
+        {/* Epic Boons */}
+        {epicBoons.length > 0 && (
+          <Card>
+            <CardContent className="flex flex-col gap-3">
+              <p className="text-sm font-medium text-fontcolor-secondary">
+                Epic Boons {feats.length > 0 && `(${feats.length} taken)`}
+              </p>
+              <Combobox
+                className="w-full"
+                options={availableEpicBoons}
+                value={pickedBoon}
+                getOptionLabel={(option) => option.name}
+                getOptionValue={(option) => option.name}
+                onChange={selectEpicBoon}
+                placeholder={availableEpicBoons.length > 0 ? "Select an epic boon" : "All epic boons taken"}
+                isDisabled={availableEpicBoons.length === 0}
+              />
+              {feats.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {feats.map((boon) => (
+                    <button
+                      key={boon.name}
+                      type="button"
+                      onClick={() => removeEpicBoon(boon)}
+                      className={pillClass(true)}
+                      title="Click to remove"
+                    >
+                      {boon.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
 
-      <ItemDetailPanel item={selectedItem} className="lg:sticky lg:top-6" />
+      <ItemDetailPanel item={selectedItem} className="lg:sticky lg:top-24" />
     </div>
   );
 }

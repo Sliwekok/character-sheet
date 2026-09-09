@@ -9,6 +9,7 @@ import { Armor } from "@/interfaces/Armor";
 import { Weapon } from "@/interfaces/Weapon";
 import { Currency } from "@/interfaces/Currency";
 import { Spell } from "@/interfaces/Spell";
+import { Feat } from "@/interfaces/Feat";
 import { CharacterDetails } from "@/interfaces/CharacterDetails";
 import { MagicItem } from "@/interfaces/MagicItem";
 import { HpMethod } from "@/interfaces/Hp";
@@ -121,6 +122,15 @@ export interface CharacterDraft {
     equippedArmor?: Armor;
     shield?: Armor;
     weapons: Weapon[];
+    /**
+     * Feats picked on the Skills & Equipment step - currently only ever
+     * populated from the `"epic-boon"` category (see `SkillsEquipmentStep`'s
+     * epic boon combobox); other feat categories aren't offered by any
+     * wizard step yet. Always `[]` rather than undefined, same convention as
+     * `weapons`/`magicItems`; carried straight through to `Character.feats`
+     * by `finalizeDraft()`.
+     */
+    feats: Feat[];
     /**
      * Magic items carried/owned beyond the equipped armor/shield/weapons
      * above (those can be magic items in their own right - see the

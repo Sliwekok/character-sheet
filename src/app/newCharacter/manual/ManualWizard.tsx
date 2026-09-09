@@ -216,8 +216,12 @@ export default function ManualWizard() {
       );
       const backgroundValid =
         current.background && ruleset.backgrounds.some((b) => b.name === current.background!.name);
+      // Epic boons (and any other feat this wizard ever offers) are
+      // edition-specific data too - drop any that no longer exist under the
+      // new ruleset, same reasoning as race/classes/background above.
+      const featsValid = current.feats.every((feat) => ruleset.feats.some((f) => f.name === feat.name));
 
-      if (raceValid && classesValid && backgroundValid) return current;
+      if (raceValid && classesValid && backgroundValid && featsValid) return current;
 
       // Drop just the invalid class off each entry (keeping its level, and
       // keeping the entry itself) rather than collapsing the whole
@@ -238,6 +242,7 @@ export default function ManualWizard() {
         classes,
         background: backgroundValid ? current.background : undefined,
         backgroundAbilityBonuses: backgroundValid ? current.backgroundAbilityBonuses : {},
+        feats: featsValid ? current.feats : current.feats.filter((feat) => ruleset.feats.some((f) => f.name === feat.name)),
       };
     });
     // Only re-run when the ruleset (i.e. the edition) itself changes.
@@ -425,10 +430,12 @@ export default function ManualWizard() {
                   equippedArmor={draft.equippedArmor}
                   shield={draft.shield}
                   weapons={draft.weapons}
+                  feats={draft.feats}
                   onSkillsChange={(skillProficiencies) => updateDraft({ skillProficiencies })}
                   onArmorChange={(equippedArmor) => updateDraft({ equippedArmor })}
                   onShieldChange={(shield) => updateDraft({ shield })}
                   onWeaponsChange={(weapons) => updateDraft({ weapons })}
+                  onFeatsChange={(feats) => updateDraft({ feats })}
                 />
               ) : draft.edition && !ruleset && primaryClass && draft.background ? (
                 <RulesetLoadingNotice />

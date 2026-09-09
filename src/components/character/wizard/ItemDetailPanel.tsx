@@ -1,6 +1,7 @@
 import { SkillName, SKILL_ABILITIES } from "@/interfaces/Skill";
 import { Weapon } from "@/interfaces/Weapon";
 import { Armor } from "@/interfaces/Armor";
+import { Feat } from "@/interfaces/Feat";
 import { AttunementRequirement } from "@/interfaces/MagicItem";
 import { Card, CardHeader, CardTitle, CardContent, Badge } from "@/components/ui";
 import { cn } from "@/utils/cn";
@@ -9,7 +10,8 @@ export type SelectedEquipmentItem =
   | { kind: "skill"; skill: SkillName; selected: boolean }
   | { kind: "weapon"; weapon: Weapon; selected: boolean }
   | { kind: "armor"; armor: Armor; equipped: boolean }
-  | { kind: "shield"; armor: Armor; equipped: boolean };
+  | { kind: "shield"; armor: Armor; equipped: boolean }
+  | { kind: "feat"; feat: Feat; selected: boolean };
 
 type ItemDetailPanelProps = {
   item: SelectedEquipmentItem | undefined;
@@ -26,7 +28,13 @@ function capitalize(word: string): string {
 }
 
 function itemName(item: SelectedEquipmentItem): string {
-  return item.kind === "skill" ? item.skill : item.kind === "weapon" ? item.weapon.name : item.armor.name;
+  return item.kind === "skill"
+    ? item.skill
+    : item.kind === "weapon"
+      ? item.weapon.name
+      : item.kind === "feat"
+        ? item.feat.name
+        : item.armor.name;
 }
 
 function isActive(item: SelectedEquipmentItem): boolean {
@@ -39,6 +47,8 @@ function statusLabel(item: SelectedEquipmentItem): string {
       return item.selected ? "Selected" : "Not selected";
     case "weapon":
       return item.selected ? "Carried" : "Not carried";
+    case "feat":
+      return item.selected ? "Taken" : "Not taken";
     case "armor":
     case "shield":
       return item.equipped ? "Equipped" : "Not equipped";
@@ -134,9 +144,29 @@ function ArmorDetails({ armor, isShield }: { armor: Armor; isShield: boolean }) 
   );
 }
 
+function FeatDetails({ feat }: { feat: Feat }) {
+  return (
+    <>
+      <Badge variant="outline" className="w-fit">
+        Epic Boon
+      </Badge>
+      <DetailRow label="Prerequisite" value={feat.prerequisite} />
+      <DetailRow
+        label="Ability score increase"
+        value={
+          feat.abilityScoreIncrease
+            ? `+${feat.abilityScoreIncrease.choose} to ${feat.abilityScoreIncrease.from.join(", ")}`
+            : undefined
+        }
+      />
+      <p className="whitespace-pre-line">{feat.description}</p>
+    </>
+  );
+}
+
 /**
  * Right-hand "inspector" for Skills & Equipment - shows the full data behind
- * whatever skill, weapon, armor, or shield the player last clicked in
+ * whatever skill, weapon, armor, shield, or feat the player last clicked in
  * `SkillsEquipmentStep`. Pure display, no callbacks of its own - `item` is
  * transient view state owned by the step, not part of the character draft.
  */
@@ -148,9 +178,10 @@ export function ItemDetailPanel({ item, className }: ItemDetailPanelProps) {
         {item && <Badge variant={isActive(item) ? "solid" : "muted"}>{statusLabel(item)}</Badge>}
       </CardHeader>
       <CardContent className="flex flex-col gap-3 text-sm text-fontcolor-secondary">
-        {!item && <p>Click a skill, weapon, piece of armor, or shield to see its full details here.</p>}
+        {!item && <p>Click a skill, weapon, piece of armor, shield, or epic boon to see its full details here.</p>}
         {item && item.kind === "skill" && <SkillDetails skill={item.skill} />}
         {item && item.kind === "weapon" && <WeaponDetails weapon={item.weapon} />}
+        {item && item.kind === "feat" && <FeatDetails feat={item.feat} />}
         {item && (item.kind === "armor" || item.kind === "shield") && (
           <ArmorDetails armor={item.armor} isShield={item.kind === "shield"} />
         )}
