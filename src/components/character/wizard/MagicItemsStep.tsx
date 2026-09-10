@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { MagicItem, MagicItemCategory, MagicItemRarity } from "@/interfaces/MagicItem";
-import { Weapon } from "@/interfaces/Weapon";
-import { Armor } from "@/interfaces/Armor";
-import { createCustomMagicItem } from "@/utils/customMagicItems";
+import { Weapon, WeaponCategory, WeaponMasteryProperty, WeaponProperty, WeaponRange } from "@/interfaces/Weapon";
+import { Armor, ArmorCategory } from "@/interfaces/Armor";
+import { createCustomArmor, createCustomMagicItem, createCustomWeapon } from "@/utils/customMagicItems";
 import {
   Badge,
   Button,
@@ -53,6 +53,24 @@ const CATEGORIES: MagicItemCategory[] = [
 
 const RARITIES: MagicItemRarity[] = ["common", "uncommon", "rare", "very rare", "legendary", "artifact", "varies"];
 
+const WEAPON_CATEGORIES: WeaponCategory[] = ["simple", "martial"];
+const WEAPON_RANGES: WeaponRange[] = ["melee", "ranged"];
+const WEAPON_PROPERTIES: WeaponProperty[] = [
+  "ammunition",
+  "finesse",
+  "heavy",
+  "light",
+  "loading",
+  "range",
+  "reach",
+  "thrown",
+  "two-handed",
+  "versatile",
+];
+const WEAPON_MASTERIES: WeaponMasteryProperty[] = ["Cleave", "Graze", "Nick", "Push", "Sap", "Slow", "Topple", "Vex"];
+
+const ARMOR_CATEGORIES: ArmorCategory[] = ["light", "medium", "heavy", "shield"];
+
 /** Every filterable "type" in the combined compendium browser - "weapon"/"armor" (shields included) plus every non-armor/weapon `MagicItemCategory`. */
 type CompendiumType = "weapon" | "armor" | MagicItemCategory;
 const COMPENDIUM_TYPES: CompendiumType[] = ["weapon", "armor", ...CATEGORIES];
@@ -100,6 +118,42 @@ const EMPTY_FORM = {
   armorClassBonus: "",
   attackRollBonus: "",
   damageRollBonus: "",
+};
+
+const EMPTY_WEAPON_FORM = {
+  name: "",
+  category: "martial" as WeaponCategory,
+  type: "melee" as WeaponRange,
+  damageDice: "",
+  damageType: "",
+  versatileDamage: "",
+  properties: [] as WeaponProperty[],
+  weight: "",
+  cost: "",
+  mastery: "" as WeaponMasteryProperty | "",
+  bonus: "",
+  rarity: "uncommon" as MagicItemRarity,
+  requiresAttunement: false,
+  attunementRestriction: "",
+  magicDescription: "",
+};
+
+const EMPTY_ARMOR_FORM = {
+  name: "",
+  category: "medium" as ArmorCategory,
+  baseAC: "",
+  dexModEnabled: true,
+  dexModMax: "",
+  stealthDisadvantage: false,
+  strengthRequirement: "",
+  material: "",
+  weight: "",
+  cost: "",
+  bonus: "",
+  rarity: "uncommon" as MagicItemRarity,
+  requiresAttunement: false,
+  attunementRestriction: "",
+  magicDescription: "",
 };
 
 /** "Bonuses: +1 AC, +1 attack rolls, +1 damage rolls" - only the fields actually set, for MagicItemCard. */
@@ -249,6 +303,8 @@ export function MagicItemsStep({
   const [typeFilter, setTypeFilter] = useState<CompendiumType | "all">("all");
   const [rarityFilter, setRarityFilter] = useState<MagicItemRarity | "all">("all");
   const [form, setForm] = useState(EMPTY_FORM);
+  const [weaponForm, setWeaponForm] = useState(EMPTY_WEAPON_FORM);
+  const [armorForm, setArmorForm] = useState(EMPTY_ARMOR_FORM);
 
   const compendiumEntries: CompendiumEntry[] = useMemo(() => {
     const items: CompendiumEntry[] = ruleset.magicItems.map((item) => ({
@@ -350,6 +406,88 @@ export function MagicItemsStep({
     setForm(EMPTY_FORM);
   }
 
+  const canCreateWeapon =
+    weaponForm.name.trim().length > 0 &&
+    weaponForm.damageDice.trim().length > 0 &&
+    weaponForm.damageType.trim().length > 0 &&
+    weaponForm.magicDescription.trim().length > 0;
+
+  function toggleWeaponProperty(property: WeaponProperty) {
+    setWeaponForm((current) => ({
+      ...current,
+      properties: current.properties.includes(property)
+        ? current.properties.filter((p) => p !== property)
+        : [...current.properties, property],
+    }));
+  }
+
+  function handleCreateWeapon() {
+    if (!canCreateWeapon) return;
+    const weight = weaponForm.weight.trim() ? Number(weaponForm.weight) : undefined;
+    const bonus = weaponForm.bonus.trim() ? Number(weaponForm.bonus) : undefined;
+    onWeaponsChange([
+      ...weapons,
+      createCustomWeapon({
+        name: weaponForm.name.trim(),
+        category: weaponForm.category,
+        type: weaponForm.type,
+        damage: { dice: weaponForm.damageDice.trim(), type: weaponForm.damageType.trim() },
+        versatileDamage: weaponForm.versatileDamage.trim() || undefined,
+        properties: weaponForm.properties,
+        weight,
+        cost: weaponForm.cost.trim() || undefined,
+        mastery: weaponForm.mastery || undefined,
+        bonus,
+        rarity: weaponForm.rarity,
+        requiresAttunement: weaponForm.requiresAttunement
+          ? weaponForm.attunementRestriction.trim() || true
+          : false,
+        magicDescription: weaponForm.magicDescription.trim(),
+      }),
+    ]);
+    setWeaponForm(EMPTY_WEAPON_FORM);
+  }
+
+  const canCreateArmor =
+    armorForm.name.trim().length > 0 &&
+    armorForm.baseAC.trim().length > 0 &&
+    armorForm.magicDescription.trim().length > 0;
+
+  function handleCreateArmor() {
+    if (!canCreateArmor) return;
+    const baseAC = Number(armorForm.baseAC);
+    const dexMax = armorForm.dexModMax.trim() ? Number(armorForm.dexModMax) : undefined;
+    const strengthRequirement = armorForm.strengthRequirement.trim()
+      ? Number(armorForm.strengthRequirement)
+      : undefined;
+    const weight = armorForm.weight.trim() ? Number(armorForm.weight) : undefined;
+    const bonus = armorForm.bonus.trim() ? Number(armorForm.bonus) : undefined;
+    const armor = createCustomArmor({
+      name: armorForm.name.trim(),
+      category: armorForm.category,
+      baseAC,
+      dexterityModifier:
+        armorForm.category === "shield" ? undefined : { enabled: armorForm.dexModEnabled, max: dexMax },
+      stealthDisadvantage: armorForm.stealthDisadvantage || undefined,
+      strengthRequirement,
+      material: armorForm.material.trim() || undefined,
+      weight,
+      cost: armorForm.cost.trim() || undefined,
+      bonus,
+      rarity: armorForm.rarity,
+      requiresAttunement: armorForm.requiresAttunement
+        ? armorForm.attunementRestriction.trim() || true
+        : false,
+      magicDescription: armorForm.magicDescription.trim(),
+    });
+    if (armor.category === "shield") {
+      onShieldChange(armor);
+    } else {
+      onArmorChange(armor);
+    }
+    setArmorForm(EMPTY_ARMOR_FORM);
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <Card className="z-1000">
@@ -432,8 +570,7 @@ export function MagicItemsStep({
         <CardContent className="flex flex-col gap-4">
           <p className="text-xs text-fontcolor-secondary">
             For a homebrew wondrous item, ring, rod, staff, wand, potion, or scroll with no compendium
-            equivalent. Homebrewing a magic weapon or suit of armor isn&apos;t supported here yet - only
-            compendium ones (via the browser above) can be added.
+            equivalent. Homebrewing a magic weapon or suit of armor has its own forms below.
           </p>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -578,6 +715,375 @@ export function MagicItemsStep({
 
           <Button onClick={handleCreate} disabled={!canCreate} className="w-fit">
             Add custom item
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Create a custom weapon</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <p className="text-xs text-fontcolor-secondary">
+            Homebrew an entirely new magic weapon, mundane stats and magic properties together, with no
+            compendium base item required.
+          </p>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-fontcolor-secondary">Name*</span>
+              <TextInput
+                value={weaponForm.name}
+                onChange={(event) => setWeaponForm({ ...weaponForm, name: event.target.value })}
+                placeholder="e.g. Sunfire Blade"
+              />
+            </label>
+
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-fontcolor-secondary">Category</span>
+              <Select
+                value={weaponForm.category}
+                onChange={(event) => setWeaponForm({ ...weaponForm, category: event.target.value as WeaponCategory })}
+              >
+                {WEAPON_CATEGORIES.map((category) => (
+                  <option key={category} value={category}>
+                    {capitalize(category)}
+                  </option>
+                ))}
+              </Select>
+            </label>
+
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-fontcolor-secondary">Range type</span>
+              <Select
+                value={weaponForm.type}
+                onChange={(event) => setWeaponForm({ ...weaponForm, type: event.target.value as WeaponRange })}
+              >
+                {WEAPON_RANGES.map((type) => (
+                  <option key={type} value={type}>
+                    {capitalize(type)}
+                  </option>
+                ))}
+              </Select>
+            </label>
+
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-fontcolor-secondary">Rarity</span>
+              <Select
+                value={weaponForm.rarity}
+                onChange={(event) => setWeaponForm({ ...weaponForm, rarity: event.target.value as MagicItemRarity })}
+              >
+                {RARITIES.map((rarity) => (
+                  <option key={rarity} value={rarity}>
+                    {capitalize(rarity)}
+                  </option>
+                ))}
+              </Select>
+            </label>
+
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-fontcolor-secondary">Damage dice*</span>
+              <TextInput
+                value={weaponForm.damageDice}
+                onChange={(event) => setWeaponForm({ ...weaponForm, damageDice: event.target.value })}
+                placeholder="e.g. 1d8"
+              />
+            </label>
+
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-fontcolor-secondary">Damage type*</span>
+              <TextInput
+                value={weaponForm.damageType}
+                onChange={(event) => setWeaponForm({ ...weaponForm, damageType: event.target.value })}
+                placeholder="e.g. slashing"
+              />
+            </label>
+
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-fontcolor-secondary">Versatile damage</span>
+              <TextInput
+                value={weaponForm.versatileDamage}
+                onChange={(event) => setWeaponForm({ ...weaponForm, versatileDamage: event.target.value })}
+                placeholder="Only if versatile, e.g. 1d10"
+              />
+            </label>
+
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-fontcolor-secondary">Weapon mastery</span>
+              <Select
+                value={weaponForm.mastery}
+                onChange={(event) =>
+                  setWeaponForm({ ...weaponForm, mastery: event.target.value as WeaponMasteryProperty | "" })
+                }
+              >
+                <option value="">None</option>
+                {WEAPON_MASTERIES.map((mastery) => (
+                  <option key={mastery} value={mastery}>
+                    {mastery}
+                  </option>
+                ))}
+              </Select>
+            </label>
+
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-fontcolor-secondary">Weight</span>
+              <TextInput
+                type="number"
+                value={weaponForm.weight}
+                onChange={(event) => setWeaponForm({ ...weaponForm, weight: event.target.value })}
+                placeholder="lb."
+              />
+            </label>
+
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-fontcolor-secondary">Cost</span>
+              <TextInput
+                value={weaponForm.cost}
+                onChange={(event) => setWeaponForm({ ...weaponForm, cost: event.target.value })}
+                placeholder="e.g. 15 gp"
+              />
+            </label>
+
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-fontcolor-secondary">Attack/damage bonus</span>
+              <TextInput
+                type="number"
+                value={weaponForm.bonus}
+                onChange={(event) => setWeaponForm({ ...weaponForm, bonus: event.target.value })}
+                placeholder="e.g. 1"
+              />
+            </label>
+
+            <div className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-fontcolor-secondary">Attunement</span>
+              <label className="flex items-center gap-2 text-sm text-fontcolor-secondary">
+                <input
+                  type="checkbox"
+                  checked={weaponForm.requiresAttunement}
+                  onChange={(event) => setWeaponForm({ ...weaponForm, requiresAttunement: event.target.checked })}
+                  className="h-4 w-4 rounded border-border-strong"
+                />
+                Requires attunement
+              </label>
+              {weaponForm.requiresAttunement && (
+                <TextInput
+                  value={weaponForm.attunementRestriction}
+                  onChange={(event) => setWeaponForm({ ...weaponForm, attunementRestriction: event.target.value })}
+                  placeholder="Optional restriction, e.g. by a Fighter"
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <span className="text-sm font-medium text-fontcolor-secondary">Properties</span>
+            <div className="flex flex-wrap gap-3">
+              {WEAPON_PROPERTIES.map((property) => (
+                <label key={property} className="flex items-center gap-2 text-sm text-fontcolor-secondary">
+                  <input
+                    type="checkbox"
+                    checked={weaponForm.properties.includes(property)}
+                    onChange={() => toggleWeaponProperty(property)}
+                    className="h-4 w-4 rounded border-border-strong"
+                  />
+                  {capitalize(property)}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <label className="flex flex-col gap-2">
+            <span className="text-sm font-medium text-fontcolor-secondary">Magic description*</span>
+            <Textarea
+              value={weaponForm.magicDescription}
+              onChange={(event) => setWeaponForm({ ...weaponForm, magicDescription: event.target.value })}
+              placeholder="What makes it magical?"
+              rows={4}
+            />
+          </label>
+
+          <Button onClick={handleCreateWeapon} disabled={!canCreateWeapon} className="w-fit">
+            Add custom weapon
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Create a custom armor</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <p className="text-xs text-fontcolor-secondary">
+            Homebrew an entirely new magic armor (or shield, via the Shield category), mundane stats and
+            magic properties together, with no compendium base item required.
+          </p>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-fontcolor-secondary">Name*</span>
+              <TextInput
+                value={armorForm.name}
+                onChange={(event) => setArmorForm({ ...armorForm, name: event.target.value })}
+                placeholder="e.g. Breastplate of the Dawnguard"
+              />
+            </label>
+
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-fontcolor-secondary">Category</span>
+              <Select
+                value={armorForm.category}
+                onChange={(event) => setArmorForm({ ...armorForm, category: event.target.value as ArmorCategory })}
+              >
+                {ARMOR_CATEGORIES.map((category) => (
+                  <option key={category} value={category}>
+                    {capitalize(category)}
+                  </option>
+                ))}
+              </Select>
+            </label>
+
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-fontcolor-secondary">
+                {armorForm.category === "shield" ? "AC bonus*" : "Base AC*"}
+              </span>
+              <TextInput
+                type="number"
+                value={armorForm.baseAC}
+                onChange={(event) => setArmorForm({ ...armorForm, baseAC: event.target.value })}
+                placeholder={armorForm.category === "shield" ? "e.g. 2" : "e.g. 14"}
+              />
+            </label>
+
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-fontcolor-secondary">Rarity</span>
+              <Select
+                value={armorForm.rarity}
+                onChange={(event) => setArmorForm({ ...armorForm, rarity: event.target.value as MagicItemRarity })}
+              >
+                {RARITIES.map((rarity) => (
+                  <option key={rarity} value={rarity}>
+                    {capitalize(rarity)}
+                  </option>
+                ))}
+              </Select>
+            </label>
+
+            {armorForm.category !== "shield" && (
+              <>
+                <div className="flex flex-col gap-2">
+                  <span className="text-sm font-medium text-fontcolor-secondary">Dexterity modifier</span>
+                  <label className="flex items-center gap-2 text-sm text-fontcolor-secondary">
+                    <input
+                      type="checkbox"
+                      checked={armorForm.dexModEnabled}
+                      onChange={(event) => setArmorForm({ ...armorForm, dexModEnabled: event.target.checked })}
+                      className="h-4 w-4 rounded border-border-strong"
+                    />
+                    Benefits from Dexterity modifier
+                  </label>
+                  {armorForm.dexModEnabled && (
+                    <TextInput
+                      type="number"
+                      value={armorForm.dexModMax}
+                      onChange={(event) => setArmorForm({ ...armorForm, dexModMax: event.target.value })}
+                      placeholder="Max bonus, e.g. 2 (blank for unlimited)"
+                    />
+                  )}
+                </div>
+
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-medium text-fontcolor-secondary">Strength requirement</span>
+                  <TextInput
+                    type="number"
+                    value={armorForm.strengthRequirement}
+                    onChange={(event) => setArmorForm({ ...armorForm, strengthRequirement: event.target.value })}
+                    placeholder="e.g. 13"
+                  />
+                </label>
+
+                <label className="flex items-center gap-2 pt-6 text-sm text-fontcolor-secondary">
+                  <input
+                    type="checkbox"
+                    checked={armorForm.stealthDisadvantage}
+                    onChange={(event) => setArmorForm({ ...armorForm, stealthDisadvantage: event.target.checked })}
+                    className="h-4 w-4 rounded border-border-strong"
+                  />
+                  Stealth disadvantage
+                </label>
+
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-medium text-fontcolor-secondary">Material</span>
+                  <TextInput
+                    value={armorForm.material}
+                    onChange={(event) => setArmorForm({ ...armorForm, material: event.target.value })}
+                    placeholder="e.g. mithral"
+                  />
+                </label>
+              </>
+            )}
+
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-fontcolor-secondary">Weight</span>
+              <TextInput
+                type="number"
+                value={armorForm.weight}
+                onChange={(event) => setArmorForm({ ...armorForm, weight: event.target.value })}
+                placeholder="lb."
+              />
+            </label>
+
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-fontcolor-secondary">Cost</span>
+              <TextInput
+                value={armorForm.cost}
+                onChange={(event) => setArmorForm({ ...armorForm, cost: event.target.value })}
+                placeholder="e.g. 400 gp"
+              />
+            </label>
+
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-fontcolor-secondary">Magic AC bonus</span>
+              <TextInput
+                type="number"
+                value={armorForm.bonus}
+                onChange={(event) => setArmorForm({ ...armorForm, bonus: event.target.value })}
+                placeholder="e.g. 1"
+              />
+            </label>
+
+            <div className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-fontcolor-secondary">Attunement</span>
+              <label className="flex items-center gap-2 text-sm text-fontcolor-secondary">
+                <input
+                  type="checkbox"
+                  checked={armorForm.requiresAttunement}
+                  onChange={(event) => setArmorForm({ ...armorForm, requiresAttunement: event.target.checked })}
+                  className="h-4 w-4 rounded border-border-strong"
+                />
+                Requires attunement
+              </label>
+              {armorForm.requiresAttunement && (
+                <TextInput
+                  value={armorForm.attunementRestriction}
+                  onChange={(event) => setArmorForm({ ...armorForm, attunementRestriction: event.target.value })}
+                  placeholder="Optional restriction, e.g. by a Paladin"
+                />
+              )}
+            </div>
+          </div>
+
+          <label className="flex flex-col gap-2">
+            <span className="text-sm font-medium text-fontcolor-secondary">Magic description*</span>
+            <Textarea
+              value={armorForm.magicDescription}
+              onChange={(event) => setArmorForm({ ...armorForm, magicDescription: event.target.value })}
+              placeholder="What makes it magical?"
+              rows={4}
+            />
+          </label>
+
+          <Button onClick={handleCreateArmor} disabled={!canCreateArmor} className="w-fit">
+            Add custom armor
           </Button>
         </CardContent>
       </Card>

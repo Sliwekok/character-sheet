@@ -23,12 +23,14 @@ import { AttunementRequirement, CustomMagicItemInput, MagicItem, MagicItemRarity
  * wondrous items, rings, rods, staves, wands, potions, scrolls - producing
  * a `MagicItem` for `Character.magicItems`.
  *
- * `createCustomMagicItem` is called from the wizard's Magic Items step
+ * `createCustomMagicItem`, `createCustomWeapon`, and `createCustomArmor` are
+ * all called from the wizard's Magic Items step
  * (components/character/wizard/MagicItemsStep.tsx) - the "create a custom
- * magic item" form there. `enchantWeapon`/`enchantArmor`/`createCustomWeapon`/
- * `createCustomArmor` don't have a UI yet: a magic weapon or armor only
- * ever gets built by hand today via this module directly, since Skills &
- * Equipment's weapon/armor pickers only offer the ruleset's mundane list.
+ * magic item"/"create a custom weapon"/"create a custom armor" forms there.
+ * `enchantWeapon`/`enchantArmor` don't have a UI yet: layering magic onto an
+ * existing base item only ever happens by hand today via this module
+ * directly, since Skills & Equipment's weapon/armor pickers only offer the
+ * ruleset's mundane list.
  */
 
 export interface EnchantmentInput {
