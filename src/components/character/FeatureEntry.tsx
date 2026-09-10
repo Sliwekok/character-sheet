@@ -61,20 +61,27 @@ export function FeatureEntry({
 
   return (
     <div className={cn("rounded-(--radius-sm) bg-background-darken/60 px-3 py-2", !reached && "opacity-60")}>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="font-semibold text-fontcolor">{feature.name}</span>
-        <Badge variant="muted">Level {feature.level}</Badge>
-        {!reached && <Badge variant="outline">Locked</Badge>}
-        {reached &&
-          grantedSpells.map((grant, index) => (
-            <Badge key={index} variant="solid">
-              {grantedSpellBadgeLabel(grant)}
-            </Badge>
-          ))}
-      </div>
-      <p className="mt-1 whitespace-pre-line text-xs">
-        <TextWithSpellMentions text={feature.description} spellNames={spellNames} edition={edition} />
-      </p>
+      <details className="flex flex-wrap items-center gap-2">
+        <summary className="font-semibold text-fontcolor w-full">
+          <span className="font-semibold text-fontcolor">{feature.name}</span>
+          <Badge variant="muted">Level {feature.level}</Badge>
+          {!reached && <Badge variant="outline">Locked</Badge>}
+          {reached &&
+              grantedSpells.map((grant, index) => (
+                  <Badge key={index} variant="solid">
+                    {grantedSpellBadgeLabel(grant)}
+                  </Badge>
+              ))}
+        </summary>
+
+        <div className="basis-full leading-4 mt-1 whitespace-pre-line text-xs">
+          <TextWithSpellMentions
+              text={feature.description}
+              spellNames={spellNames}
+              edition={edition}
+          />
+        </div>
+      </details>
     </div>
   );
 }
