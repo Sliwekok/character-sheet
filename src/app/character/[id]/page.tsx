@@ -34,6 +34,7 @@ import { SpellEntry } from "@/components/character/SpellEntry";
 import { StatusPanel } from "@/components/character/StatusPanel";
 import { FeatureEntry, FeatureLike } from "@/components/character/FeatureEntry";
 import { FeatEntry } from "@/components/character/FeatEntry";
+import { PdfExportPanel } from "@/components/character/PdfExportPanel";
 import { featureChoiceKey } from "@/utils/grantedSpells";
 import { Spell } from "@/interfaces/Spell";
 import { CharacterDetails } from "@/interfaces/CharacterDetails";
@@ -661,9 +662,7 @@ export default function CharacterDetailsPage() {
 
           <div className="flex flex-wrap items-center gap-3 border-t border-border pt-6">
             <Button href={`/newCharacter/manual?edit=${character.id}`}>Edit character</Button>
-            <Button variant="secondary" href={`/character/${character.id}/print`}>
-              Print / Save as PDF
-            </Button>
+            <PdfExportPanel character={character} />
             <Button variant="secondary" onClick={() => downloadCharacterAsJson(character)}>
               Export as JSON
             </Button>
