@@ -6,7 +6,7 @@ import type {
 } from "react";
 import { cn } from "@/utils/cn";
 
-type Variant = "primary" | "secondary" | "ghost" | "danger";
+type Variant = "primary" | "secondary" | "ghost" | "danger" | "accent";
 type Size = "sm" | "md" | "lg";
 
 const base =
@@ -21,7 +21,10 @@ const variants: Record<Variant, string> = {
   ghost:
     "text-fontcolor-secondary hover:text-fontcolor hover:bg-background-elevated",
   danger:
-    "bg-foreground-danger hover:bg-foreground-danger/90 text-fontcolor-secondary ml-auto cursor-pointer"
+    "bg-foreground-danger hover:bg-foreground-danger/90 text-fontcolor-secondary ml-auto cursor-pointer",
+  /** Colorful call-out variant - used for special/situational actions like a Weapon Mastery follow-up roll, to stand out from the plain "secondary" buttons around it. */
+  accent:
+    "border border-foreground-hover/60 bg-foreground/20 text-foreground hover:bg-foreground/35",
 };
 
 const sizes: Record<Size, string> = {

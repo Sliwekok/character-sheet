@@ -96,10 +96,23 @@ export function rollDiceFormula(formula: string, extraModifier = 0): DiceRollRes
     return { formula, rolls, diceTotal, modifier, total: diceTotal + modifier };
 }
 
-/** Rolls a d20 plus a flat modifier - the shared shape behind every attack roll (weapon or spell) on the character sheet. */
-export function rollD20(modifier = 0): DiceRollResult {
-    const roll = rollDie(20);
-    return { formula: "1d20", rolls: [roll], diceTotal: roll, modifier, total: roll + modifier };
+/**
+ * Rolls a d20 plus a flat modifier - the shared shape behind every attack
+ * roll (weapon or spell) on the character sheet. Pass `advantage: true` to
+ * roll twice and keep the higher result (e.g. for a Vex Weapon Mastery
+ * follow-up attack) - `rolls` still holds both dice so the UI can show which
+ * one was kept, but `diceTotal`/`total` only ever reflect the higher one.
+ */
+export function rollD20(modifier = 0, advantage = false): DiceRollResult {
+    if (!advantage) {
+        const roll = rollDie(20);
+        return { formula: "1d20", rolls: [roll], diceTotal: roll, modifier, total: roll + modifier };
+    }
+
+    const rollA = rollDie(20);
+    const rollB = rollDie(20);
+    const best = Math.max(rollA, rollB);
+    return { formula: "1d20 (advantage)", rolls: [rollA, rollB], diceTotal: best, modifier, total: best + modifier };
 }
 
 /**

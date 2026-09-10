@@ -15,6 +15,15 @@ type TooltipProps = {
   /** Freeform content instead of/alongside `lines`, for anything a label/value row can't express. */
   children?: ReactNode;
   className?: string;
+  /**
+   * Custom element to hover/click instead of the default circular "i"
+   * button - e.g. a colored Badge that should itself reveal the panel on
+   * hover, rather than needing a separate "i" icon next to it. Gets the
+   * same hover/focus/click/keyboard handling as the default trigger.
+   */
+  trigger?: ReactNode;
+  /** Extra classes for the wrapper around a custom `trigger` (ignored for the default "i" button). */
+  triggerClassName?: string;
 };
 
 type Coords = { top: number; left: number; placement: "top" | "bottom" };
@@ -49,7 +58,7 @@ const EDGE_MARGIN = 8;
  * box, flipping from above to below the trigger when there isn't enough
  * room above to show it without clipping off the top of the viewport.
  */
-export function Tooltip({ title, lines, children, className }: TooltipProps) {
+export function Tooltip({ title, lines, children, className, trigger, triggerClassName }: TooltipProps) {
   const [hovered, setHovered] = useState(false);
   const [pinned, setPinned] = useState(false);
   const open = hovered || pinned;
@@ -151,22 +160,44 @@ export function Tooltip({ title, lines, children, className }: TooltipProps) {
     </div>
   );
 
+  const sharedTriggerHandlers = {
+    "aria-expanded": open,
+    "aria-describedby": panelId,
+    onClick: () => setPinned((value) => !value),
+    onMouseEnter: () => setHovered(true),
+    onMouseLeave: () => setHovered(false),
+    onFocus: () => setHovered(true),
+    onBlur: () => setHovered(false),
+  } as const;
+
   return (
     <span ref={rootRef} className={cn("relative inline-flex", className)}>
-      <button
-        type="button"
-        aria-label={title ? `About ${title}` : "More information"}
-        aria-expanded={open}
-        aria-describedby={panelId}
-        onClick={() => setPinned((value) => !value)}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        onFocus={() => setHovered(true)}
-        onBlur={() => setHovered(false)}
-        className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-border-strong text-[10px] font-bold not-italic leading-none text-fontcolor-secondary transition-colors hover:border-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
-      >
-        i
-      </button>
+      {trigger ? (
+        <span
+          role="button"
+          tabIndex={0}
+          aria-label={title ? `About ${title}` : "More information"}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              setPinned((value) => !value);
+            }
+          }}
+          className={cn("cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-foreground rounded-full", triggerClassName)}
+          {...sharedTriggerHandlers}
+        >
+          {trigger}
+        </span>
+      ) : (
+        <button
+          type="button"
+          aria-label={title ? `About ${title}` : "More information"}
+          className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-border-strong text-[10px] font-bold not-italic leading-none text-fontcolor-secondary transition-colors hover:border-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+          {...sharedTriggerHandlers}
+        >
+          i
+        </button>
+      )}
       {typeof document !== "undefined" && panel ? createPortal(panel, document.body) : null}
     </span>
   );

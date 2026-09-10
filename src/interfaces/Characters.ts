@@ -137,6 +137,21 @@ export interface Character {
      * "every field blank", same as a fresh paper sheet.
      */
     details?: CharacterDetails;
+    /**
+     * Which of `weapons` (by index into that array) the player has assigned
+     * their limited 2024 Weapon Mastery slots to - see
+     * utils/weaponMastery.ts, whose `getWeaponMasteryCount` says how many
+     * slots this character currently has, and whose
+     * `getChosenWeaponMasteryIndexes`/`isWeaponMasteryActive`/
+     * `toggleWeaponMasteryChoice` are the only things that should ever read
+     * or write this field - never read it directly, since a class change,
+     * de-level, or edited weapon list can leave stale/out-of-range indexes
+     * here that those helpers know to filter out. Undefined for any
+     * character saved before this existed, or one with no mastery slots at
+     * all (2014 rules, or a 2024 class with none yet) - both read the same
+     * as "no mastery currently assigned to anything."
+     */
+    chosenWeaponMasteryIndexes?: number[];
 }
 
 /** Total character level - the sum of every class's level. */

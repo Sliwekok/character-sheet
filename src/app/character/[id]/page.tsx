@@ -19,7 +19,8 @@ import {
 } from "@/components/ui";
 import { StoredCharacter } from "@/interfaces/StoredCharacter";
 import { getCharacterLevel } from "@/interfaces/Characters";
-import { deleteCharacter, loadCharacter } from "@/utils/storage";
+import { deleteCharacter, loadCharacter, saveCharacter } from "@/utils/storage";
+import { getChosenWeaponMasteryIndexes, getWeaponMasteryCount, toggleWeaponMasteryChoice } from "@/utils/weaponMastery";
 import { downloadCharacterAsJson } from "@/utils/characterImportExport";
 import { calculateAbilityModifiers } from "@/utils/abilityModifiers";
 import { getArmorClassBreakdown } from "@/utils/calculateArmorClass";
@@ -235,6 +236,23 @@ export default function CharacterDetailsPage() {
     router.push("/home");
   }
 
+  /**
+   * Assigns/unassigns one of the character's limited 2024 Weapon Mastery
+   * slots to `character.weapons[weaponIndex]` and persists it immediately
+   * (see utils/weaponMastery.ts's `toggleWeaponMasteryChoice`, which already
+   * enforces the `getWeaponMasteryCount` cap - this never needs to check it
+   * itself). Mirrors `loadCharacter`/`setCharacter`'s pattern but adds the
+   * write half, since this is the first thing on this page that persists an
+   * in-place change rather than only reading what the wizard produced.
+   */
+  function handleToggleWeaponMastery(weaponIndex: number) {
+    setCharacter((current) => {
+      if (!current) return current;
+      const chosenWeaponMasteryIndexes = toggleWeaponMasteryChoice(current, weaponIndex);
+      return saveCharacter({ ...current, chosenWeaponMasteryIndexes });
+    });
+  }
+
   return (
     <>
       {showDeleteConfirm && (
@@ -360,9 +378,23 @@ export default function CharacterDetailsPage() {
 
                 {character.weapons.length > 0 ? (
                   <div className="flex flex-col gap-2 border-t border-border pt-3">
-                    <p className="font-semibold text-fontcolor">Weapons</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-fontcolor">Weapons</p>
+                      {getWeaponMasteryCount(character.classes, character.edition) > 0 && (
+                        <Badge variant="muted">
+                          Mastery {getChosenWeaponMasteryIndexes(character).length}/
+                          {getWeaponMasteryCount(character.classes, character.edition)}
+                        </Badge>
+                      )}
+                    </div>
                     {character.weapons.map((weapon, index) => (
-                      <WeaponEntry key={`${weapon.name}-${index}`} character={character} weapon={weapon} />
+                      <WeaponEntry
+                        key={`${weapon.name}-${index}`}
+                        character={character}
+                        weapon={weapon}
+                        index={index}
+                        onToggleMastery={handleToggleWeaponMastery}
+                      />
                     ))}
                   </div>
                 ) : (
