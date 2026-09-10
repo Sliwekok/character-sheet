@@ -31,6 +31,7 @@ import { getPactMagicSlots, getSpellSlots } from "@/utils/spellcasting";
 import { levelLabel } from "@/components/character/wizard/SpellsStep";
 import { WeaponEntry } from "@/components/character/WeaponEntry";
 import { SpellEntry } from "@/components/character/SpellEntry";
+import { StatusPanel } from "@/components/character/StatusPanel";
 import { FeatureEntry, FeatureLike } from "@/components/character/FeatureEntry";
 import { FeatEntry } from "@/components/character/FeatEntry";
 import { featureChoiceKey } from "@/utils/grantedSpells";
@@ -128,13 +129,20 @@ function combinedFeatures(
     });
 }
 
-/** True if `details` has anything worth its own card - a character created before CharacterDetails existed, or from the random generator, has no `details` at all (see CharacterDetails.ts), and one from the wizard can still have every field left blank. */
+/**
+ * True if `details` has anything worth its own "Character details" card - a
+ * character created before CharacterDetails existed, or from the random
+ * generator, has no `details` at all (see CharacterDetails.ts), and one
+ * from the wizard can still have every field left blank. Inspiration,
+ * death saves, conditions, exhaustion, and concentration are deliberately
+ * NOT checked here - they always have their own always-visible Status card
+ * (see StatusPanel) regardless of whether any flavor text exists, so
+ * they're not a reason to show this separate card too.
+ */
 function hasCharacterDetails(details: CharacterDetails | undefined): boolean {
   if (!details) return false;
   return Boolean(
     details.playerName ||
-      details.inspiration ||
-      details.deathSaves ||
       details.otherProficienciesNotes ||
       details.featuresAndTraitsNotes ||
       details.backstory ||
@@ -253,6 +261,36 @@ export default function CharacterDetailsPage() {
     });
   }
 
+  /**
+   * Merges `patch` into `character.details` and persists it immediately -
+   * the single write path behind every control on the Status card
+   * (inspiration, exhaustion, death saves, conditions) below, mirroring
+   * `handleToggleWeaponMastery`'s "update in place, then `saveCharacter`"
+   * pattern. `details` itself may not exist yet (see CharacterDetails.ts),
+   * hence spreading over `{}` rather than `current.details` directly.
+   */
+  function handleUpdateDetails(patch: Partial<CharacterDetails>) {
+    setCharacter((current) => {
+      if (!current) return current;
+      return saveCharacter({ ...current, details: { ...current.details, ...patch } });
+    });
+  }
+
+  /**
+   * Starts (or stops) concentrating on `spellName`, called from a
+   * concentration spell's "Concentrate" button (see SpellEntry). Only one
+   * spell can be concentrated on at a time, so picking a new one always
+   * overwrites whatever was there; clicking the currently-active spell's
+   * button again clears it.
+   */
+  function handleToggleConcentration(spellName: string) {
+    setCharacter((current) => {
+      if (!current) return current;
+      const concentratingOn = current.details?.concentratingOn === spellName ? undefined : spellName;
+      return saveCharacter({ ...current, details: { ...current.details, concentratingOn } });
+    });
+  }
+
   return (
     <>
       {showDeleteConfirm && (
@@ -319,6 +357,8 @@ export default function CharacterDetailsPage() {
               <StatBlock stats={stats} />
             </CardContent>
           </Card>
+
+          <StatusPanel character={character} onUpdateDetails={handleUpdateDetails} />
 
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
@@ -495,7 +535,13 @@ export default function CharacterDetailsPage() {
                     </p>
                     <div className="flex flex-col gap-2">
                       {spells.map((spell) => (
-                        <SpellEntry key={spell.name} spell={spell} spellcasting={spellcasting} />
+                        <SpellEntry
+                          key={spell.name}
+                          spell={spell}
+                          spellcasting={spellcasting}
+                          concentratingOn={character.details?.concentratingOn}
+                          onToggleConcentration={handleToggleConcentration}
+                        />
                       ))}
                     </div>
                   </div>
@@ -515,7 +561,13 @@ export default function CharacterDetailsPage() {
                   </p>
                   <div className="flex flex-col gap-2">
                     {character.grantedSpells.map((spell) => (
-                      <SpellEntry key={spell.name} spell={spell} spellcasting={spellcasting} />
+                      <SpellEntry
+                        key={spell.name}
+                        spell={spell}
+                        spellcasting={spellcasting}
+                        concentratingOn={character.details?.concentratingOn}
+                        onToggleConcentration={handleToggleConcentration}
+                      />
                     ))}
                   </div>
                 </div>
@@ -529,17 +581,7 @@ export default function CharacterDetailsPage() {
                 <CardTitle>Character details</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-2 text-sm text-fontcolor-secondary">
-                <div className="flex flex-wrap items-center gap-3">
-                  {character.details?.playerName && <p>Player: {character.details.playerName}</p>}
-                  {character.details?.inspiration && <Badge variant="solid">Inspiration</Badge>}
-                  {character.details?.deathSaves &&
-                    (character.details.deathSaves.successes > 0 || character.details.deathSaves.failures > 0) && (
-                      <Badge variant="muted">
-                        Death saves: {character.details.deathSaves.successes} success /{" "}
-                        {character.details.deathSaves.failures} failure
-                      </Badge>
-                    )}
-                </div>
+                {character.details?.playerName && <p>Player: {character.details.playerName}</p>}
                 {character.details?.flavor?.personalityTraits && (
                   <p>
                     <span className="font-semibold text-fontcolor">Personality traits:</span>{" "}

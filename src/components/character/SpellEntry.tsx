@@ -21,10 +21,31 @@ type RolledResult = { label: string; result: DiceRollResult };
  * spellcasting ability modifier on top of that roll, since only some
  * spells (mostly healing) add it per their own text - the button's tooltip
  * says so rather than guessing.
+ *
+ * A concentration spell (`spell.concentration`) gets a "Concentrate"
+ * toggle when `onToggleConcentration` is supplied - clicking it calls back
+ * with this spell's name, and the parent page (which owns
+ * `character.details.concentratingOn`, the single source of truth since
+ * only one spell can be concentrated on at a time) decides whether that
+ * sets or clears it. `concentratingOn` is compared against `spell.name` to
+ * render the toggle as active. Omit both props to render read-only (e.g. a
+ * future print/preview view), matching the optional-callback pattern
+ * `WeaponEntry.onToggleMastery` already uses.
  */
-export function SpellEntry({ spell, spellcasting }: { spell: Spell; spellcasting: SpellcastingInfo | null }) {
+export function SpellEntry({
+  spell,
+  spellcasting,
+  concentratingOn,
+  onToggleConcentration,
+}: {
+  spell: Spell;
+  spellcasting: SpellcastingInfo | null;
+  concentratingOn?: string;
+  onToggleConcentration?: (spellName: string) => void;
+}) {
   const [rolled, setRolled] = useState<RolledResult | null>(null);
   const detectedDice = findDiceNotation(spell.description);
+  const isConcentrating = concentratingOn === spell.name;
 
   function rollAttack() {
     if (!spellcasting) return;
@@ -42,39 +63,55 @@ export function SpellEntry({ spell, spellcasting }: { spell: Spell; spellcasting
         <span className="font-semibold text-fontcolor">{spell.name}</span>
         <Badge variant="outline">{spell.school}</Badge>
         {spell.ritual && <Badge variant="muted">Ritual</Badge>}
-        {spell.concentration && <Badge variant="muted">Concentration</Badge>}
+        {spell.concentration && (
+          <Badge variant={isConcentrating ? "solid" : "muted"}>
+            {isConcentrating ? "Concentrating" : "Concentration"}
+          </Badge>
+        )}
       </div>
       <p className="mt-1 text-xs">
         {spell.castingTime} · {spell.range} · {spell.components.join(", ")} · {spell.duration}
       </p>
       <p className="mt-2 whitespace-pre-line">{spell.description}</p>
 
-      {spellcasting && (
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
-          <span className="flex items-center gap-1 text-xs text-fontcolor-secondary">
-            Attack {formatModifier(spellcasting.spellAttackBonus)} · Save DC {spellcasting.spellSaveDC}
-            <Tooltip title="Spellcasting" lines={spellcasting.lines} />
-          </span>
-          <Button size="sm" variant="secondary" onClick={rollAttack}>
-            Roll spell attack
-          </Button>
-
-          {detectedDice && (
-            <span className="flex items-center gap-1">
-              <Button size="sm" variant="secondary" onClick={rollEffect}>
-                Roll {detectedDice}
-              </Button>
-              <Tooltip title={`Rolling ${detectedDice}`}>
-                <p>
-                  Taken from the first dice notation found in this spell&apos;s description. Check the text for
-                  extra modifiers it might call for - some healing spells, for example, add your spellcasting
-                  ability modifier on top.
-                </p>
-              </Tooltip>
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+        {spellcasting && (
+          <>
+            <span className="flex items-center gap-1 text-xs text-fontcolor-secondary">
+              Attack {formatModifier(spellcasting.spellAttackBonus)} · Save DC {spellcasting.spellSaveDC}
+              <Tooltip title="Spellcasting" lines={spellcasting.lines} />
             </span>
-          )}
-        </div>
-      )}
+            <Button size="sm" variant="secondary" onClick={rollAttack}>
+              Roll spell attack
+            </Button>
+
+            {detectedDice && (
+              <span className="flex items-center gap-1">
+                <Button size="sm" variant="secondary" onClick={rollEffect}>
+                  Roll {detectedDice}
+                </Button>
+                <Tooltip title={`Rolling ${detectedDice}`}>
+                  <p>
+                    Taken from the first dice notation found in this spell&apos;s description. Check the text for
+                    extra modifiers it might call for - some healing spells, for example, add your spellcasting
+                    ability modifier on top.
+                  </p>
+                </Tooltip>
+              </span>
+            )}
+          </>
+        )}
+
+        {spell.concentration && onToggleConcentration && (
+          <Button
+            size="sm"
+            variant={isConcentrating ? "accent" : "secondary"}
+            onClick={() => onToggleConcentration(spell.name)}
+          >
+            {isConcentrating ? "Stop concentrating" : "Concentrate"}
+          </Button>
+        )}
+      </div>
 
       {rolled && (
         <p className="mt-2 text-xs text-fontcolor">
