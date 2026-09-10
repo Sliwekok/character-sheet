@@ -17,6 +17,13 @@ export const Monk: CharacterClass = {
     primaryAbility: "dexterity",
     casterProgression: "none",
     subclassLevel: 3,
+    // Martial Arts (level 1): d4 at 1st, d6 at 5th, d8 at 11th, d10 at 17th -
+    // per the Martial Arts column of the Monk table and the feature text
+    // below, and lets Dexterity replace Strength for unarmed strikes.
+    unarmedStrike: {
+        dieByLevel: { 1: 4, 5: 6, 11: 8, 17: 10 },
+        alternativeAbility: "dexterity",
+    },
     // features verified against 5etools' class-monk.json (PHB source) - already accurate;
     // no corrections needed.
     features: [

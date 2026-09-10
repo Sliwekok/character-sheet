@@ -56,4 +56,13 @@ export interface Weapon {
   magicDescription?: string;
   /** Set on weapons a player homebrewed via createCustomWeapon() rather than official content. */
   isCustom?: boolean;
+  /**
+   * Set on the synthetic Weapon utils/attackCalculations.ts's
+   * `getUnarmedStrikeWeapon()` builds to represent a character's Unarmed
+   * Strike - never present on a "real" carried weapon. Every character is
+   * always proficient with their own unarmed strikes (RAW), so this is
+   * what lets `isProficientWithWeapon()` bypass the normal class
+   * weapon-proficiency-list check for it.
+   */
+  isUnarmedStrike?: boolean;
 }

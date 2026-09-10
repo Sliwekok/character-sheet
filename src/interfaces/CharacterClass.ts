@@ -177,6 +177,33 @@ export interface ClassFeature {
   choice?: FeatureChoice;
 }
 
+/**
+ * A class feature (e.g. a Monk's Martial Arts) that replaces the default
+ * Unarmed Strike (flat 1 + Strength modifier, bludgeoning - see
+ * utils/attackCalculations.ts's `getUnarmedStrikeWeapon()`) with a bigger
+ * damage die that scales by class level, and optionally lets an
+ * alternative ability score be used for the attack/damage roll instead of
+ * Strength (whichever is better, the same "pick the best of two" treatment
+ * `getWeaponAbility()` already gives finesse weapons). Per RAW this only
+ * applies while unarmed (or wielding only that class's own special
+ * weapons) and not wearing armor or wielding a shield -
+ * `getUnarmedStrikeWeapon()` approximates that as "no armor and no shield
+ * equipped", the same unarmored check `calculateArmorClass.ts` already
+ * uses for Unarmored Defense, rather than tracking which weapon is
+ * literally in-hand.
+ */
+export interface UnarmedStrikeProgression {
+  /**
+   * Damage die SIZE (4 for d4, 6 for d6, ...), keyed by the character's
+   * level in THIS class at which it's gained/increased - same
+   * level-keyed-table shape as `weaponMasteryProgression` below. The
+   * highest threshold at or below the character's class level applies.
+   */
+  dieByLevel: Record<number, number>;
+  /** The ability score this feature lets you use instead of Strength (e.g. a Monk's Dexterity), when it's the better of the two. Undefined if the feature only grants the bigger die, not an ability-score option. */
+  alternativeAbility?: keyof AbilityScores;
+}
+
 export interface CharacterClass {
   name: string;
   edition: Edition;
@@ -206,6 +233,13 @@ export interface CharacterClass {
    * for 2014 classes and for classes with no weapon mastery feature.
    */
   weaponMasteryProgression?: Record<number, number>;
+  /**
+   * Unarmed Strike scaling this class's Martial Arts-style feature grants
+   * (e.g. a Monk's bigger damage die and Dex option) - see
+   * `UnarmedStrikeProgression`'s header comment. Undefined for every class
+   * without such a feature.
+   */
+  unarmedStrike?: UnarmedStrikeProgression;
   /**
    * Every named mechanical benefit this BASE class grants (not counting
    * subclass features - see Subclass.features for those), in the order a

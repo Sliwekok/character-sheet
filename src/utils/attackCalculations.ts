@@ -40,6 +40,10 @@ export function getWeaponAbility(weapon: Weapon, abilityScores: AbilityScores): 
  * the character started with" vs. "added later".
  */
 export function isProficientWithWeapon(character: Character, weapon: Weapon): boolean {
+  // Every character is always proficient with their own unarmed strikes
+  // (RAW) - this isn't gated behind any class's weapon proficiency list.
+  if (weapon.isUnarmedStrike) return true;
+
   const weaponName = weapon.name.toLowerCase();
   return character.classes.some(({ class: charClass }, index) => {
     const list = index === 0 ? charClass.proficiencies.weapons : charClass.multiclassProficiencies?.weapons ?? [];
@@ -48,6 +52,58 @@ export function isProficientWithWeapon(character: Character, weapon: Weapon): bo
       return lower.includes(weapon.category) || lower.includes(weaponName) || lower.includes(`${weaponName}s`);
     });
   });
+}
+
+/**
+ * Builds the synthetic `Weapon` representing this character's Unarmed
+ * Strike, so it can be fed straight into `getWeaponAttackInfo`/
+ * `getWeaponDamageInfo`/`<WeaponEntry>` like any carried weapon. Base RAW
+ * damage is a flat 1 (represented as the dice-less formula `"1"` -
+ * `rollDiceFormula` in utils/dice.ts treats that as a fixed single "roll"
+ * rather than a real die) plus the wielder's Strength modifier,
+ * bludgeoning.
+ *
+ * If any of the character's classes grants an `unarmedStrike` progression
+ * (e.g. a Monk's Martial Arts), the HIGHEST such die across all of them
+ * replaces that flat 1 (RAW: the feature die replaces the base damage, it
+ * doesn't add to it) once the character has reached the level it's gained
+ * at, and - approximating the RAW "unarmed or wielding only monk weapons,
+ * and not wearing armor or wielding a shield" condition the same way
+ * `calculateArmorClass.ts` approximates Unarmored Defense (by checking
+ * `equippedArmor`/`shield` rather than tracking which weapon is literally
+ * in-hand) - only while the character has no armor or shield equipped.
+ * When active, the weapon is marked `finesse` so `getWeaponAbility` picks
+ * whichever of Strength/Dexterity is actually better, mirroring how a
+ * Monk can choose Dexterity for their unarmed strikes.
+ */
+export function getUnarmedStrikeWeapon(character: Character): Weapon {
+  const unarmored = !character.equippedArmor && !character.shield;
+  let die: number | undefined;
+  let allowsAlternativeAbility = false;
+  if (unarmored) {
+    for (const { class: charClass, level } of character.classes) {
+      const progression = charClass.unarmedStrike;
+      if (!progression) continue;
+      const reachedLevels = Object.keys(progression.dieByLevel)
+        .map(Number)
+        .filter((threshold) => threshold <= level);
+      if (reachedLevels.length === 0) continue;
+
+      const classDie = progression.dieByLevel[Math.max(...reachedLevels)];
+      if (die === undefined || classDie > die) die = classDie;
+      if (progression.alternativeAbility) allowsAlternativeAbility = true;
+    }
+  }
+
+  return {
+    name: "Unarmed Strike",
+    category: "simple",
+    type: "melee",
+    damage: { dice: die ? `1d${die}` : "1", type: "bludgeoning" },
+    properties: allowsAlternativeAbility ? ["finesse"] : [],
+    weight: 0,
+    isUnarmedStrike: true,
+  };
 }
 
 /**

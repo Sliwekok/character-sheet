@@ -81,6 +81,18 @@ export type DiceRollResult = {
  * isn't guaranteed to be clean.
  */
 export function rollDiceFormula(formula: string, extraModifier = 0): DiceRollResult {
+    // A bare flat number - e.g. the "1" base damage of an Unarmed Strike
+    // with no class feature (like a Monk's Martial Arts) replacing it with
+    // a real die - isn't "NdM" notation, but it's still a deterministic
+    // value rather than a dice-less fallback: treat it as a single "roll"
+    // of that fixed value so describeDiceRoll() still shows a breakdown
+    // (e.g. "1 + 3 = 4") instead of collapsing straight to the total.
+    const flatMatch = formula.trim().match(/^(\d+)$/);
+    if (flatMatch) {
+        const flat = Number(flatMatch[1]);
+        return { formula, rolls: [flat], diceTotal: flat, modifier: extraModifier, total: flat + extraModifier };
+    }
+
     const match = formula.trim().match(/^(\d+)\s*d\s*(\d+)\s*(?:([+-])\s*(\d+))?$/i);
     if (!match) {
         return { formula, rolls: [], diceTotal: 0, modifier: extraModifier, total: extraModifier };

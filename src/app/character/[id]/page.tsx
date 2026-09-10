@@ -26,7 +26,7 @@ import { calculateAbilityModifiers } from "@/utils/abilityModifiers";
 import { getArmorClassBreakdown } from "@/utils/calculateArmorClass";
 import { getMaxHpBreakdown } from "@/utils/calculateMaxHp";
 import { getAbilityScoreBreakdown, getInitiativeBreakdown } from "@/utils/statBreakdowns";
-import { getSpellcastingInfo } from "@/utils/attackCalculations";
+import { getSpellcastingInfo, getUnarmedStrikeWeapon } from "@/utils/attackCalculations";
 import { getPactMagicSlots, getSpellSlots } from "@/utils/spellcasting";
 import { levelLabel } from "@/components/character/wizard/SpellsStep";
 import { WeaponEntry } from "@/components/character/WeaponEntry";
@@ -375,6 +375,11 @@ export default function CharacterDetailsPage() {
                   {character.currency.electrum ? `, ${character.currency.electrum}ep` : ""}
                   {character.currency.platinum ? `, ${character.currency.platinum}pp` : ""}
                 </p>
+
+                <div className="flex flex-col gap-2 border-t border-border pt-3">
+                  <p className="font-semibold text-fontcolor">Unarmed Strike</p>
+                  <WeaponEntry character={character} weapon={getUnarmedStrikeWeapon(character)} index={-1} />
+                </div>
 
                 {character.weapons.length > 0 ? (
                   <div className="flex flex-col gap-2 border-t border-border pt-3">

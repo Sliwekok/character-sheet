@@ -10,6 +10,7 @@ import { calculateAbilityModifiers } from "@/utils/abilityModifiers";
 import { calculateArmorClass } from "@/utils/calculateArmorClass";
 import { calculateProficiencyBonus } from "@/utils/calculateProficiencyBonus";
 import { getPactMagicSlots, getSpellSlots } from "@/utils/spellcasting";
+import { getUnarmedStrikeWeapon } from "@/utils/attackCalculations";
 import {
   ABILITY_ORDER,
   ABILITY_SHORT,
@@ -375,13 +376,21 @@ export default function PrintCharacterSheet() {
                     </tr>
                   </thead>
                   <tbody>
-                    {character.weapons.length === 0 && (
-                      <tr>
-                        <td colSpan={3} className={styles.placeholder}>
-                          —
-                        </td>
-                      </tr>
-                    )}
+                    {(() => {
+                      const unarmedStrike = getUnarmedStrikeWeapon(character);
+                      const abilityMod = weaponAbilityModifier(unarmedStrike, modifiers);
+                      const atkBonus = abilityMod + proficiencyBonus;
+                      return (
+                        <tr key={unarmedStrike.name}>
+                          <td>{unarmedStrike.name}</td>
+                          <td>{formatMod(atkBonus)}</td>
+                          <td>
+                            {unarmedStrike.damage.dice}
+                            {abilityMod !== 0 ? formatMod(abilityMod) : ""} {unarmedStrike.damage.type}
+                          </td>
+                        </tr>
+                      );
+                    })()}
                     {character.weapons.map((weapon) => {
                       const abilityMod = weaponAbilityModifier(weapon, modifiers);
                       const atkBonus = abilityMod + proficiencyBonus + (weapon.bonus ?? 0);

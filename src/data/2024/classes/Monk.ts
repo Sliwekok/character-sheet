@@ -18,6 +18,13 @@ export const Monk: CharacterClass = {
     primaryAbility: "dexterity",
     casterProgression: "none",
     subclassLevel: 3,
+    // Martial Arts (level 1): d6 at 1st, d8 at 5th, d10 at 11th, d12 at 17th -
+    // per the feature text below - and lets Dexterity replace Strength for
+    // unarmed strikes.
+    unarmedStrike: {
+        dieByLevel: { 1: 6, 5: 8, 11: 10, 17: 12 },
+        alternativeAbility: "dexterity",
+    },
     // features text pulled and verified against 5etools' class-monk.json (XPHB source) - https://5e.tools/classes.html#monk_xphb
     // Re-checked against Roll20's D&D 2024 Compendium ("Monk Features" table) -
     // https://roll20.net/compendium/dnd5e/Classes:Monk - features text already matched; only the
