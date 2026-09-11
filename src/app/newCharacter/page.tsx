@@ -3,6 +3,13 @@ import { Card, CardContent, Container, SectionHeading } from "@/components/ui";
 
 const MODES = [
   {
+    href: "/newCharacter/import",
+    icon: "📥",
+    title: "Import",
+    description:
+      "Load a character you previously exported as a JSON file, or pull one straight from D&D Beyond by id or link.",
+  },
+  {
     href: "/newCharacter/manual",
     icon: "📜",
     title: "Step-by-step",
@@ -15,13 +22,6 @@ const MODES = [
     title: "Random",
     description:
       "Let the dice decide. Generate a fully random character in one click, or lock in a few basics (name, level, race, class) and randomize the rest.",
-  },
-  {
-    href: "/newCharacter/import",
-    icon: "📥",
-    title: "Import",
-    description:
-      "Load a character you previously exported as a JSON file - handy for moving one between browsers or devices, or restoring a backup.",
   },
 ];
 
