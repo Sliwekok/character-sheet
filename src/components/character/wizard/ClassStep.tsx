@@ -120,14 +120,14 @@ function subclassSummary(subclass: Subclass, edition: Edition): JSX.Element {
 }
 
 /**
- * The main class row (index 0) picks class, level, and - once its level
- * reaches `subclassLevel` - a subclass. Every additional row (added via
- * "Add another class", i.e. multiclassing) only picks a class and level:
- * RAW gives a character exactly one subclass, always on the class they
- * took it in, and this wizard always treats that as the main class - see
- * DraftClassEntry's header comment. Each row's class dropdown excludes
- * whatever's already chosen in every OTHER row, so the same class can
- * never be added twice.
+ * Every class row - the main class (index 0) and any multiclass row added
+ * via "Add another class" alike - picks its own class, level, and, once ITS
+ * level reaches ITS OWN `subclassLevel`, its own subclass: RAW grants a
+ * subclass per class, not once per character, so a Fighter 2/Wizard 3 gets
+ * to choose an Arcane Tradition for the Wizard levels even though Fighter
+ * was the class the character started in. Each row's class dropdown
+ * excludes whatever's already chosen in every OTHER row, so the same class
+ * can never be added twice.
  *
  * Spell/skill/equipment consequences of a class change aren't handled
  * here - ManualWizard revalidates the whole draft (utils/characterDraft
@@ -193,10 +193,16 @@ export function ClassStep({
     });
   }
 
-  const eligibleSubclasses = primary?.characterClass
-    ? subclasses.filter((s) => s.parentClass === primary.characterClass!.name)
-    : [];
-  const subclassUnlocked = Boolean(primary?.characterClass && primary.level >= primary.characterClass.subclassLevel);
+  /** Subclasses belonging to one entry's own class - every entry picks from its own class's list, not just the main class's. */
+  function eligibleSubclassesFor(entry: DraftClassEntry): Subclass[] {
+    return entry.characterClass ? subclasses.filter((s) => s.parentClass === entry.characterClass!.name) : [];
+  }
+
+  /** Whether one entry's OWN level has reached its OWN class's `subclassLevel` - checked per entry, so a secondary (multiclass) class unlocks its subclass picker independently of the main class's level. */
+  function isSubclassUnlocked(entry: DraftClassEntry): boolean {
+    return Boolean(entry.characterClass && entry.level >= entry.characterClass.subclassLevel);
+  }
+
   const canAddClass = Boolean(primary?.characterClass) && entries.length < classes.length;
 
   return (
@@ -220,9 +226,10 @@ export function ClassStep({
                       updateEntry(index, {
                         characterClass: next,
                         // A new class choice invalidates whatever subclass
-                        // was picked for the old one, same as the original
-                        // (single-class) behavior.
-                        subclass: isPrimary ? undefined : entry.subclass,
+                        // was picked for the old one - the same subclass
+                        // list, and often the same subclassLevel, doesn't
+                        // carry over to an unrelated class.
+                        subclass: undefined,
                         // A different class means a different (or same) hit
                         // die - previously-rolled values no longer mean
                         // anything against it, so reroll fresh rather than
@@ -326,29 +333,34 @@ export function ClassStep({
                 <p className="text-xs text-fontcolor-secondary">{classSummaryBlock(entry.characterClass, edition)}</p>
             )}
 
-            {isPrimary && entry.characterClass && (
-              <label className="flex flex-col gap-2">
-                <span className="text-sm font-medium text-fontcolor-secondary">
-                  Subclass{" "}
-                  {!subclassUnlocked && (
-                    <span className="text-fontcolor-secondary">
-                      (unlocks at class level {entry.characterClass.subclassLevel})
-                    </span>
-                  )}
-                </span>
-                <Combobox
-                  options={eligibleSubclasses}
-                  value={entry.subclass}
-                  getOptionLabel={(option) => option.name}
-                  getOptionValue={(option) => option.name}
-                  isDisabled={!subclassUnlocked || eligibleSubclasses.length === 0}
-                  onChange={(next) => updateEntry(index, { subclass: next })}
-                  onClear={() => updateEntry(index, { subclass: undefined })}
-                  placeholder={eligibleSubclasses.length === 0 ? "No subclasses available" : "Search subclasses..."}
-                />
-                {entry.subclass && subclassSummary(entry.subclass, edition)}
-              </label>
-            )}
+            {entry.characterClass && (() => {
+              const characterClass = entry.characterClass!;
+              const eligibleSubclasses = eligibleSubclassesFor(entry);
+              const subclassUnlocked = isSubclassUnlocked(entry);
+              return (
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-medium text-fontcolor-secondary">
+                    {isPrimary ? "Subclass" : `Subclass (${characterClass.name})`}{" "}
+                    {!subclassUnlocked && (
+                      <span className="text-fontcolor-secondary">
+                        (unlocks at {characterClass.name} level {characterClass.subclassLevel})
+                      </span>
+                    )}
+                  </span>
+                  <Combobox
+                    options={eligibleSubclasses}
+                    value={entry.subclass}
+                    getOptionLabel={(option) => option.name}
+                    getOptionValue={(option) => option.name}
+                    isDisabled={!subclassUnlocked || eligibleSubclasses.length === 0}
+                    onChange={(next) => updateEntry(index, { subclass: next })}
+                    onClear={() => updateEntry(index, { subclass: undefined })}
+                    placeholder={eligibleSubclasses.length === 0 ? "No subclasses available" : "Search subclasses..."}
+                  />
+                  {entry.subclass && subclassSummary(entry.subclass, edition)}
+                </label>
+              );
+            })()}
 
             {pendingChoices
               .filter((pending) => pending.classIndex === index)

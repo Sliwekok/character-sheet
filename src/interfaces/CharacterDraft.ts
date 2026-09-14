@@ -38,13 +38,12 @@ export interface AbilityScoreState {
  * is, since a row can exist before the player has picked a class for it
  * (see ClassStep's "Add class" button).
  *
- * `subclass` is only ever meaningful on `classes[0]` (the "main" class) -
- * ClassStep never offers a subclass picker for any later entry, so
- * multiclass entries always have `subclass: undefined`. This mirrors the
- * real rule that a character has exactly one subclass, always on the class
- * they took it in - simplified here to always be the main class, since the
- * wizard has no way to reach subclassLevel in anything but the class you
- * started in before this feature existed anyway.
+ * `subclass` is meaningful on ANY entry, not just `classes[0]` (the "main"
+ * class) - RAW grants a subclass per class the character has levels in,
+ * chosen once that class's OWN level reaches its OWN `subclassLevel`, so a
+ * multiclassed character can (and typically does) have a subclass on a
+ * secondary class too. ClassStep offers a subclass picker on every entry
+ * once it individually qualifies.
  */
 export interface DraftClassEntry {
     characterClass?: CharacterClass;
@@ -89,8 +88,8 @@ export interface CharacterDraft {
      * one (createEmptyDraft seeds a single not-yet-chosen entry).
      * `classes[0]` is the "main" class: proficiencies, saving throws, and
      * the first hit die all come from it (see finalizeDraft/
-     * calculateMaxHp), and it's the only entry with a subclass picker -
-     * see DraftClassEntry.
+     * calculateMaxHp) - but every entry, main or multiclass, gets its own
+     * subclass picker once its own level qualifies - see DraftClassEntry.
      */
     classes: DraftClassEntry[];
     /** Base ability scores only - race/background/ASI bonuses are NOT baked in here, see `backgroundAbilityBonuses`/`abilityScoreImprovements` below and utils/abilityScoreBonuses.ts's `sumAbilityScores()`. */

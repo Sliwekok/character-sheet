@@ -117,10 +117,11 @@ function hpRollsForClass(character: StoredCharacter, classIndex: number): number
 
 /**
  * Loads an existing character back into a draft for editing. Every class
- * the character has levels in becomes its own `classes` entry - the
- * subclass is only ever carried over on `classes[0]` (the main class),
- * matching `DraftClassEntry`'s rule and the real "one subclass, on the
- * class you took it in" rule simplified to "always the main class".
+ * the character has levels in becomes its own `classes` entry, subclass
+ * included - a character can have a subclass on any class they've reached
+ * that class's own `subclassLevel` in, not just the main class (see
+ * `DraftClassEntry`'s header comment and ClassStep's per-entry subclass
+ * picker).
  *
  * The Ability Scores step edits BASE scores, not final ones - `character
  * .abilityScores` is always final (race + background bonus + ASI
@@ -144,7 +145,7 @@ export function draftFromCharacter(character: StoredCharacter): CharacterDraft {
 
     const classes: DraftClassEntry[] = character.classes.map(({ class: characterClass, subclass, level, hpMethod }, index) => ({
         characterClass,
-        subclass: index === 0 ? subclass : undefined,
+        subclass,
         level,
         hpMethod: hpMethod ?? "average",
         hpRolls: hpRollsForClass(character, index),
@@ -230,7 +231,8 @@ export function isDraftReadyToFinalize(draft: CharacterDraft): boolean {
  *
  * `classes[0]` (the main class) supplies saving throw proficiencies and
  * (via calculateMaxHP) the first hit die - see DraftClassEntry's header
- * comment for why the wizard only ever offers a subclass on that entry.
+ * comment. Subclass, unlike those, is carried straight through for every
+ * entry, not just the main class.
  */
 export function finalizeDraft(draft: CharacterDraft): StoredCharacter | null {
     const primary = draft.classes[0]?.characterClass;
