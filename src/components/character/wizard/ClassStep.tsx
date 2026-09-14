@@ -423,6 +423,12 @@ export function ClassStep({
                               />
                               <span>
                                 <span className="font-medium text-fontcolor">{option.label}</span>
+                                {/* Same "Free spell: X" badge treatment classSummaryBlock/subclassSummary give a class/subclass feature's own grantedSpells - shown here too so an invocation that grants a spell (e.g. Mask of Many Faces -> Disguise Self) is called out the same way at the point of choosing it, on top of showing up in the actual Spells step's "Granted spells (free)" list once picked (see utils/grantedSpells.ts's getAutoGrantedSpellNames). */}
+                                {(option.grantedSpells ?? []).map((grant, grantIndex) => (
+                                  <Badge key={grantIndex} variant="solid" className="ml-1">
+                                    {grantedSpellBadgeLabel(grant)}
+                                  </Badge>
+                                ))}
                                 {option.summary && (
                                   <span className="text-fontcolor-secondary"> — {option.summary}</span>
                                 )}
@@ -456,8 +462,15 @@ export function ClassStep({
                         </option>
                       ))}
                     </Select>
-                    {chosenOption?.summary && (
-                      <p className="text-xs text-fontcolor-secondary">{chosenOption.summary}</p>
+                    {chosenOption && (
+                      <p className="flex flex-wrap items-center gap-1 text-xs text-fontcolor-secondary">
+                        {chosenOption.summary}
+                        {(chosenOption.grantedSpells ?? []).map((grant, grantIndex) => (
+                          <Badge key={grantIndex} variant="solid">
+                            {grantedSpellBadgeLabel(grant)}
+                          </Badge>
+                        ))}
+                      </p>
                     )}
                   </label>
                 );
