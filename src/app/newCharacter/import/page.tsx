@@ -90,7 +90,6 @@ export default function ImportCharacterPage() {
     try {
       const response = await fetch(`/api/dndbeyond/${characterId}`);
       const body = await response.json().catch(() => null);
-      console.log(body);
 
       if (!response.ok || !body?.data) {
         setError(body?.error || `D&D Beyond returned an unexpected error (HTTP ${response.status}).`);
@@ -188,7 +187,7 @@ export default function ImportCharacterPage() {
                   <TextInput
                     value={ddbInput}
                     onChange={(event) => setDdbInput(event.target.value)}
-                    placeholder="161349291 or https://www.dndbeyond.com/characters/161349291"
+                    placeholder="12345678 or https://www.dndbeyond.com/characters/12345678"
                     disabled={ddbLoading}
                     aria-label="D&D Beyond character id or URL"
                   />
@@ -225,7 +224,7 @@ export default function ImportCharacterPage() {
               </p>
 
               {warnings.length > 0 && (
-                <Alert variant="warning" title="Double-check these on the sheet after saving">
+                <Alert className="!static" variant="warning" title="Double-check these on the sheet after saving">
                   <ul className="list-disc pl-5">
                     {warnings.map((warning, index) => (
                       <li key={index}>{warning}</li>

@@ -33,9 +33,10 @@ The actual conversion logic lives in this folder:
 - `matchCompendium.ts` - finds a D&D Beyond name in this app's own
   compendium arrays (`@/data`).
 - `readModifiers.ts` - best-effort reading of D&D Beyond's `modifiers`
-  grouping for ability-score bonuses and skill proficiencies (see "Best
-  effort" below - this is read defensively and degrades to "found
-  nothing" rather than crashing if the shape doesn't match).
+  grouping for skill proficiencies (see "Best effort" below - this is read
+  defensively and degrades to "found nothing" rather than crashing if the
+  shape doesn't match). No longer used for ability score bonuses - see
+  below.
 - `convert.ts` - `convertDndBeyondCharacter()`, the entry point: takes one
   raw D&D Beyond character payload and a resolution ruleset, returns
   either `{ character, warnings, edition }` or `{ error }`. Never throws.
@@ -43,7 +44,10 @@ The actual conversion logic lives in this folder:
 ## What imports reliably
 
 - Name, race, background, class(es)/levels/subclass, alignment.
-- Base ability scores, hit points (current/max), currency.
+- Ability scores as D&D Beyond has them entered, **plus this app's own
+  racial modifier** for the matched race (2014) - see "Ability score
+  bonuses" below for why background/Ability Score Improvement bonuses are
+  handled differently. Hit points (current/max), currency.
 - Equipped weapons, armor, and shield - matched to this app's compendium by
   base item type (e.g. D&D Beyond's "Flame Tongue Greatsword" is matched to
   this app's "Greatsword" and re-enchanted with the magic properties, via
@@ -54,6 +58,35 @@ The actual conversion logic lives in this folder:
   backstory, appearance, allies/organizations, treasure).
 - The background's origin feat (2024 rules).
 
+## Ability score bonuses - background allocation and Ability Score Improvements
+
+This app tracks a character's background ability-score allocation (2024)
+and every earned Ability Score Improvement as their own bookkeeping
+(`backgroundAbilityBonuses`/`abilityScoreImprovements`) *separate* from the
+final `abilityScores`, precisely so that opening a character back up for
+editing can subtract exactly what was added before letting the player
+change it - see `utils/characterDraft.ts`. D&D Beyond's public JSON doesn't
+label which of its `modifiers` grants came from which source clearly
+enough to reconstruct that bookkeeping with confidence, and there's no
+reliable way to tell which specific class-level Ability Score Improvement
+slot a given bonus (or a feat taken instead of one) belongs to.
+
+Rather than guess - which risks recording a bonus in `abilityScores` that
+isn't *also* recorded in that bookkeeping, and that mismatch is exactly
+what let re-editing a previously-imported character double-apply the
+bonus and come out overpowered - the importer leaves these two unset and
+does **not** include their bonus in the imported ability scores at all.
+A character that has a 2024 background bonus or earned Ability Score
+Improvements to allocate comes in with a warning saying so; opening it for
+editing puts it through the exact same Ability Scores step (and the same
+required-before-save validation) a character who just leveled up already
+goes through, so allocating them there is guaranteed to apply the bonus
+exactly once.
+
+The racial modifier (2014) is the one exception - it's taken directly from
+this app's own matched `race` entry, not from D&D Beyond's `modifiers`, so
+it's always applied and never left as a follow-up step.
+
 ## Best effort - double-check these on the sheet
 
 D&D Beyond's public JSON doesn't cleanly expose everything this app wants,
@@ -62,9 +95,8 @@ development (see `types.ts`'s header comment) - these are read
 defensively and simply come up empty (with a warning shown on the preview
 screen) if the shape turns out to differ from what's expected:
 
-- **Ability score bonuses beyond the base stats** (a feat's Ability Score
-  Improvement, a magic item, etc.) and **skill proficiencies** - read from
-  D&D Beyond's `modifiers` data if present; empty if it can't be read.
+- **Skill proficiencies** - read from D&D Beyond's `modifiers` data if
+  present; empty if it can't be read.
 - **Languages known** and **spells known/prepared** - not populated; add
   them on the sheet (worth doing for every caster you import).
 - **Feats taken beyond the background's origin feat** (e.g. a level-up

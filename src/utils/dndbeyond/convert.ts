@@ -9,11 +9,15 @@ import { Armor } from "@/interfaces/Armor";
 import { Ruleset, getRulesetAsync } from "@/data";
 import { generateId } from "@/utils/id";
 import { enchantArmor, enchantWeapon, createCustomMagicItem } from "@/utils/customMagicItems";
+import { sumAbilityScores } from "@/utils/abilityScoreBonuses";
+import { getAsiSlots } from "@/utils/abilityScoreImprovements";
 
-import { DdbCharacterData, DdbClassEntry, DdbGrantedModifier, DdbInventoryItem } from "./types";
+import {DdbActions, DdbCharacterData, DdbClassEntry, DdbClassSpellsEntry, DdbGrantedModifier, DdbInventoryItem, DdbSourceRef, DdbSpells} from "./types";
 import { findByName } from "./matchCompendium";
 import { htmlToPlainText } from "./textUtils";
-import { hasReadableModifiers, readAbilityScoreBonuses, readSkillProficiencies } from "./readModifiers";
+import { hasReadableModifiers, readSkillProficiencies } from "./readModifiers";
+import { readActionSpellNames, readClassEmbeddedSpellNames, readGrantedSpellNames, readKnownSpellNames } from "./readSpells";
+import {Spell} from "@/interfaces/Spell";
 
 export interface ConvertResult {
   character: StoredCharacter;
@@ -138,6 +142,65 @@ function mapArmor(item: DdbInventoryItem, ruleset: Ruleset, warnings: string[]):
   });
 }
 
+/** Every distinct spell name this character has, pooled across all four of D&D Beyond's spell-bearing groupings - see `mapSpells`'s header comment for what each one covers and why they're read as independent sources rather than assumed to overlap. */
+function allSpellNames(
+  spells: DdbSpells | undefined,
+  classSpells: DdbClassSpellsEntry[] | undefined,
+  actions: DdbActions | undefined,
+  classes: DdbClassEntry[] | undefined,
+): Set<string> {
+  return new Set<string>([
+    ...readKnownSpellNames(classSpells),
+    ...readGrantedSpellNames(spells),
+    ...readActionSpellNames(actions),
+    ...readClassEmbeddedSpellNames(classes),
+  ]);
+}
+
+/**
+ * Every known/prepared or granted spell this character has, matched
+ * against this app's own spell compendium by name - draws on every spell-
+ * bearing part of D&D Beyond's payload this importer knows about:
+ * `classSpells` (each class's own known/prepared list - see readSpells.ts's
+ * `readKnownSpellNames`), `spells` (race/feat/item-granted spells, not
+ * chosen as part of a class's list - see `readGrantedSpellNames`),
+ * `actions` (the Actions tab's own race/class/feat/item grouping, since
+ * some innate spellcasting shows up there instead of under `spells` - see
+ * `readActionSpellNames`), and any spells embedded directly on a class
+ * entry or its subclass definition (e.g. a Cleric domain's bonus spells -
+ * see `readClassEmbeddedSpellNames`). Every source is pooled into one
+ * de-duplicated name set rather than kept separate, since this app doesn't
+ * distinguish "why" a spell is known/available, only that it is.
+ *
+ * A name that doesn't match anything in this app's compendium - homebrew, a
+ * name one of the readers got slightly wrong, or any grouping's shape
+ * turning out to differ from what's assumed in types.ts - is simply dropped
+ * rather than guessed at: this app's `Spell` needs real mechanical fields
+ * (level, school, casting time, components, duration, save/attack) an
+ * unmatched name can't supply, so only spells this app can already vouch
+ * for (secure/confirmed matches, from its own compendium) end up in the
+ * imported list. Returns the matched spells alongside how many distinct
+ * names were found in total, so the caller can report a "matched X of Y"
+ * count rather than just "empty vs. not".
+ */
+function mapSpells(
+  ruleset: Ruleset,
+  spells: DdbSpells | undefined,
+  classSpells: DdbClassSpellsEntry[] | undefined,
+  actions: DdbActions | undefined,
+  classes: DdbClassEntry[] | undefined,
+): { spells: Spell[]; namesFound: number } {
+  const names = allSpellNames(spells, classSpells, actions, classes);
+
+  const matched: Spell[] = [];
+  for (const name of names) {
+    const match = findByName(ruleset.spells, name);
+    if (match) matched.push(match);
+  }
+
+  return { spells: matched, namesFound: names.size };
+}
+
 /** A non-armor/non-weapon magic item (wondrous item, ring, rod, staff, wand, potion, scroll) -> this app's `MagicItem`, matched by name against the compendium first, falling back to a synthesized custom entry built from D&D Beyond's own description/rarity/attunement so nothing equipped/attuned is silently dropped. */
 function mapMagicItem(item: DdbInventoryItem, ruleset: Ruleset): MagicItem {
   const def = item.definition;
@@ -171,7 +234,28 @@ async function detectEdition(data: DdbCharacterData): Promise<Edition> {
   return scoreOf(ruleset2024) >= scoreOf(ruleset2014) ? "2024" : "2014";
 }
 
-function abilityScores(data: DdbCharacterData, bonuses: Partial<AbilityScores>): AbilityScores {
+/**
+ * The character's ability scores exactly as D&D Beyond has them entered
+ * directly - `stats` (the base score the player assigned) plus `bonusStats`
+ * (a manual flat adjustment D&D Beyond itself supports per ability) -
+ * BEFORE any racial modifier, background allocation, or Ability Score
+ * Improvement. `overrideStats`, when set, replaces the ability outright
+ * (D&D Beyond's own "override" escape hatch), taking precedence over
+ * everything else.
+ *
+ * Deliberately does NOT fold in D&D Beyond's `modifiers` grants (race/
+ * background/feat/item ability bonuses) the way an earlier version of this
+ * function did - see `convertDndBeyondCharacter`'s call site below for why:
+ * this app tracks the race bonus, the background bonus, and each earned
+ * Ability Score Improvement as separate bookkeeping
+ * (`backgroundAbilityBonuses`/`abilityScoreImprovements`) that a later edit
+ * subtracts back out before re-adding (see utils/characterDraft.ts), and
+ * `modifiers`' exact shape was never confirmed against a live character.
+ * Baking a guessed bonus into the final score here without ALSO recording
+ * it in that bookkeeping is exactly what let re-editing an imported
+ * character double-apply it - see the ability-score section below.
+ */
+function baseAbilityScores(data: DdbCharacterData): AbilityScores {
   const result = {} as AbilityScores;
 
   ABILITY_ORDER.forEach((key, index) => {
@@ -184,7 +268,7 @@ function abilityScores(data: DdbCharacterData, bonuses: Partial<AbilityScores>):
 
     const base = data.stats.find((stat) => stat.id === id)?.value ?? 10;
     const manualBonus = data.bonusStats?.find((stat) => stat.id === id)?.value ?? 0;
-    result[key] = base + manualBonus + (bonuses[key] ?? 0);
+    result[key] = base + manualBonus;
   });
 
   return result;
@@ -312,13 +396,46 @@ export async function convertDndBeyondCharacter(
   classEntries.sort((a, b) => Number(!!b.ddb.isStartingClass) - Number(!!a.ddb.isStartingClass));
   const classes = classEntries.map((entry) => entry.built);
 
-  const modifiersReadable = hasReadableModifiers(data.modifiers);
-  const abilityBonuses = readAbilityScoreBonuses(data.modifiers);
-  const finalAbilityScores = abilityScores(data, abilityBonuses);
-  const skillProficiencies = readSkillProficiencies(data.modifiers);
-  if (!modifiersReadable) {
+  // Race bonus comes from this app's own matched `race` (the same
+  // `race.abilityModifiers`/`sumAbilityScores` combination
+  // `finalizeDraft`/`randomCharacter` already use for every other
+  // character) rather than from D&D Beyond's `modifiers` - so it's exactly
+  // as reliable as the rest of this app's own ability-score math, whatever
+  // `modifiers`' real shape turns out to be.
+  const finalAbilityScores = sumAbilityScores(baseAbilityScores(data), race.abilityModifiers);
+
+  // The background's 2024 ability-score allocation and every earned
+  // Ability Score Improvement are deliberately left UNSET below (not
+  // guessed at from `modifiers`) - this app records those as their own
+  // bookkeeping (`backgroundAbilityBonuses`/`abilityScoreImprovements`)
+  // specifically so a later edit can subtract exactly what was added
+  // before re-adding it (see utils/characterDraft.ts's `draftFromCharacter`/
+  // `finalizeDraft`). A guessed value here that isn't ALSO recorded there
+  // is exactly what let re-editing an imported character double-apply the
+  // bonus and come out overpowered. Leaving them unset instead means this
+  // character starts in the same state a character who just leveled up (or
+  // just picked a background) is already in every day: the wizard's
+  // Ability Scores step will require the bonus be allocated before the
+  // character can be saved again, the same safe, single-application path
+  // every other character already goes through.
+  const asiSlots = getAsiSlots(classes.map((entry) => ({ characterClass: entry.class, level: entry.level })));
+  if (background.abilityScoreOptions) {
     warnings.push(
-      "Couldn't read D&D Beyond's ability-score/skill/language grants for this character - ability scores below are just the base stats plus any manual bonus D&D Beyond had recorded (no race/background/feat increases applied), and skill proficiencies are empty. Please compare against the D&D Beyond sheet and fill in what's missing.",
+      `The "${background.name}" background grants an ability score bonus that couldn't be reliably read from D&D Beyond, so it hasn't been applied yet - the ability scores below don't include it. Open this character for editing and the Ability Scores step will ask you to allocate it before you can save.`,
+    );
+  }
+  if (asiSlots.length > 0) {
+    const levels = asiSlots.map((slot) => `${slot.className} ${slot.level}`).join(", ");
+    const plural = asiSlots.length > 1;
+    warnings.push(
+      `This character has earned ${asiSlots.length} Ability Score Improvement${plural ? "s" : ""} (${levels}) that couldn't be reliably read from D&D Beyond, so ${plural ? "they haven't" : "it hasn't"} been applied yet - the ability scores below don't include ${plural ? "them" : "it"}. Open this character for editing and the Ability Scores step will ask you to allocate ${plural ? "them" : "it"} before you can save.`,
+    );
+  }
+
+  const skillProficiencies = readSkillProficiencies(data.modifiers);
+  if (!hasReadableModifiers(data.modifiers)) {
+    warnings.push(
+      "Couldn't read D&D Beyond's skill proficiency grants for this character - skill proficiencies below may be incomplete. Please compare against the D&D Beyond sheet and add anything missing.",
     );
   }
 
@@ -377,9 +494,14 @@ export async function convertDndBeyondCharacter(
   }
 
   const isCaster = classes.some((entry) => entry.class.casterProgression !== "none" || !!entry.class.spellcasting);
+  let knowSpells: Spell[] = [];
   if (isCaster) {
+    const spellResult = mapSpells(ruleset, data.spells, data.classSpells, data.actions, data.classes);
+    knowSpells = spellResult.spells;
     warnings.push(
-      "This character has at least one spellcasting class - known/prepared spells couldn't be reliably read from D&D Beyond, so the spell list came in empty. Add spells on the sheet.",
+      spellResult.namesFound > 0
+        ? `This character has at least one spellcasting class - matched ${knowSpells.length}/${spellResult.namesFound} known/prepared/granted spells by name against this app's spell list (checked classSpells, spells, actions, and any spells listed directly on a class/subclass). This is best-effort (anything that couldn't be matched by name was skipped, never guessed at) - double-check the spell list against the D&D Beyond sheet.`
+        : "This character has at least one spellcasting class - known/prepared spells couldn't be reliably read from D&D Beyond, so the spell list came in empty. Add spells on the sheet.",
     );
   }
 
@@ -398,6 +520,13 @@ export async function convertDndBeyondCharacter(
     feats,
     alignment,
     abilityScores: finalAbilityScores,
+    // Deliberately unset - see the ability-score section above. A missing
+    // record here is exactly what `draftFromCharacter` already treats as
+    // "nothing allocated yet" and requires be filled in before the
+    // character can be saved again, which is the correct (and only safe)
+    // state for any bonus that wasn't confidently attributed above.
+    backgroundAbilityBonuses: undefined,
+    abilityScoreImprovements: undefined,
     skillProficiencies,
     savingThrowProficiencies,
     equippedArmor,
@@ -407,7 +536,7 @@ export async function convertDndBeyondCharacter(
     initiative,
     currentHP,
     maxHP,
-    spellsKnown: [],
+    spellsKnown: knowSpells,
     languages: [],
     magicItems: magicItems.length > 0 ? magicItems : undefined,
     details,

@@ -61,9 +61,24 @@ function allModifiers(modifiers: DdbModifierGroups | undefined): DdbGrantedModif
  * Flat ability-score bonuses granted outside the character's base `stats`
  * (e.g. a feat's Ability Score Improvement, a magic item's set-value bonus)
  * - keyed by ability, summed if more than one source grants the same
- * ability. Does NOT include the 2024 background ability-score allocation
- * (see convert.ts's ability score section for why that one's handled
- * separately, if at all).
+ * ability.
+ *
+ * NOT currently called by convert.ts. This app tracks the 2024 background
+ * allocation and each earned Ability Score Improvement as their own
+ * bookkeeping, separate from the final ability scores, so a later edit can
+ * subtract exactly what was added before re-adding it (see
+ * utils/characterDraft.ts) - and this function has no way to tell which
+ * ability bonus came from the background vs. which specific class-level
+ * ASI slot vs. a magic item, so using its (summed, unattributed) result to
+ * fill in either bookkeeping field risks recording a bonus that doesn't
+ * match what's baked into the final ability scores. That mismatch is
+ * exactly what let re-editing a previously-imported character double-apply
+ * the bonus and come out overpowered - see convert.ts's ability-score
+ * section and this folder's README. Left here (rather than deleted) in
+ * case a future change finds a reliable way to attribute these to a
+ * specific slot; don't wire it back into convert.ts's final ability scores
+ * without also populating the matching bookkeeping field with the exact
+ * same amount.
  */
 export function readAbilityScoreBonuses(modifiers: DdbModifierGroups | undefined): Partial<AbilityScores> {
   const bonuses: Partial<AbilityScores> = {};
