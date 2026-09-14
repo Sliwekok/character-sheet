@@ -1,6 +1,6 @@
 import { Character } from "@/interfaces/Characters";
 import { FightingStyleEffect } from "@/interfaces/CharacterClass";
-import { featureChoiceKey, GrantEntryInput } from "@/utils/grantedSpells";
+import { decodeFeatureChoiceSelection, featureChoiceKey, GrantEntryInput } from "@/utils/grantedSpells";
 
 /**
  * Every `FightingStyleEffect` the character has actually locked in via a
@@ -28,12 +28,18 @@ export function getChosenFightingStyleEffects(character: Character): FightingSty
     const features = [...(entry.characterClass?.features ?? []), ...(entry.subclass?.features ?? [])];
     features.forEach((feature) => {
       if (!feature.choice || feature.level > entry.level) return;
-      const chosenId = featureChoices[featureChoiceKey(classIndex, feature)];
-      if (!chosenId || seenOptionIds.has(chosenId)) return;
-      const option = feature.choice.options.find((candidate) => candidate.id === chosenId);
-      if (!option?.fightingStyleEffect) return;
-      seenOptionIds.add(chosenId);
-      effects.push(option.fightingStyleEffect);
+      // Decoded rather than read as one bare id - a multi-select choice
+      // (see FeatureChoice.countByLevel) can have several picks resolved
+      // at once, though in practice only single-select choices carry a
+      // fightingStyleEffect today.
+      const chosenIds = decodeFeatureChoiceSelection(featureChoices[featureChoiceKey(classIndex, feature)]);
+      chosenIds.forEach((chosenId) => {
+        if (seenOptionIds.has(chosenId)) return;
+        const option = feature.choice!.options.find((candidate) => candidate.id === chosenId);
+        if (!option?.fightingStyleEffect) return;
+        seenOptionIds.add(chosenId);
+        effects.push(option.fightingStyleEffect);
+      });
     });
   });
 

@@ -87,13 +87,15 @@ export interface Character {
      */
     grantedSpells?: Spell[];
     /**
-     * The player's resolved pick for every class/subclass `FeatureChoice`
+     * The player's resolved pick(s) for every class/subclass `FeatureChoice`
      * reached (e.g. a Warlock's Pact Boon, a Circle of the Land druid's
-     * terrain) - see `CharacterDraft.featureChoices`'s header comment for
-     * the key/value shape. Undefined rather than `{}` whenever there's
-     * nothing to show, same convention as `magicItems`/`grantedSpells`
-     * above. Feeds into `grantedSpells` above wherever the chosen option
-     * itself grants a spell - see utils/grantedSpells.ts.
+     * terrain, a Warlock's Eldritch Invocations) - see
+     * `CharacterDraft.featureChoices`'s header comment for the key/value
+     * shape (including the multi-select comma-joined encoding). Undefined
+     * rather than `{}` whenever there's nothing to show, same convention as
+     * `magicItems`/`grantedSpells` above. Feeds into `grantedSpells` above
+     * wherever a chosen option itself grants a spell - see
+     * utils/grantedSpells.ts.
      */
     featureChoices?: Record<string, string>;
     languages: string[];

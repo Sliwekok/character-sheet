@@ -35,7 +35,7 @@ import { StatusPanel } from "@/components/character/StatusPanel";
 import { FeatureEntry, FeatureLike } from "@/components/character/FeatureEntry";
 import { FeatEntry } from "@/components/character/FeatEntry";
 import { PdfExportPanel } from "@/components/character/PdfExportPanel";
-import { featureChoiceKey } from "@/utils/grantedSpells";
+import { decodeFeatureChoiceSelection, featureChoiceKey, featureChoiceMaxSelections } from "@/utils/grantedSpells";
 import { Spell } from "@/interfaces/Spell";
 import { CharacterDetails } from "@/interfaces/CharacterDetails";
 import { MagicItem } from "@/interfaces/MagicItem";
@@ -98,13 +98,17 @@ function formatSlots(slots: Record<number, number> | null, label: string) {
  * other older shape - won't have an array there, so this falls back to `[]` instead of crashing on `[...undefined]`.
  *
  * A feature gated behind a `FeatureChoice` (a Pact Boon, a Fighting Style,
- * a Circle of the Land terrain, etc. - see utils/grantedSpells.ts) is
- * resolved here before display: the chosen option's own `grantedSpells`
+ * a Warlock's Eldritch Invocations, etc. - see utils/grantedSpells.ts) is
+ * resolved here before display: every chosen option's own `grantedSpells`
  * are merged into the feature's (so FeatureEntry's badge/decoration just
- * works, unaware any choice was involved), and a line naming the pick is
- * appended to the description. `classIndex` and `featureChoices` are what
- * `featureChoiceKey()` needs to look the pick up - see
- * `CharacterDraft.featureChoices`'s header comment for the key shape.
+ * works, unaware any choice was involved), and a line naming the pick(s)
+ * is appended to the description - one option for an ordinary single-select
+ * choice, or several for a multi-select one (see `FeatureChoice
+ * .countByLevel`'s header comment), with a note of how many picks are
+ * still available if the player hasn't used them all yet. `classIndex` and
+ * `featureChoices` are what `featureChoiceKey()` needs to look the pick(s)
+ * up - see `CharacterDraft.featureChoices`'s header comment for the key
+ * shape.
  */
 function combinedFeatures(
   entry: StoredCharacter["classes"][number],
@@ -118,14 +122,21 @@ function combinedFeatures(
     .map((feature) => {
       if (!feature.choice) return feature;
       const key = featureChoiceKey(classIndex, feature);
-      const chosenOption = feature.choice.options.find((option) => option.id === featureChoices?.[key]);
-      if (!chosenOption) {
+      const selectedIds = decodeFeatureChoiceSelection(featureChoices?.[key]);
+      const chosenOptions = feature.choice.options.filter((option) => selectedIds.includes(option.id));
+      if (chosenOptions.length === 0) {
         return { ...feature, description: `${feature.description}\n\n(Choice not yet made - edit this character to pick one.)` };
       }
+      const chosenLines = chosenOptions
+        .map((option) => `${option.label}${option.summary ? ` — ${option.summary}` : ""}`)
+        .join("\n");
+      const remaining = featureChoiceMaxSelections(feature.choice, entry.level) - chosenOptions.length;
       return {
         ...feature,
-        description: `${feature.description}\n\nChosen: ${chosenOption.label}${chosenOption.summary ? ` — ${chosenOption.summary}` : ""}`,
-        grantedSpells: [...(feature.grantedSpells ?? []), ...(chosenOption.grantedSpells ?? [])],
+        description: `${feature.description}\n\nChosen: ${chosenLines}${
+          remaining > 0 ? `\n\n(${remaining} more pick${remaining === 1 ? "" : "s"} available - edit this character to choose.)` : ""
+        }`,
+        grantedSpells: [...(feature.grantedSpells ?? []), ...chosenOptions.flatMap((option) => option.grantedSpells ?? [])],
       };
     });
 }

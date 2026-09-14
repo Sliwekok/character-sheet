@@ -154,6 +154,21 @@ export interface FeatureChoice {
   /** Shown as the picker's label, e.g. "Choose your Pact Boon", "Choose a terrain". */
   prompt: string;
   options: FeatureChoiceOption[];
+  /**
+   * When set, this choice lets the player pick MULTIPLE options at once
+   * rather than exactly one - e.g. a Warlock's Eldritch Invocations. How
+   * many can be selected scales with the entry's OWN class level (RAW's
+   * "Invocations Known" column), keyed by the level the count increases
+   * at - same level-keyed-table convention as `weaponMasteryProgression`;
+   * the highest threshold at or below the entry's level applies. See
+   * utils/grantedSpells.ts's `featureChoiceMaxSelections()`. Undefined
+   * means "choose exactly one" - the original single-select shape every
+   * other `FeatureChoice` already uses (Pact Boon, Fighting Style, a
+   * Circle of the Land terrain, etc.), and the player's stored pick
+   * (`CharacterDraft.featureChoices`/`Character.featureChoices`) stays a
+   * single comma-free option id in that case, same as before this existed.
+   */
+  countByLevel?: Record<number, number>;
 }
 
 /**

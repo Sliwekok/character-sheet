@@ -165,16 +165,22 @@ export interface CharacterDraft {
      */
     grantedSpells: Spell[];
     /**
-     * The player's resolved pick for every class/subclass `FeatureChoice`
+     * The player's resolved pick(s) for every class/subclass `FeatureChoice`
      * reached so far (e.g. a Warlock's Pact Boon, a Ranger's Fighting
-     * Style, a Circle of the Land druid's terrain) - keyed by
-     * utils/grantedSpells.ts's `featureChoiceKey()`, valued by the chosen
-     * `FeatureChoiceOption.id`. Not every choice affects `grantedSpells`
-     * (e.g. Divine Order's "Protector" grants a proficiency this app
-     * doesn't track, not a spell) - this still records the pick either way,
-     * same "always a valid, possibly-empty object" convention as
-     * `backgroundAbilityBonuses`/`abilityScoreImprovements` above. Pruned
-     * back down to only currently-reached choices in
+     * Style, a Circle of the Land druid's terrain, a Warlock's Eldritch
+     * Invocations) - keyed by utils/grantedSpells.ts's `featureChoiceKey()`.
+     * Valued by the chosen `FeatureChoiceOption.id` for an ordinary
+     * single-select choice, or a comma-joined list of ids for a
+     * multi-select one (`FeatureChoice.countByLevel` set) - always decode
+     * with `decodeFeatureChoiceSelection()` rather than reading the raw
+     * string, since a single-select choice's value happens to also be
+     * valid comma-joined-list syntax (one element). Not every choice
+     * affects `grantedSpells` (e.g. Divine Order's "Protector" grants a
+     * proficiency this app doesn't track, not a spell) - this still records
+     * the pick either way, same "always a valid, possibly-empty object"
+     * convention as `backgroundAbilityBonuses`/`abilityScoreImprovements`
+     * above. Pruned back down to only currently-reached choices (and, for a
+     * multi-select one, currently-valid/in-range ids) in
      * `revalidateDraftForClasses`, same as `abilityScoreImprovements`.
      */
     featureChoices: Record<string, string>;

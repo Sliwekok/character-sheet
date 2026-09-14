@@ -7,7 +7,8 @@ import { Badge, Button, Card, CardContent, Combobox, Select, TextInput } from "@
 import { rollsNeededForClassEntry } from "@/utils/calculateMaxHp";
 import { rollDie } from "@/utils/dice";
 import { TextWithSpellMentions } from "@/components/character/SpellMention";
-import { getFeatureChoices } from "@/utils/grantedSpells";
+import { decodeFeatureChoiceSelection, encodeFeatureChoiceSelection, getFeatureChoices } from "@/utils/grantedSpells";
+import { cn } from "@/utils/cn";
 import {JSX} from "react";
 
 type ClassStepProps = {
@@ -18,7 +19,15 @@ type ClassStepProps = {
   onChange: (entries: DraftClassEntry[]) => void;
   /** Needed only to link a decorated spell mention to its own page - see SpellMention.tsx's `spellSearchHref`. */
   edition: Edition;
-  /** `draft.featureChoices` - the player's resolved picks for every reached `FeatureChoice` (a Pact Boon, a Fighting Style, a Circle of the Land terrain, etc.) - see utils/grantedSpells.ts. */
+  /**
+   * `draft.featureChoices` - the player's resolved picks for every reached
+   * `FeatureChoice` (a Pact Boon, a Fighting Style, a Circle of the Land
+   * terrain, a Warlock's Eldritch Invocations, etc.) - see
+   * utils/grantedSpells.ts. Each value is a single option id for an
+   * ordinary single-select choice, or a comma-joined list of option ids for
+   * a multi-select one (`choice.countByLevel` set) - see
+   * `decodeFeatureChoiceSelection`/`encodeFeatureChoiceSelection`.
+   */
   featureChoices: Record<string, string>;
   onFeatureChoicesChange: (choices: Record<string, string>) => void;
 };
@@ -153,6 +162,17 @@ export function ClassStep({
 
   function setFeatureChoice(key: string, optionId: string) {
     onFeatureChoicesChange({ ...featureChoices, [key]: optionId });
+  }
+
+  /** Toggles one option in/out of a multi-select choice's current picks (see `FeatureChoice.countByLevel`), refusing to add a new one once `max` are already selected - the checkbox itself is also disabled in that case (see the render below), this is just the safety net. */
+  function toggleFeatureChoiceOption(key: string, optionId: string, max: number) {
+    const current = decodeFeatureChoiceSelection(featureChoices[key]);
+    const next = current.includes(optionId)
+      ? current.filter((id) => id !== optionId)
+      : current.length < max
+        ? [...current, optionId]
+        : current;
+    onFeatureChoicesChange({ ...featureChoices, [key]: encodeFeatureChoiceSelection(next) });
   }
 
   function optionsFor(index: number): CharacterClass[] {
@@ -365,6 +385,56 @@ export function ClassStep({
             {pendingChoices
               .filter((pending) => pending.classIndex === index)
               .map((pending) => {
+                // A multi-select choice (e.g. Eldritch Invocations) is
+                // rendered as a capped checkbox list instead of the
+                // single-option `<Select>` every other `FeatureChoice`
+                // still uses - `choice.countByLevel` being set is what
+                // marks a choice as multi-select even at a level where it
+                // currently only allows one pick (e.g. a 2024 Warlock's
+                // first invocation slot), so the control doesn't change
+                // shape out from under the player as they level up.
+                if (pending.choice.countByLevel) {
+                  const selectedIds = decodeFeatureChoiceSelection(featureChoices[pending.key]);
+                  return (
+                    <label key={pending.key} className="flex flex-col gap-2">
+                      <span className="text-sm font-medium text-fontcolor-secondary">
+                        {pending.featureName} — {pending.choice.prompt} ({selectedIds.length}/{pending.maxSelections}
+                        ){" "}
+                        <span className="text-red-500" title="Required before you can continue">*</span>
+                      </span>
+                      <div className="flex max-h-72 flex-col gap-1 overflow-y-auto rounded-(--radius-sm) border border-border-strong p-2">
+                        {pending.choice.options.map((option) => {
+                          const checked = selectedIds.includes(option.id);
+                          const disabled = !checked && selectedIds.length >= pending.maxSelections;
+                          return (
+                            <label
+                              key={option.id}
+                              className={cn(
+                                "flex items-start gap-2 text-sm",
+                                disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+                              )}
+                            >
+                              <input
+                                type="checkbox"
+                                className="mt-1"
+                                checked={checked}
+                                disabled={disabled}
+                                onChange={() => toggleFeatureChoiceOption(pending.key, option.id, pending.maxSelections)}
+                              />
+                              <span>
+                                <span className="font-medium text-fontcolor">{option.label}</span>
+                                {option.summary && (
+                                  <span className="text-fontcolor-secondary"> — {option.summary}</span>
+                                )}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </label>
+                  );
+                }
+
                 const chosenId = featureChoices[pending.key];
                 const chosenOption = pending.choice.options.find((option) => option.id === chosenId);
                 return (

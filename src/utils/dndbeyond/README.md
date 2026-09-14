@@ -102,10 +102,14 @@ screen) if the shape turns out to differ from what's expected:
 - **Feats taken beyond the background's origin feat** (e.g. a level-up
   Ability Score Improvement choice) - not populated.
 - **HP roll history, weapon mastery choices, fighting style choices,
-  feature choices** (e.g. a Warlock's Pact Boon) - this app tracks these as
-  bookkeeping for its own wizard; an imported character simply starts
-  without them, the same as any character saved before these features
-  existed (the app already handles that gracefully everywhere it matters).
+  feature choices** (e.g. a Warlock's Pact Boon, or their Eldritch
+  Invocations - a multi-select `FeatureChoice`, same as any other) - this
+  app tracks these as bookkeeping for its own wizard; an imported character
+  simply starts without them, the same as any character saved before these
+  features existed (the app already handles that gracefully everywhere it
+  matters). Opening an imported Warlock for editing will prompt for their
+  Eldritch Invocations on the Class step exactly like a freshly-created one
+  would.
 - Homebrew races/classes/backgrounds/subclasses, or ones from a sourcebook
   this app hasn't built, aren't supported - the import fails outright with
   a clear error naming what wasn't found, shown on the Import page, rather

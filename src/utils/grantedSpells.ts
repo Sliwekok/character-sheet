@@ -30,6 +30,48 @@ export function featureChoiceKey(classIndex: number, feature: ClassFeature): str
     return `${classIndex}:${feature.name}:${feature.choice?.key ?? ""}`;
 }
 
+/**
+ * How many options `choice` lets the player pick at once, for an entry at
+ * `level` (the entry's OWN class level, same convention `feature.level`
+ * itself uses) - 1 for every ordinary single-select choice (`countByLevel`
+ * unset), or the highest `countByLevel` threshold at or below `level` for a
+ * multi-select one (e.g. a Warlock's Eldritch Invocations) - see
+ * `FeatureChoice.countByLevel`'s header comment. Falls back to 0 if
+ * `countByLevel` is set but `level` hasn't reached its lowest threshold yet
+ * (shouldn't normally happen - `getFeatureChoices` only surfaces a choice
+ * once `feature.level <= level`, and a feature's own granting level is
+ * always included as a `countByLevel` threshold in every class that uses
+ * this - but a data mistake degrades to "nothing pickable yet" rather than
+ * a crash).
+ */
+export function featureChoiceMaxSelections(choice: FeatureChoice, level: number): number {
+    if (!choice.countByLevel) return 1;
+    const thresholds = Object.keys(choice.countByLevel)
+        .map(Number)
+        .filter((threshold) => threshold <= level)
+        .sort((a, b) => b - a);
+    return thresholds.length > 0 ? choice.countByLevel[thresholds[0]] : 0;
+}
+
+/**
+ * Decodes one `CharacterDraft.featureChoices`/`Character.featureChoices`
+ * entry into the list of selected `FeatureChoiceOption.id`s it represents -
+ * a single-select choice's stored value (a bare option id, e.g. `"chain"`)
+ * decodes to a one-element array, same as a multi-select choice's
+ * comma-joined value (e.g. `"agonizing-blast,devils-sight"`) decodes to
+ * each id - so every caller can treat every choice uniformly as "a list of
+ * picks" regardless of whether it's single- or multi-select. `undefined`
+ * (not yet resolved) decodes to `[]`.
+ */
+export function decodeFeatureChoiceSelection(raw: string | undefined): string[] {
+    return raw ? raw.split(",").filter(Boolean) : [];
+}
+
+/** Inverse of `decodeFeatureChoiceSelection` - what actually gets stored in `featureChoices`. A one-element array round-trips to the exact same bare-id string a single-select choice always stored, so this is backward compatible with every character saved before multi-select choices existed. */
+export function encodeFeatureChoiceSelection(ids: string[]): string {
+    return ids.join(",");
+}
+
 /** One feature-gated choice the player has (or hasn't yet) resolved, reached at the entry's current level - what ClassStep renders a picker for. */
 export interface PendingFeatureChoice {
     key: string;
@@ -38,6 +80,8 @@ export interface PendingFeatureChoice {
     featureName: string;
     level: number;
     choice: FeatureChoice;
+    /** How many of `choice.options` can be selected at once, at this entry's current level - see `featureChoiceMaxSelections()`. Always 1 for a single-select choice. */
+    maxSelections: number;
 }
 
 /**
@@ -61,6 +105,7 @@ export function getFeatureChoices(classes: GrantEntryInput[]): PendingFeatureCho
                 featureName: feature.name,
                 level: feature.level,
                 choice: feature.choice,
+                maxSelections: featureChoiceMaxSelections(feature.choice, entry.level),
             });
         });
     });
@@ -78,18 +123,38 @@ export function areFeatureChoicesComplete(
     classes: GrantEntryInput[],
     choices: Record<string, string>
 ): boolean {
-    return getFeatureChoices(classes).every((pending) => Boolean(choices[pending.key]));
+    return getFeatureChoices(classes).every(
+        (pending) => decodeFeatureChoiceSelection(choices[pending.key]).length === pending.maxSelections
+    );
 }
 
-/** Drops any `featureChoices` entry that no longer corresponds to a currently-reached `FeatureChoice` - e.g. the class/subclass that offered it was swapped away, or the level dropped back below it. Mirrors utils/abilityScoreImprovements.ts's `pruneAsiAllocations`. */
+/**
+ * Drops any `featureChoices` entry that no longer corresponds to a
+ * currently-reached `FeatureChoice` - e.g. the class/subclass that offered
+ * it was swapped away, or the level dropped back below it - mirroring
+ * utils/abilityScoreImprovements.ts's `pruneAsiAllocations`. For a
+ * multi-select choice (see `FeatureChoice.countByLevel`), also drops any
+ * individual selected id that's no longer one of that choice's options and
+ * trims back down to the current `maxSelections` if the level (and so the
+ * pick count) dropped - e.g. de-leveling out of an Eldritch Invocation slot
+ * keeps whichever invocations were picked FIRST, same "keep what was
+ * already there" spirit as utils/spellcasting.ts's `pruneSpellsToLimits`.
+ */
 export function pruneFeatureChoices(
     classes: GrantEntryInput[],
     choices: Record<string, string>
 ): Record<string, string> {
-    const validKeys = new Set(getFeatureChoices(classes).map((pending) => pending.key));
+    const pending = getFeatureChoices(classes);
+    const byKey = new Map(pending.map((entry) => [entry.key, entry]));
     const next: Record<string, string> = {};
-    for (const [key, optionId] of Object.entries(choices)) {
-        if (validKeys.has(key)) next[key] = optionId;
+    for (const [key, raw] of Object.entries(choices)) {
+        const entry = byKey.get(key);
+        if (!entry) continue;
+        const validIds = new Set(entry.choice.options.map((option) => option.id));
+        const selected = decodeFeatureChoiceSelection(raw)
+            .filter((id) => validIds.has(id))
+            .slice(0, entry.maxSelections);
+        if (selected.length > 0) next[key] = encodeFeatureChoiceSelection(selected);
     }
     return next;
 }
@@ -112,8 +177,13 @@ function resolvedGrantsForFeature(
     const atLevel = (grant: GrantedSpell) => (grant.atLevel ?? feature.level) <= level;
     const unconditional = (feature.grantedSpells ?? []).filter(atLevel);
     if (!feature.choice) return unconditional;
-    const chosenOption = feature.choice.options.find((option) => option.id === featureChoices[key]);
-    const fromChoice = (chosenOption?.grantedSpells ?? []).filter(atLevel);
+    // Every option the player has picked so far, not just one - a
+    // multi-select choice (e.g. Eldritch Invocations) can have several
+    // resolved at once, each with its own `grantedSpells` - see
+    // `decodeFeatureChoiceSelection`'s header comment.
+    const selectedIds = decodeFeatureChoiceSelection(featureChoices[key]);
+    const chosenOptions = feature.choice.options.filter((option) => selectedIds.includes(option.id));
+    const fromChoice = chosenOptions.flatMap((option) => (option.grantedSpells ?? []).filter(atLevel));
     return [...unconditional, ...fromChoice];
 }
 
