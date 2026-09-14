@@ -90,6 +90,7 @@ export default function ImportCharacterPage() {
     try {
       const response = await fetch(`/api/dndbeyond/${characterId}`);
       const body = await response.json().catch(() => null);
+      console.log(body);
 
       if (!response.ok || !body?.data) {
         setError(body?.error || `D&D Beyond returned an unexpected error (HTTP ${response.status}).`);

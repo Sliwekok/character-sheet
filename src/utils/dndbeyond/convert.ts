@@ -285,8 +285,10 @@ export async function convertDndBeyondCharacter(
     }
 
     let subclass;
-    const subclassName = entry.subclassDefinition?.name;
+    let subclassName = entry.subclassDefinition?.name;
     if (subclassName) {
+      // trimming because it's subclass name (expansion) that we need to trim.
+      subclassName = subclassName.split('(')[0].trim();
       subclass = findByName(
         ruleset.subclasses.filter((candidate) => candidate.parentClass === characterClass.name),
         subclassName,
