@@ -44,44 +44,69 @@ function grantedSpellBadgeLabel(grant: GrantedSpell): string {
  * the full description text - see `grantedSpellBadgeLabel` above. `edition`
  * is needed only to build that link (the same `/search?edition=...` route
  * used elsewhere - see SpellMention.tsx's `spellSearchHref`).
+ *
+ * By default the description sits behind a click-to-expand `<details>`
+ * disclosure, same as every other feature on the sheet. Pass
+ * `alwaysExpanded` (used by the compendium search result page, where
+ * there's exactly one class/subclass to read through and no reason to make
+ * the player click every feature open) to skip that entirely - no
+ * disclosure triangle, no toggle, description just shown.
  */
 export function FeatureEntry({
   feature,
   reached,
   edition,
+  alwaysExpanded = false,
 }: {
   feature: FeatureLike;
   reached: boolean;
   edition: Edition;
+  alwaysExpanded?: boolean;
 }) {
   const grantedSpells = feature.grantedSpells ?? [];
   const spellNames = grantedSpells
     .map((grant) => grant.spellName)
     .filter((name): name is string => Boolean(name));
 
+  const headerContent = (
+    <>
+      <span className="font-semibold text-fontcolor">{feature.name}</span>
+      <Badge variant="muted">Level {feature.level}</Badge>
+      {!reached && <Badge variant="outline">Locked</Badge>}
+      {reached &&
+          grantedSpells.map((grant, index) => (
+              <Badge key={index} variant="solid">
+                {grantedSpellBadgeLabel(grant)}
+              </Badge>
+          ))}
+    </>
+  );
+
+  const description = (
+    <div className="basis-full leading-4 mt-1 whitespace-pre-line text-xs">
+      <TextWithSpellMentions
+          text={feature.description}
+          spellNames={spellNames}
+          edition={edition}
+      />
+    </div>
+  );
+
   return (
     <div className={cn("rounded-(--radius-sm) bg-background-darken/60 px-3 py-2", !reached && "opacity-60")}>
-      <details className="flex flex-wrap items-center gap-2">
-        <summary className="font-semibold text-fontcolor w-full">
-          <span className="font-semibold text-fontcolor">{feature.name}</span>
-          <Badge variant="muted">Level {feature.level}</Badge>
-          {!reached && <Badge variant="outline">Locked</Badge>}
-          {reached &&
-              grantedSpells.map((grant, index) => (
-                  <Badge key={index} variant="solid">
-                    {grantedSpellBadgeLabel(grant)}
-                  </Badge>
-              ))}
-        </summary>
-
-        <div className="basis-full leading-4 mt-1 whitespace-pre-line text-xs">
-          <TextWithSpellMentions
-              text={feature.description}
-              spellNames={spellNames}
-              edition={edition}
-          />
+      {alwaysExpanded ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="font-semibold text-fontcolor w-full flex flex-wrap items-center gap-2">
+            {headerContent}
+          </div>
+          {description}
         </div>
-      </details>
+      ) : (
+        <details className="flex flex-wrap items-center gap-2">
+          <summary className="font-semibold text-fontcolor w-full">{headerContent}</summary>
+          {description}
+        </details>
+      )}
     </div>
   );
 }

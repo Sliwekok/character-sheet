@@ -125,6 +125,7 @@ function ClassDetails({ characterClass }: { characterClass: CharacterClass }) {
                   feature={feature}
                   reached
                   edition={characterClass.edition}
+                  alwaysExpanded
                 />
               ))}
             </div>
@@ -190,6 +191,7 @@ function SubclassDetails({ subclass }: { subclass: Subclass }) {
                 feature={feature}
                 reached
                 edition={subclass.edition}
+                alwaysExpanded
               />
             ))}
           </div>
@@ -310,7 +312,7 @@ function MagicItemDetails({ item }: { item: MagicItem }) {
   );
 }
 
-/** Feats and spells already have full, self-contained list entries elsewhere on the sheet (FeatEntry, SpellEntry) - reused here as-is inside a Card so a compendium search result looks like every other detail view on this page, rather than re-implementing the same fields a second time. SpellEntry gets `spellcasting={null}` since there's no character context on this page, which just hides its "roll attack"/"roll damage" buttons. */
+/** Feats and spells already have full, self-contained list entries elsewhere on the sheet (FeatEntry, SpellEntry) - reused here as-is inside a Card so a compendium search result looks like every other detail view on this page, rather than re-implementing the same fields a second time. SpellEntry gets `spellcasting={null}` since there's no character context on this page, which just hides its "roll attack"/"roll damage" buttons, and `alwaysExpanded` since a searched-for spell should just show its description rather than sitting behind the same click-to-expand toggle it uses on the character sheet's spell list. */
 function FeatDetails({ feat }: { feat: Feat }) {
   return (
     <Card>
@@ -325,7 +327,7 @@ function SpellDetails({ spell }: { spell: Spell }) {
   return (
     <Card>
       <CardContent>
-        <SpellEntry spell={spell} spellcasting={null} />
+        <SpellEntry spell={spell} spellcasting={null} alwaysExpanded />
       </CardContent>
     </Card>
   );

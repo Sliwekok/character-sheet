@@ -37,17 +37,25 @@ type RolledResult = { label: string; result: DiceRollResult };
  * render the toggle as active. Omit both props to render read-only (e.g. a
  * future print/preview view), matching the optional-callback pattern
  * `WeaponEntry.onToggleMastery` already uses.
+ *
+ * By default the description sits behind a click-to-expand `<details>`
+ * disclosure, same as every other spell on the sheet. Pass `alwaysExpanded`
+ * (used by the compendium search result page, where there's exactly one
+ * spell to look at and no reason to make the player click for it) to skip
+ * that entirely - no arrow, no toggle, description just shown.
  */
 export function SpellEntry({
                                spell,
                                spellcasting,
                                concentratingOn,
                                onToggleConcentration,
+                               alwaysExpanded = false,
                            }: {
     spell: Spell;
     spellcasting: SpellcastingInfo | null;
     concentratingOn?: string;
     onToggleConcentration?: (spellName: string) => void;
+    alwaysExpanded?: boolean;
 }) {
     const [rolled, setRolled] = useState<RolledResult | null>(null);
     const detectedDice = findDiceNotation(spell.description);
@@ -69,23 +77,23 @@ export function SpellEntry({
         });
     }
 
-    return (
-        <div className="rounded-(--radius-sm) bg-background-darken/60 px-3 py-2">
-            <details className="w-full group">
-                <summary className="flex flex-wrap items-center gap-2 cursor-pointer">
-          <span className="transition-transform group-open:rotate-90">
-            <svg
-                className="h-3 w-3 shrink-0 transition-transform"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            >
-              <path d="m9 18 6-6-6-6" />
-            </svg>
-          </span>
+    const headerContent = (
+        <>
+            {!alwaysExpanded && (
+                <span className="transition-transform group-open:rotate-90">
+                    <svg
+                        className="h-3 w-3 shrink-0 transition-transform"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                    >
+                        <path d="m9 18 6-6-6-6" />
+                    </svg>
+                </span>
+            )}
             <span className="font-semibold text-fontcolor">{spell.name}</span>
 
             <Badge variant="outline">{spell.school}</Badge>
@@ -102,12 +110,29 @@ export function SpellEntry({
                 {spell.castingTime} · {spell.range} · {spell.components.join(", ")}{" "}
                 · {spell.duration}
             </p>
-            </summary>
+        </>
+    );
 
-            <div className="mt-2 whitespace-pre-line text-xs">
-                {spell.description}
-            </div>
-        </details>
+    return (
+        <div className="rounded-(--radius-sm) bg-background-darken/60 px-3 py-2">
+            {alwaysExpanded ? (
+                <div className="w-full">
+                    <div className="flex flex-wrap items-center gap-2">{headerContent}</div>
+                    <div className="mt-2 whitespace-pre-line text-xs">
+                        {spell.description}
+                    </div>
+                </div>
+            ) : (
+                <details className="w-full group">
+                    <summary className="flex flex-wrap items-center gap-2 cursor-pointer">
+                        {headerContent}
+                    </summary>
+
+                    <div className="mt-2 whitespace-pre-line text-xs">
+                        {spell.description}
+                    </div>
+                </details>
+            )}
 
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
                 {spellcasting && (
