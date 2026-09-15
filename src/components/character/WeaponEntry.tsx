@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Character } from "@/interfaces/Characters";
 import { Weapon } from "@/interfaces/Weapon";
 import { Badge, Button, Tooltip, formatModifier } from "@/components/ui";
-import { getWeaponAttackInfo, getWeaponDamageInfo } from "@/utils/attackCalculations";
+import { getWeaponAttackInfo, getWeaponDamageInfo, sneakAttackDamageBonus} from "@/utils/attackCalculations";
 import { DiceRollResult, describeDiceRoll, rollD20, rollDiceFormula } from "@/utils/dice";
 import { cn } from "@/utils/cn";
 import {
@@ -61,9 +61,10 @@ export function WeaponEntry({
 }) {
   const [useVersatile, setUseVersatile] = useState(false);
   const [rolled, setRolled] = useState<RolledResult | null>(null);
+  const [useSneakAttack, setUseSneakAttack] = useState(false);
 
   const attack = getWeaponAttackInfo(character, weapon);
-  const damage = getWeaponDamageInfo(character, weapon, useVersatile);
+  const damage = getWeaponDamageInfo(character, weapon, useVersatile, useSneakAttack);
 
   const masteryEffect = weapon.mastery ? WEAPON_MASTERY_EFFECTS[weapon.mastery] : undefined;
   const masteryCap = getWeaponMasteryCount(character.classes, character.edition);
@@ -72,6 +73,9 @@ export function WeaponEntry({
   const chosenCount = getChosenWeaponMasteryIndexes(character).length;
   const masterySlotsFull = chosenCount >= masteryCap;
   const masteryLines = isMasteryActive ? getWeaponMasteryLines(character, weapon, attack.abilityModifier) : [];
+
+  const sneakAttackDamage = sneakAttackDamageBonus(character);
+  const sneakAttackUnlocked = sneakAttackDamage.dice > 0;
 
   function rollAttack() {
     setRolled({ label: "Attack roll", result: rollD20(attack.attackBonus) });
@@ -158,6 +162,18 @@ export function WeaponEntry({
           />
           {isMasteryActive ? "Mastery active" : masterySlotsFull ? "All mastery slots in use" : "Use mastery"}
         </label>
+      )}
+
+      {sneakAttackUnlocked && (
+          <label className="flex items-center gap-1.5 text-xs text-fontcolor-secondary">
+            <input
+                type="checkbox"
+                checked={useSneakAttack}
+                onChange={(event) => setUseSneakAttack(event.target.checked)}
+                className="h-3.5 w-3.5 accent-foreground"
+            />
+            Sneak Attack
+          </label>
       )}
 
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 justify-between">

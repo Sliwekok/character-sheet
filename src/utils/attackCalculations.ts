@@ -227,6 +227,45 @@ export function getWeaponAttackInfo(character: Character, weapon: Weapon): Weapo
   };
 }
 
+/**
+ * Rogue's Sneak Attack extra damage dice (always d6s), read from the
+ * highest-level `sneakAttackDice` table across the character's classes
+ * (see `ClassFeature.sneakAttackDice`'s header comment - only a Rogue's
+ * "Sneak Attack" feature carries one today) - same level-threshold lookup
+ * `getUnarmedStrikeWeapon()` above already uses for
+ * `UnarmedStrikeProgression.dieByLevel`. A multiclass character with Rogue
+ * levels from more than one source can't happen (there's only one Rogue
+ * entry to have), so unlike `fightingStyleDamageBonus` this never needs to
+ * sum across classes - it resolves at most one match.
+ *
+ * RAW restricts this to once per turn, only on a hit with a finesse-or-
+ * ranged weapon, and only with advantage on the attack roll (or an ally
+ * within 5 feet of the target) - none of which this app tracks anywhere
+ * (no per-turn state, no advantage tracking), the same simplification
+ * Fighting Styles and magic-item bonuses above already make. So this is
+ * surfaced as an always-available flat bonus rather than a conditional
+ * one; a maintainer wiring this into an actual damage roll should keep
+ * that RAW gating in mind rather than trusting this number blindly.
+ *
+ * Returns `{ dice: 0 }` (no lines) for a character with no Rogue levels, or
+ * whose Rogue entry hasn't reached the feature's first threshold yet.
+ */
+export function sneakAttackDamageBonus(character: Character): { dice: number; lines: StatLine[] } {
+  for (const { class: charClass, level } of character.classes) {
+    const feature = charClass.features.find((candidate) => candidate.sneakAttackDice);
+    if (!feature?.sneakAttackDice) continue;
+
+    const reachedLevels = Object.keys(feature.sneakAttackDice)
+      .map(Number)
+      .filter((threshold) => threshold <= level);
+    if (reachedLevels.length === 0) continue;
+
+    const dice = feature.sneakAttackDice[Math.max(...reachedLevels)];
+    return { dice, lines: [{ label: `${feature.name} (${dice}d6)`, value: `+${dice}d6` }] };
+  }
+  return { dice: 0, lines: [] };
+}
+
 export type WeaponDamageInfo = {
   diceFormula: string;
   damageType: string;
@@ -236,17 +275,20 @@ export type WeaponDamageInfo = {
   magicItemBonus: number;
   /** Sum of any chosen Fighting Style's damage bonus that applies to this weapon (Dueling, Thrown Weapon Fighting) - see `fightingStyleDamageBonus`'s header comment for the conditions. */
   fightingStyleBonus: number;
+  /** Extra Sneak Attack damage dice (always d6s) from a Rogue level, if any - see `sneakAttackDamageBonus`'s header comment for the RAW conditions this app doesn't track. Kept separate from `flatBonus` (a flat number) since this is a dice COUNT, not a modifier. */
+  sneakAttackDice: number;
   flatBonus: number;
   lines: StatLine[];
 };
 
 /** Damage dice + flat bonus for one weapon, plus the breakdown shown in its info tooltip. Pass `useVersatile` to use `weapon.versatileDamage` (two-handed) instead of the one-handed `weapon.damage.dice`. */
-export function getWeaponDamageInfo(character: Character, weapon: Weapon, useVersatile = false): WeaponDamageInfo {
+export function getWeaponDamageInfo(character: Character, weapon: Weapon, useVersatile = false, useSneakAttack = false): WeaponDamageInfo {
   const ability = getWeaponAbility(weapon, character.abilityScores);
   const abilityModifier = calculateAbilityModifiers(character.abilityScores)[ability];
   const magicBonus = weapon.bonus ?? 0;
   const magicItems = magicItemBonusTotal(character, "damageRolls");
   const fightingStyle = fightingStyleDamageBonus(character, weapon, useVersatile);
+  const sneakAttack = useSneakAttack ? sneakAttackDamageBonus(character) : { dice: 0, lines: [] };
   const flatBonus = abilityModifier + magicBonus + magicItems.total + fightingStyle.total;
   const diceFormula = useVersatile && weapon.versatileDamage ? weapon.versatileDamage : weapon.damage.dice;
 
@@ -257,6 +299,7 @@ export function getWeaponDamageInfo(character: Character, weapon: Weapon, useVer
   if (magicBonus) lines.push({ label: "Magic bonus", value: formatSigned(magicBonus) });
   lines.push(...magicItems.lines);
   lines.push(...fightingStyle.lines);
+  lines.push(...sneakAttack.lines);
   lines.push({ label: "Damage type", value: weapon.damage.type });
 
   return {
@@ -266,6 +309,7 @@ export function getWeaponDamageInfo(character: Character, weapon: Weapon, useVer
     magicBonus,
     magicItemBonus: magicItems.total,
     fightingStyleBonus: fightingStyle.total,
+    sneakAttackDice: sneakAttack.dice,
     flatBonus,
     lines,
   };

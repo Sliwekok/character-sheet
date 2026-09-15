@@ -190,6 +190,20 @@ export interface ClassFeature {
   description: string;
   grantedSpells?: GrantedSpell[];
   choice?: FeatureChoice;
+  /**
+   * Extra damage dice count (all d6s), keyed by the character's level in
+   * THIS class at which it's gained/increased - same level-keyed-table
+   * shape as `UnarmedStrikeProgression.dieByLevel` below. The highest
+   * threshold at or below the character's class level applies. Only set on
+   * a Rogue's "Sneak Attack" feature today (1 at 1st level, up to 10 at
+   * 19th, +1 every two levels). RAW gates this extra damage behind "once
+   * per turn", a finesse-or-ranged weapon, and either advantage on the
+   * attack roll or an ally within 5 feet of the target - none of which
+   * this app tracks (same simplification as Fighting Styles/magic items),
+   * so it's surfaced as a flat additive bonus rather than a conditional
+   * one; see utils/attackCalculations.ts's `getSneakAttackDamageBonus()`.
+   */
+  sneakAttackDice?: Record<number, number>;
 }
 
 /**
