@@ -342,6 +342,24 @@ export default function CharacterDetailsPage() {
    */
   function recordRoll(label: string, result: DiceRollResult) {
     setRollHistory((current) => [{ id: generateId(), label, result, rolledAt: Date.now() }, ...current].slice(0, MAX_ROLL_HISTORY));
+
+    // Forwards the roll to the "Character Sheet -> Roll20 Chat" browser
+    // extension, if installed - it listens for this postMessage on the page
+    // and relays it into whatever Roll20 tab is open. A no-op with the
+    // extension absent (nothing is listening, so the message just goes
+    // nowhere). See roll20-chat-extension/README.md for the other half.
+    if (typeof window !== "undefined") {
+      window.postMessage(
+        {
+          source: "dnd-character-sheet-roll20-bridge",
+          type: "ROLL",
+          label,
+          result,
+          characterName: character?.name,
+        },
+        window.location.origin
+      );
+    }
   }
 
   return (
