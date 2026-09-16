@@ -699,5 +699,5 @@ export const RACES_2024: Race[] = [
         abilityModifiers: {},
         speed: 30,
         languages: ["Common"],
-    },
+    }
 ];

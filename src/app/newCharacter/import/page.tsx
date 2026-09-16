@@ -78,7 +78,7 @@ export default function ImportCharacterPage() {
 
     const characterId = parseCharacterId(ddbInput);
     if (!characterId) {
-      setError("Enter a D&D Beyond character id or profile URL (e.g. https://www.dndbeyond.com/characters/161349291).");
+      setError("Enter a D&D Beyond character id or profile URL (e.g. https://www.dndbeyond.com/characters/123456789).");
       return;
     }
     if (!ddbConfirmedPublic) {

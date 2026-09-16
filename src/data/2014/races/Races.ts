@@ -5452,5 +5452,23 @@ export const RACES_2014: Race[] = [
         },
         speed: 30,
         languages: ["Common"],
+    },
+    {
+        name: "Water Genasi",
+        edition: "2024",
+        traits: [
+            "Darkvision. You can see in dim light within 60 feet of you as if it were bright light and in darkness as if it were dim light. You discern colors in that darkness only as shades of gray.",
+            "Acid Resistance. You have resistance to acid damage.",
+            "Amphibious. You can breathe air and water.",
+            "Swim. You have a swimming speed of 30 feet.",
+            "Age. Genasi mature at about the same rate as humans and reach adulthood in their late teens. They live somewhat longer than humans do, up to 120 years.",
+            "Alignment. Independent and self-reliant, genasi tend toward a neutral alignment.",
+            "Size. Genasi are about the same size and build as humans. Your size is Medium.",
+            "Languages. You can speak, read, and write Common and Primordial. Primordial is a guttural language, filled with harsh syllables and hard consonants.",
+            "Call to the Wave. You know the shape water cantrip. When you reach 3rd level, you can cast the create or destroy water spell as a 2nd-level spell once with this trait, and you regain the ability to cast it this way when you finish a long rest. Constitution is your spellcasting ability for these spells."
+        ],
+        abilityModifiers: {},
+        speed: 30,
+        languages: ["Common"],
     }
 ];
