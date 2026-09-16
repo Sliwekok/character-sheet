@@ -23,8 +23,7 @@ import { Background } from "@/interfaces/Background";
  *   appended in brackets.
  */
 export const BACKGROUNDS_2014: Background[] = [
-    {
-        name: "Acolyte",
+    {        name: "Acolyte",
         edition: "2014",
         skillProficiencies: ["Insight", "Religion"],
         equipment: [
@@ -1144,4 +1143,12 @@ export const BACKGROUNDS_2014: Background[] = [
         ],
         feature: { name: "Witherbloom Initiate", description: "You gain the Strixhaven Initiate feat and must choose Witherbloom within it.\nIn addition, if you have the Spellcasting or Pact Magic feature, the spells on the Witherbloom Spells table are added to the spell list of your spellcasting class. (If you are a multiclass character with multiple spell lists, these spells are added to all of them.)\nConsider customizing how your spells look when you cast them. Your Witherbloom spells might rely on material components or a spellcasting focus drawn from the swamp environment of Witherbloom, and your spells might take on an appearance suggesting those natural elements. Spectral shapes of swamp animals or plants might form amid your spell effects." },
     },
+    {
+        name: "Pact Seeker",
+        edition: "2014",
+        skillProficiencies: ["Arcana", "Persuasion"],
+        toolProficiency: "One artisan's tool of your choice",
+        feature: {name: "Pact Seeker", description: "You have been chosen by a powerful entity to serve as its agent in the mortal world. You gain the Pact Seeker feat, which grants you a special ability or power from your patron. Your patron may be a fiend, fey, celestial, or otherworldly being, and your relationship with them can shape your character's story and motivations."},
+        equipment: ["Book, Calligrapher’s Supplies, Ink, Ink Pen, Parchment (10 sheets), Traveler’s Clothes, 2 GP", "50 GP."],
+    }
 ];
