@@ -169,6 +169,24 @@ export function WeaponEntry({
         </label>
       )}
 
+      {weapon.versatileDamage && (
+          <label className="flex items-center gap-1.5 text-xs text-fontcolor-secondary">
+            <input
+                type="checkbox"
+                checked={useVersatile}
+                onChange={(event) => setUseVersatile(event.target.checked)}
+                className="h-3.5 w-3.5 accent-foreground"
+            />
+            Two-handed
+          </label>
+      )}
+
+      {isMasteryActive && masteryEffect && masteryEffect.rollKind !== "none" && (
+          <Button size="sm" variant="accent" onClick={rollMasteryAttack}>
+            {masteryEffect.rollLabel}
+          </Button>
+      )}
+
       {sneakAttackUnlocked && (
           <label className="flex items-center gap-1.5 text-xs text-fontcolor-secondary">
             <input
@@ -198,24 +216,6 @@ export function WeaponEntry({
         <Button size="sm" variant="secondary" onClick={rollDamage} className="flex-1/4">
           Roll damage
         </Button>
-
-        {weapon.versatileDamage && (
-          <label className="flex items-center gap-1.5 text-xs text-fontcolor-secondary">
-            <input
-              type="checkbox"
-              checked={useVersatile}
-              onChange={(event) => setUseVersatile(event.target.checked)}
-              className="h-3.5 w-3.5 accent-foreground"
-            />
-            Two-handed
-          </label>
-        )}
-
-        {isMasteryActive && masteryEffect && masteryEffect.rollKind !== "none" && (
-          <Button size="sm" variant="accent" onClick={rollMasteryAttack}>
-            {masteryEffect.rollLabel}
-          </Button>
-        )}
       </div>
 
       {rolled && (
