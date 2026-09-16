@@ -21,7 +21,7 @@ function Pip({ filled, onClick, label }: { filled: boolean; onClick: () => void;
       aria-label={label}
       aria-pressed={filled}
       className={cn(
-        "h-4 w-4 shrink-0 rounded-full border transition-colors",
+        "h-3 w-3 shrink-0 rounded-full border transition-colors",
         filled ? "border-foreground-hover bg-foreground" : "border-border-strong hover:border-foreground/60"
       )}
     />
@@ -102,19 +102,19 @@ export function StatusPanel({
       <CardHeader>
         <CardTitle>Status</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4 text-sm text-fontcolor-secondary">
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+      <CardContent className="flex flex-col gap-3 text-xs text-fontcolor-secondary">
+        <div className="flex flex-col gap-2">
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
               checked={Boolean(details?.inspiration)}
               onChange={(event) => onUpdateDetails({ inspiration: event.target.checked })}
-              className="h-4 w-4 accent-foreground"
+              className="h-3.5 w-3.5 accent-foreground"
             />
             Inspiration
           </label>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <span>Exhaustion</span>
             <PipRow
               count={MAX_EXHAUSTION_LEVEL}
@@ -131,10 +131,10 @@ export function StatusPanel({
             </Tooltip>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <span>Concentration</span>
             {concentratingOn ? (
-              <Badge variant="solid">
+              <Badge variant="solid" className="max-w-[10rem] truncate">
                 {concentratingOn}
                 <button
                   type="button"
@@ -151,38 +151,40 @@ export function StatusPanel({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-border pt-3">
+        <div className="flex flex-col gap-1.5 border-t border-border pt-2.5">
           <span>Death saves</span>
-          <span className="flex items-center gap-1.5">
-            <span className="text-xs">Successes</span>
-            <PipRow
-              count={3}
-              value={deathSaves.successes}
-              label="Death save success"
-              onChange={(next) => onUpdateDetails({ deathSaves: { ...deathSaves, successes: next } })}
-            />
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="text-xs">Failures</span>
-            <PipRow
-              count={3}
-              value={deathSaves.failures}
-              label="Death save failure"
-              onChange={(next) => onUpdateDetails({ deathSaves: { ...deathSaves, failures: next } })}
-            />
-          </span>
-          {!stable && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => onUpdateDetails({ deathSaves: { successes: 0, failures: 0 } })}
-            >
-              Clear
-            </Button>
-          )}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="flex items-center gap-1.5">
+              <span className="text-[10px]">Succ.</span>
+              <PipRow
+                count={3}
+                value={deathSaves.successes}
+                label="Death save success"
+                onChange={(next) => onUpdateDetails({ deathSaves: { ...deathSaves, successes: next } })}
+              />
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="text-[10px]">Fail.</span>
+              <PipRow
+                count={3}
+                value={deathSaves.failures}
+                label="Death save failure"
+                onChange={(next) => onUpdateDetails({ deathSaves: { ...deathSaves, failures: next } })}
+              />
+            </span>
+            {!stable && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => onUpdateDetails({ deathSaves: { successes: 0, failures: 0 } })}
+              >
+                Clear
+              </Button>
+            )}
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+        <div className="flex flex-wrap items-center gap-1.5 border-t border-border pt-2.5">
           {CONDITIONS.map((condition) => {
             const active = conditions.includes(condition);
             return (
@@ -192,7 +194,7 @@ export function StatusPanel({
                   onClick={() => toggleCondition(condition)}
                   aria-pressed={active}
                   className={cn(
-                    "rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors",
+                    "rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide transition-colors",
                     active
                       ? "border-foreground-hover/60 bg-foreground/25 text-foreground hover:bg-foreground/40"
                       : "border-border-strong text-fontcolor-secondary hover:border-foreground/50 hover:text-foreground"

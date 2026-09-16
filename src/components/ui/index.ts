@@ -15,3 +15,5 @@ export { StatBlock, formatModifier } from "./StatBlock";
 export type { Stat } from "./StatBlock";
 export { Tooltip } from "./Tooltip";
 export type { TooltipLine } from "./Tooltip";
+export { Tabs } from "./Tabs";
+export type { TabItem } from "./Tabs";

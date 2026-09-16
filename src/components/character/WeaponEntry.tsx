@@ -53,11 +53,14 @@ export function WeaponEntry({
   weapon,
   index,
   onToggleMastery,
+  onRoll,
 }: {
   character: Character;
   weapon: Weapon;
   index: number;
   onToggleMastery?: (index: number) => void;
+  /** Called with a human-readable label and the roll result every time one of this weapon's "Roll ..." buttons is used, on top of the inline result already shown below - feeds the page's shared Roll History widget (see RollHistoryWidget.tsx). Omit to render read-only for history purposes (the inline result still shows either way). */
+  onRoll?: (label: string, result: DiceRollResult) => void;
 }) {
   const [useVersatile, setUseVersatile] = useState(false);
   const [rolled, setRolled] = useState<RolledResult | null>(null);
@@ -78,23 +81,25 @@ export function WeaponEntry({
   const sneakAttackUnlocked = sneakAttackDamage.dice > 0;
 
   function rollAttack() {
-    setRolled({ label: "Attack roll", result: rollD20(attack.attackBonus) });
+    const result = rollD20(attack.attackBonus);
+    setRolled({ label: "Attack roll", result });
+    onRoll?.(`${weapon.name} — Attack roll`, result);
   }
 
   function rollDamage() {
-    setRolled({
-      label: `Damage (${damage.damageType})`,
-      result: rollDiceFormula(damage.diceFormula, damage.flatBonus),
-    });
+    const result = rollDiceFormula(damage.diceFormula, damage.flatBonus);
+    const label = `Damage (${damage.damageType})`;
+    setRolled({ label, result });
+    onRoll?.(`${weapon.name} — ${label}`, result);
   }
 
   function rollMasteryAttack() {
     if (!weapon.mastery || !masteryEffect) return;
     const advantage = masteryEffect.rollKind === "advantageAttackRoll";
-    setRolled({
-      label: `${weapon.mastery} attack roll${advantage ? " (advantage)" : ""}`,
-      result: rollD20(attack.attackBonus, advantage),
-    });
+    const result = rollD20(attack.attackBonus, advantage);
+    const label = `${weapon.mastery} attack roll${advantage ? " (advantage)" : ""}`;
+    setRolled({ label, result });
+    onRoll?.(`${weapon.name} — ${label}`, result);
   }
 
   return (

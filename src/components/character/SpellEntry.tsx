@@ -49,12 +49,15 @@ export function SpellEntry({
                                spellcasting,
                                concentratingOn,
                                onToggleConcentration,
+                               onRoll,
                                alwaysExpanded = false,
                            }: {
     spell: Spell;
     spellcasting: SpellcastingInfo | null;
     concentratingOn?: string;
     onToggleConcentration?: (spellName: string) => void;
+    /** Called with a human-readable label and the roll result every time this spell's "Roll spell attack"/"Roll <dice>" button is used, on top of the inline result already shown below - feeds the page's shared Roll History widget (see RollHistoryWidget.tsx). */
+    onRoll?: (label: string, result: DiceRollResult) => void;
     alwaysExpanded?: boolean;
 }) {
     const [rolled, setRolled] = useState<RolledResult | null>(null);
@@ -63,18 +66,17 @@ export function SpellEntry({
 
     function rollAttack() {
         if (!spellcasting) return;
-        setRolled({
-            label: "Spell attack roll",
-            result: rollD20(spellcasting.spellAttackBonus),
-        });
+        const result = rollD20(spellcasting.spellAttackBonus);
+        setRolled({ label: "Spell attack roll", result });
+        onRoll?.(`${spell.name} — Spell attack roll`, result);
     }
 
     function rollEffect() {
         if (!detectedDice) return;
-        setRolled({
-            label: `Rolled ${detectedDice}`,
-            result: rollDiceFormula(detectedDice),
-        });
+        const result = rollDiceFormula(detectedDice);
+        const label = `Rolled ${detectedDice}`;
+        setRolled({ label, result });
+        onRoll?.(`${spell.name} — ${label}`, result);
     }
 
     const headerContent = (

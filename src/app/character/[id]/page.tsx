@@ -13,19 +13,19 @@ import {
   CardTitle,
   Container,
   SectionHeading,
-  StatBlock,
+  Tabs,
   Tooltip,
   formatModifier,
+  type TabItem,
 } from "@/components/ui";
 import { StoredCharacter } from "@/interfaces/StoredCharacter";
 import { getCharacterLevel } from "@/interfaces/Characters";
 import { deleteCharacter, loadCharacter, saveCharacter } from "@/utils/storage";
 import { getChosenWeaponMasteryIndexes, getWeaponMasteryCount, toggleWeaponMasteryChoice } from "@/utils/weaponMastery";
 import { downloadCharacterAsJson } from "@/utils/characterImportExport";
-import { calculateAbilityModifiers } from "@/utils/abilityModifiers";
 import { getArmorClassBreakdown } from "@/utils/calculateArmorClass";
 import { getMaxHpBreakdown } from "@/utils/calculateMaxHp";
-import { getAbilityScoreBreakdown, getInitiativeBreakdown } from "@/utils/statBreakdowns";
+import { getInitiativeBreakdown } from "@/utils/statBreakdowns";
 import { getSpellcastingInfo, getUnarmedStrikeWeapon } from "@/utils/attackCalculations";
 import { getPactMagicSlots, getSpellSlots } from "@/utils/spellcasting";
 import { levelLabel } from "@/components/character/wizard/SpellsStep";
@@ -33,23 +33,24 @@ import { WeaponEntry } from "@/components/character/WeaponEntry";
 import { SpellEntry } from "@/components/character/SpellEntry";
 import { StatusPanel } from "@/components/character/StatusPanel";
 import { SkillsPanel } from "@/components/character/SkillsPanel";
+import { AbilityScoresPanel } from "@/components/character/AbilityScoresPanel";
 import { FeatureEntry, FeatureLike } from "@/components/character/FeatureEntry";
 import { FeatEntry } from "@/components/character/FeatEntry";
 import { PdfExportPanel } from "@/components/character/PdfExportPanel";
+import { RollHistoryEntry, RollHistoryWidget } from "@/components/character/RollHistoryWidget";
 import { decodeFeatureChoiceSelection, featureChoiceKey, featureChoiceMaxSelections } from "@/utils/grantedSpells";
 import { Spell } from "@/interfaces/Spell";
 import { CharacterDetails } from "@/interfaces/CharacterDetails";
 import { MagicItem } from "@/interfaces/MagicItem";
 import {calculateProficiencyBonus, getProficiencyBonusBreakdown} from "@/utils/calculateProficiencyBonus";
+import { DiceRollResult } from "@/utils/dice";
+import { generateId } from "@/utils/id";
 
-const ABILITY_LABELS: { key: keyof StoredCharacter["abilityScores"]; label: string }[] = [
-  { key: "strength", label: "STR" },
-  { key: "dexterity", label: "DEX" },
-  { key: "constitution", label: "CON" },
-  { key: "intelligence", label: "INT" },
-  { key: "wisdom", label: "WIS" },
-  { key: "charisma", label: "CHA" },
-];
+/** Most roll history entries anyone actually wants to scroll back through - oldest entries fall off past this so the list (and the id it's stored under, if this ever gets persisted) can't grow unbounded over a long session. */
+const MAX_ROLL_HISTORY = 50;
+
+/** The character sheet's main content area is one of these five sections at a time - see `TAB_DEFINITIONS` below. */
+type SheetTab = "actions" | "spells" | "inventory" | "features" | "background";
 
 /** Groups spells by level (0 = cantrip) and sorts each group alphabetically - used to render `spellsKnown` as a proper spellbook rather than one flat list. */
 function groupSpellsByLevel(spells: Spell[]): [number, Spell[]][] {
@@ -64,7 +65,7 @@ function groupSpellsByLevel(spells: Spell[]): [number, Spell[]][] {
     .map(([level, group]) => [level, [...group].sort((a, b) => a.name.localeCompare(b.name))]);
 }
 
-/** " (+1 AC)" / " (+1 attack, +1 damage)" / "" - the parenthetical suffix shown after a carried magic item's name on the Equipment card, so its AC/attack/damage bonus (already folded into the AC and weapon tooltips - see utils/calculateArmorClass.ts, utils/attackCalculations.ts) is visible at a glance too. */
+/** " (+1 AC)" / " (+1 attack, +1 damage)" / "" - the parenthetical suffix shown after a carried magic item's name on the Inventory tab, so its AC/attack/damage bonus (already folded into the AC and weapon tooltips - see utils/calculateArmorClass.ts, utils/attackCalculations.ts) is visible at a glance too. */
 function magicItemBonusSuffix(item: MagicItem): string {
   const bonuses = item.bonuses;
   if (!bonuses) return "";
@@ -177,11 +178,26 @@ function hasCharacterDetails(details: CharacterDetails | undefined): boolean {
  * now instead of jumping straight into editing (see CharacterCard); this
  * page's "Edit character" button is the new way in.
  *
+ * Layout: a wide (`Container size="2xl"`) two-column body below the header
+ * stat bar - a narrow, sticky left sidebar (ability scores, skills, status)
+ * and a right-hand main column whose content is switched by a D&D
+ * Beyond-style tab strip (Actions / Spells / Inventory / Features & Traits /
+ * Background - see `SheetTab`/`TAB_DEFINITIONS`) rather than one long
+ * vertical stack of every card at once. The Status card (inspiration, death
+ * saves, exhaustion, conditions, concentration) deliberately sits LAST in
+ * the sidebar and is styled densely - it's meant to be reachable at a
+ * glance during play, not the first thing the page shows.
+ *
  * Every derived number (ability modifiers, AC, HP, initiative, spellcasting,
  * weapon attack/damage) carries a small info Tooltip explaining how it was
  * computed - see utils/statBreakdowns.ts and utils/attackCalculations.ts -
  * and weapons/spells get "Roll ..." buttons that actually roll the dice
- * (utils/dice.ts) rather than just displaying the numbers.
+ * (utils/dice.ts) rather than just displaying the numbers. Every one of
+ * those rolls (plus skill checks from SkillsPanel) also lands in
+ * `rollHistory` via `recordRoll`, feeding the floating RollHistoryWidget
+ * rendered at the very end of this component - see its own header comment
+ * for why it renders nothing until the first roll and starts collapsed even
+ * then.
  */
 export default function CharacterDetailsPage() {
   const params = useParams<{ id: string }>();
@@ -191,6 +207,18 @@ export default function CharacterDetailsPage() {
   // Drives the "Delete character" confirmation alert below - kept separate
   // from `character` so closing it doesn't touch the loaded data.
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Which tab of the main column is showing - "actions" (attacks) is the
+  // most immediately useful one mid-combat, so it's the default, same as
+  // D&D Beyond's own character sheet.
+  const [activeTab, setActiveTab] = useState<SheetTab>("actions");
+
+  // Every "Roll ..." button press anywhere on the page (weapons, spells,
+  // skills - see the `onRoll` prop threaded into WeaponEntry/SpellEntry/
+  // SkillsPanel below), newest first. Feeds the floating RollHistoryWidget,
+  // which renders nothing at all while this is empty and otherwise starts
+  // collapsed - see that component's header comment.
+  const [rollHistory, setRollHistory] = useState<RollHistoryEntry[]>([]);
 
   // `null` once loaded means "no such character" - kept distinct from the
   // initial `undefined` "still loading" state so the not-found message
@@ -206,7 +234,6 @@ export default function CharacterDetailsPage() {
   const derived = useMemo(() => {
     if (!character) return null;
     return {
-      modifiers: calculateAbilityModifiers(character.abilityScores),
       ac: getArmorClassBreakdown(character),
       hp: getMaxHpBreakdown(character),
       initiative: getInitiativeBreakdown(character),
@@ -233,23 +260,24 @@ export default function CharacterDetailsPage() {
     );
   }
 
-  const { modifiers, ac, hp, initiative, spellSlots, pactMagicSlots, spellcasting } = derived!;
+  const { ac, hp, initiative, spellSlots, pactMagicSlots, spellcasting } = derived!;
   const classSummary = character.classes
     .map((entry) => `${entry.class.name}${entry.subclass ? ` (${entry.subclass.name})` : ""} ${entry.level}`)
     .join(", ");
-  const stats = ABILITY_LABELS.map(({ key, label }) => {
-    const breakdown = getAbilityScoreBreakdown(character, key);
-    return {
-      label,
-      value: (
-        <span className="flex items-center gap-1.5">
-          {formatModifier(modifiers[key])}
-          <Tooltip title={`${label} (score ${breakdown.score})`} lines={breakdown.lines} />
-        </span>
-      ),
-    };
-  });
   const spellGroups = groupSpellsByLevel(character.spellsKnown);
+  const totalSpellCount = character.spellsKnown.length + (character.grantedSpells?.length ?? 0);
+  const magicItemCount = character.magicItems?.length ?? 0;
+  const featureCount =
+    character.classes.reduce((total, entry) => total + combinedFeatures(entry, 0, undefined).length, 0) +
+    character.feats.length;
+
+  const TAB_DEFINITIONS: TabItem<SheetTab>[] = [
+    { key: "actions", label: "Actions" },
+    { key: "spells", label: "Spells", count: totalSpellCount },
+    { key: "inventory", label: "Inventory", count: magicItemCount },
+    { key: "features", label: "Features & Traits", count: featureCount },
+    { key: "background", label: "Background" },
+  ];
 
   function handleDeleteCharacter() {
     if (!character?.id) return false;
@@ -304,6 +332,18 @@ export default function CharacterDetailsPage() {
     });
   }
 
+  /**
+   * Appends one roll to the shared history (newest first, capped at
+   * `MAX_ROLL_HISTORY`) - passed as `onRoll` to every WeaponEntry/SpellEntry/
+   * SkillsPanel on the page, so every "Roll ..." button feeds this one log
+   * on top of its own existing inline result display. Purely in-memory (not
+   * persisted via `saveCharacter`) - a roll log is a table-session thing,
+   * not part of the character itself.
+   */
+  function recordRoll(label: string, result: DiceRollResult) {
+    setRollHistory((current) => [{ id: generateId(), label, result, rolledAt: Date.now() }, ...current].slice(0, MAX_ROLL_HISTORY));
+  }
+
   return (
     <>
       {showDeleteConfirm && (
@@ -327,7 +367,7 @@ export default function CharacterDetailsPage() {
         </Alert>
       )}
 
-      <Container size="lg" className="pb-24">
+      <Container size="2xl" className="pb-24">
         <SectionHeading
           eyebrow="Character sheet"
           title={character.name}
@@ -338,343 +378,402 @@ export default function CharacterDetailsPage() {
 
         <div className="mt-8 flex flex-col gap-6">
           <Card>
-            <CardContent className="flex flex-col gap-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="flex items-center gap-1">
-                    <Badge variant="solid">AC {ac.total}</Badge>
-                    <Tooltip title="Armor Class" lines={ac.lines} />
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Badge variant="muted">
-                      {/* `hp.total` (the tooltip's own sum), not the stored `character.maxHP` -
-                          they agree for anything saved since per-level HP history/the minimum-1-per-level
-                          fix, but this keeps a character saved before either existed from showing a
-                          badge that disagrees with its own tooltip breakdown. */}
-                      HP {character.currentHP}/{hp.total}
-                    </Badge>
-                    <Tooltip title="Max HP" lines={hp.lines} />
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Badge variant="muted">Initiative {formatModifier(character.initiative)}</Badge>
-                    <Tooltip title="Initiative" lines={initiative.lines} />
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Badge variant="muted">Proficiency {formatModifier(calculateProficiencyBonus(character))}</Badge>
-                    <Tooltip title="Initiative" lines={getProficiencyBonusBreakdown(character)} />
-                  </span>
-                </div>
-                <Badge variant="outline">{character.alignment}</Badge>
+            <CardContent className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="flex items-center gap-1">
+                  <Badge variant="solid">AC {ac.total}</Badge>
+                  <Tooltip title="Armor Class" lines={ac.lines} />
+                </span>
+                <span className="flex items-center gap-1">
+                  <Badge variant="muted">
+                    {/* `hp.total` (the tooltip's own sum), not the stored `character.maxHP` -
+                        they agree for anything saved since per-level HP history/the minimum-1-per-level
+                        fix, but this keeps a character saved before either existed from showing a
+                        badge that disagrees with its own tooltip breakdown. */}
+                    HP {character.currentHP}/{hp.total}
+                  </Badge>
+                  <Tooltip title="Max HP" lines={hp.lines} />
+                </span>
+                <span className="flex items-center gap-1">
+                  <Badge variant="muted">Initiative {formatModifier(character.initiative)}</Badge>
+                  <Tooltip title="Initiative" lines={initiative.lines} />
+                </span>
+                <span className="flex items-center gap-1">
+                  <Badge variant="muted">Proficiency {formatModifier(calculateProficiencyBonus(character))}</Badge>
+                  <Tooltip title="Initiative" lines={getProficiencyBonusBreakdown(character)} />
+                </span>
               </div>
-
-              <StatBlock stats={stats} />
+              <Badge variant="outline">{character.alignment}</Badge>
             </CardContent>
           </Card>
 
-          <StatusPanel character={character} onUpdateDetails={handleUpdateDetails} />
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr] lg:items-start">
+            {/* Sidebar - reference stats a player checks constantly. Status is
+                deliberately last: it's the least-needed-at-a-glance of the
+                three, so it isn't the first thing under the header. */}
+            <div className="flex flex-col gap-4 lg:sticky lg:top-24">
+              <AbilityScoresPanel character={character} onRoll={recordRoll} />
+              <SkillsPanel character={character} onRoll={recordRoll} />
+              <StatusPanel character={character} onUpdateDetails={handleUpdateDetails} />
+            </div>
 
-          <SkillsPanel character={character} />
+            {/* Main column - the tab strip swaps what's shown below it rather
+                than stacking every section at once, the way D&D Beyond's own
+                character sheet separates Actions/Spells/Inventory/Features. */}
+            <div className="flex min-w-0 flex-col gap-4">
+              <Tabs tabs={TAB_DEFINITIONS} active={activeTab} onChange={setActiveTab} />
 
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Background &amp; proficiencies</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-2 text-sm text-fontcolor-secondary">
-                <p>Background: {character.background.name}</p>
-                {character.backgroundAbilityBonuses && (
-                  <p>
-                    Background bonus:{" "}
-                    {Object.entries(character.backgroundAbilityBonuses)
-                      .map(([ability, bonus]) => `${ability} +${bonus}`)
-                      .join(", ")}
-                  </p>
-                )}
-                {character.abilityScoreImprovements && Object.keys(character.abilityScoreImprovements).length > 0 && (
-                  <p>
-                    Ability Score Improvements:{" "}
-                    {Object.values(character.abilityScoreImprovements)
-                      .map((allocation) =>
-                        Object.entries(allocation)
-                          .map(([ability, bonus]) => `${ability} +${bonus}`)
-                          .join("/")
-                      )
-                      .join(", ")}
-                  </p>
-                )}
-                {/* Skill proficiencies now have their own always-visible card with modifiers and
-                    "Roll" buttons - see SkillsPanel - so they're no longer duplicated here as a
-                    flat name list. */}
-                <p>Saving throws: {character.savingThrowProficiencies.join(", ") || "None"}</p>
-                <p>Languages: {character.languages.join(", ") || "None"}</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Equipment</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-3 text-sm text-fontcolor-secondary">
-                <p>
-                  Armor: {character.equippedArmor?.name ?? "Unarmored"}
-                  {character.shield ? ` + ${character.shield.name}` : ""}
-                </p>
-                {character.magicItems && character.magicItems.length > 0 && (
-                  <p>
-                    Magic items:{" "}
-                    {character.magicItems
-                      .map((item) => `${item.name}${magicItemBonusSuffix(item)}`)
-                      .join(", ")}
-                  </p>
-                )}
-                <p>
-                  Currency: {character.currency.gold}gp, {character.currency.silver}sp, {character.currency.copper}cp
-                  {character.currency.electrum ? `, ${character.currency.electrum}ep` : ""}
-                  {character.currency.platinum ? `, ${character.currency.platinum}pp` : ""}
-                </p>
-
-                <div className="flex flex-col gap-2 border-t border-border pt-3">
-                  <p className="font-semibold text-fontcolor">Unarmed Strike</p>
-                  <WeaponEntry character={character} weapon={getUnarmedStrikeWeapon(character)} index={-1} />
-                </div>
-
-                {character.weapons.length > 0 ? (
-                  <div className="flex flex-col gap-2 border-t border-border pt-3">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-fontcolor">Weapons</p>
-                      {getWeaponMasteryCount(character.classes, character.edition) > 0 && (
-                        <Badge variant="muted">
-                          Mastery {getChosenWeaponMasteryIndexes(character).length}/
-                          {getWeaponMasteryCount(character.classes, character.edition)}
-                        </Badge>
-                      )}
-                    </div>
-                    {character.weapons.map((weapon, index) => (
+              {activeTab === "actions" && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Actions</CardTitle>
+                    {getWeaponMasteryCount(character.classes, character.edition) > 0 && (
+                      <Badge variant="muted">
+                        Mastery {getChosenWeaponMasteryIndexes(character).length}/
+                        {getWeaponMasteryCount(character.classes, character.edition)}
+                      </Badge>
+                    )}
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-3 text-sm text-fontcolor-secondary">
+                    <div className="flex flex-col gap-2">
+                      <p className="font-semibold text-fontcolor">Unarmed Strike</p>
                       <WeaponEntry
-                        key={`${weapon.name}-${index}`}
                         character={character}
-                        weapon={weapon}
-                        index={index}
-                        onToggleMastery={handleToggleWeaponMastery}
+                        weapon={getUnarmedStrikeWeapon(character)}
+                        index={-1}
+                        onRoll={recordRoll}
                       />
-                    ))}
-                  </div>
-                ) : (
-                  <p>Weapons: None</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                    </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Class &amp; subclass features</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-6 text-sm text-fontcolor-secondary">
-              {character.classes.map((entry, index) => {
-                const features = combinedFeatures(entry, index, character.featureChoices);
-                const subclassPending = !entry.subclass && entry.level < entry.class.subclassLevel;
-                return (
-                  <div key={`${entry.class.name}-${index}`} className="flex flex-col gap-2">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-foreground">
-                      {entry.class.name}
-                      {entry.subclass ? ` (${entry.subclass.name})` : ""} · Level {entry.level}
-                    </p>
-                    {subclassPending && (
-                      <p className="text-xs italic">
-                        Subclass not yet chosen - available at {entry.class.name} level {entry.class.subclassLevel}.
+                    {character.weapons.length > 0 ? (
+                      <div className="flex flex-col gap-2 border-t border-border pt-3">
+                        <p className="font-semibold text-fontcolor">Weapons</p>
+                        {character.weapons.map((weapon, index) => (
+                          <WeaponEntry
+                            key={`${weapon.name}-${index}`}
+                            character={character}
+                            weapon={weapon}
+                            index={index}
+                            onToggleMastery={handleToggleWeaponMastery}
+                            onRoll={recordRoll}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="border-t border-border pt-3">No other weapons - edit this character to add some.</p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {activeTab === "spells" && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Spells</CardTitle>
+                    {character.spellsKnown.length > 0 && (
+                      <Badge variant="muted">{character.spellsKnown.length} known</Badge>
+                    )}
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-4 text-sm text-fontcolor-secondary">
+                    {spellcasting && (
+                      <p className="flex items-center gap-1 text-xs">
+                        Casts as a {spellcasting.className} using {spellcasting.abilityLabel} — Spell attack{" "}
+                        {formatModifier(spellcasting.spellAttackBonus)}, Save DC {spellcasting.spellSaveDC}
+                        <Tooltip title="Spellcasting" lines={spellcasting.lines} />
                       </p>
                     )}
-                    <div className="flex flex-col gap-2">
-                      {features.map((feature, featureIndex) => (
-                        <FeatureEntry
-                          key={`${feature.name}-${feature.level}-${featureIndex}`}
-                          feature={feature}
-                          reached={feature.level <= entry.level}
-                          edition={character.edition}
-                        />
-                      ))}
+
+                    {(spellSlots || pactMagicSlots) && (
+                      <div className="flex flex-col gap-1 border-b border-border pb-3">
+                        {formatSlots(spellSlots, "Spell slots")}
+                        {formatSlots(pactMagicSlots, "Pact Magic slots")}
+                      </div>
+                    )}
+
+                    {spellGroups.length === 0 ? (
+                      <p>
+                        {character.classes.some(
+                          (entry) => entry.class.casterProgression !== "none" || entry.subclass?.casterProgressionOverride
+                        )
+                          ? "No spells picked yet - edit this character to add some."
+                          : "This character doesn't cast spells."}
+                      </p>
+                    ) : (
+                      spellGroups.map(([level, spells]) => (
+                        <div key={level} className="flex flex-col gap-2">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-foreground">
+                            {levelLabel(level)}
+                          </p>
+                          <div className="flex flex-col gap-2">
+                            {spells.map((spell) => (
+                              <SpellEntry
+                                key={spell.name}
+                                spell={spell}
+                                spellcasting={spellcasting}
+                                concentratingOn={character.details?.concentratingOn}
+                                onToggleConcentration={handleToggleConcentration}
+                                onRoll={recordRoll}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      ))
+                    )}
+
+                    {character.grantedSpells && character.grantedSpells.length > 0 && (
+                      <div className="flex flex-col gap-2 border-t border-border pt-3">
+                        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-foreground">
+                          Granted spells (free)
+                          <Badge variant="muted">{character.grantedSpells.length}</Badge>
+                        </p>
+                        <p className="text-xs">
+                          Always known and castable without expending a spell slot, on top of the spells above - see
+                          the granting class/subclass feature (under &quot;Features &amp; Traits&quot;) for its own
+                          free-cast limit.
+                        </p>
+                        <div className="flex flex-col gap-2">
+                          {character.grantedSpells.map((spell) => (
+                            <SpellEntry
+                              key={spell.name}
+                              spell={spell}
+                              spellcasting={spellcasting}
+                              concentratingOn={character.details?.concentratingOn}
+                              onToggleConcentration={handleToggleConcentration}
+                              onRoll={recordRoll}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {activeTab === "inventory" && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Inventory</CardTitle>
+                    {magicItemCount > 0 && <Badge variant="muted">{magicItemCount} magic item{magicItemCount === 1 ? "" : "s"}</Badge>}
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-3 text-sm text-fontcolor-secondary">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold text-fontcolor">Armor:</span>
+                      <span>
+                        {character.equippedArmor?.name ?? "Unarmored"}
+                        {character.shield ? ` + ${character.shield.name}` : ""}
+                      </span>
                     </div>
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Feats</CardTitle>
-              {character.feats.length > 0 && <Badge variant="muted">{character.feats.length}</Badge>}
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2 text-sm text-fontcolor-secondary">
-              {character.feats.length === 0 ? (
-                <p>No feats yet - edit this character to add some.</p>
-              ) : (
-                character.feats.map((feat) => <FeatEntry key={feat.name} feat={feat} />)
+                    <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+                      <span className="font-semibold text-fontcolor">Currency:</span>
+                      <Badge variant="muted">{character.currency.gold} gp</Badge>
+                      <Badge variant="muted">{character.currency.silver} sp</Badge>
+                      <Badge variant="muted">{character.currency.copper} cp</Badge>
+                      {character.currency.electrum ? <Badge variant="muted">{character.currency.electrum} ep</Badge> : null}
+                      {character.currency.platinum ? <Badge variant="muted">{character.currency.platinum} pp</Badge> : null}
+                    </div>
+
+                    <div className="flex flex-col gap-2 border-t border-border pt-3">
+                      <p className="font-semibold text-fontcolor">Magic Items</p>
+                      {character.magicItems && character.magicItems.length > 0 ? (
+                        character.magicItems.map((item, index) => (
+                          <div key={`${item.name}-${index}`} className="rounded-(--radius-sm) bg-background-darken/60 px-3 py-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-semibold text-fontcolor">
+                                {item.name}
+                                {magicItemBonusSuffix(item)}
+                              </span>
+                              <Badge variant="outline">{item.category}</Badge>
+                              <Badge variant="muted">{item.rarity}</Badge>
+                              {item.requiresAttunement && <Badge variant="muted">Attunement</Badge>}
+                            </div>
+                            {item.description && <p className="mt-1 whitespace-pre-line text-xs">{item.description}</p>}
+                          </div>
+                        ))
+                      ) : (
+                        <p>No magic items yet - edit this character to add some.</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               )}
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Spells</CardTitle>
-              {character.spellsKnown.length > 0 && <Badge variant="muted">{character.spellsKnown.length} known</Badge>}
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4 text-sm text-fontcolor-secondary">
-              {spellcasting && (
-                <p className="flex items-center gap-1 text-xs">
-                  Casts as a {spellcasting.className} using {spellcasting.abilityLabel} — Spell attack{" "}
-                  {formatModifier(spellcasting.spellAttackBonus)}, Save DC {spellcasting.spellSaveDC}
-                  <Tooltip title="Spellcasting" lines={spellcasting.lines} />
-                </p>
-              )}
+              {activeTab === "features" && (
+                <div className="flex flex-col gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Class &amp; subclass features</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex flex-col gap-6 text-sm text-fontcolor-secondary">
+                      {character.classes.map((entry, index) => {
+                        const features = combinedFeatures(entry, index, character.featureChoices);
+                        const subclassPending = !entry.subclass && entry.level < entry.class.subclassLevel;
+                        return (
+                          <div key={`${entry.class.name}-${index}`} className="flex flex-col gap-2">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-foreground">
+                              {entry.class.name}
+                              {entry.subclass ? ` (${entry.subclass.name})` : ""} · Level {entry.level}
+                            </p>
+                            {subclassPending && (
+                              <p className="text-xs italic">
+                                Subclass not yet chosen - available at {entry.class.name} level {entry.class.subclassLevel}.
+                              </p>
+                            )}
+                            <div className="flex flex-col gap-2">
+                              {features.map((feature, featureIndex) => (
+                                <FeatureEntry
+                                  key={`${feature.name}-${feature.level}-${featureIndex}`}
+                                  feature={feature}
+                                  reached={feature.level <= entry.level}
+                                  edition={character.edition}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </CardContent>
+                  </Card>
 
-              {(spellSlots || pactMagicSlots) && (
-                <div className="flex flex-col gap-1 border-b border-border pb-3">
-                  {formatSlots(spellSlots, "Spell slots")}
-                  {formatSlots(pactMagicSlots, "Pact Magic slots")}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Feats</CardTitle>
+                      {character.feats.length > 0 && <Badge variant="muted">{character.feats.length}</Badge>}
+                    </CardHeader>
+                    <CardContent className="flex flex-col gap-2 text-sm text-fontcolor-secondary">
+                      {character.feats.length === 0 ? (
+                        <p>No feats yet - edit this character to add some.</p>
+                      ) : (
+                        character.feats.map((feat) => <FeatEntry key={feat.name} feat={feat} />)
+                      )}
+                    </CardContent>
+                  </Card>
                 </div>
               )}
 
-              {spellGroups.length === 0 ? (
-                <p>
-                  {character.classes.some(
-                    (entry) => entry.class.casterProgression !== "none" || entry.subclass?.casterProgressionOverride
-                  )
-                    ? "No spells picked yet - edit this character to add some."
-                    : "This character doesn't cast spells."}
-                </p>
-              ) : (
-                spellGroups.map(([level, spells]) => (
-                  <div key={level} className="flex flex-col gap-2">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-foreground">
-                      {levelLabel(level)}
-                    </p>
-                    <div className="flex flex-col gap-2">
-                      {spells.map((spell) => (
-                        <SpellEntry
-                          key={spell.name}
-                          spell={spell}
-                          spellcasting={spellcasting}
-                          concentratingOn={character.details?.concentratingOn}
-                          onToggleConcentration={handleToggleConcentration}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ))
-              )}
+              {activeTab === "background" && (
+                <div className="flex flex-col gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Background &amp; proficiencies</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex flex-col gap-2 text-sm text-fontcolor-secondary">
+                      <p>Background: {character.background.name}</p>
+                      {character.backgroundAbilityBonuses && (
+                        <p>
+                          Background bonus:{" "}
+                          {Object.entries(character.backgroundAbilityBonuses)
+                            .map(([ability, bonus]) => `${ability} +${bonus}`)
+                            .join(", ")}
+                        </p>
+                      )}
+                      {character.abilityScoreImprovements && Object.keys(character.abilityScoreImprovements).length > 0 && (
+                        <p>
+                          Ability Score Improvements:{" "}
+                          {Object.values(character.abilityScoreImprovements)
+                            .map((allocation) =>
+                              Object.entries(allocation)
+                                .map(([ability, bonus]) => `${ability} +${bonus}`)
+                                .join("/")
+                            )
+                            .join(", ")}
+                        </p>
+                      )}
+                      {/* Skill proficiencies have their own always-visible sidebar card with
+                          modifiers and "Roll" buttons - see SkillsPanel - so they're not
+                          duplicated here as a flat name list. */}
+                      <p>Saving throws: {character.savingThrowProficiencies.join(", ") || "None"}</p>
+                      <p>Languages: {character.languages.join(", ") || "None"}</p>
+                    </CardContent>
+                  </Card>
 
-              {character.grantedSpells && character.grantedSpells.length > 0 && (
-                <div className="flex flex-col gap-2 border-t border-border pt-3">
-                  <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-foreground">
-                    Granted spells (free)
-                    <Badge variant="muted">{character.grantedSpells.length}</Badge>
-                  </p>
-                  <p className="text-xs">
-                    Always known and castable without expending a spell slot, on top of the spells above - see the
-                    granting class/subclass feature (under &quot;Class &amp; subclass features&quot;) for its own
-                    free-cast limit.
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    {character.grantedSpells.map((spell) => (
-                      <SpellEntry
-                        key={spell.name}
-                        spell={spell}
-                        spellcasting={spellcasting}
-                        concentratingOn={character.details?.concentratingOn}
-                        onToggleConcentration={handleToggleConcentration}
-                      />
-                    ))}
-                  </div>
+                  {hasCharacterDetails(character.details) && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Character details</CardTitle>
+                      </CardHeader>
+                      <CardContent className="flex flex-col gap-2 text-sm text-fontcolor-secondary">
+                        {character.details?.playerName && <p>Player: {character.details.playerName}</p>}
+                        {character.details?.flavor?.personalityTraits && (
+                          <p>
+                            <span className="font-semibold text-fontcolor">Personality traits:</span>{" "}
+                            {character.details.flavor.personalityTraits}
+                          </p>
+                        )}
+                        {character.details?.flavor?.ideals && (
+                          <p>
+                            <span className="font-semibold text-fontcolor">Ideals:</span> {character.details.flavor.ideals}
+                          </p>
+                        )}
+                        {character.details?.flavor?.bonds && (
+                          <p>
+                            <span className="font-semibold text-fontcolor">Bonds:</span> {character.details.flavor.bonds}
+                          </p>
+                        )}
+                        {character.details?.flavor?.flaws && (
+                          <p>
+                            <span className="font-semibold text-fontcolor">Flaws:</span> {character.details.flavor.flaws}
+                          </p>
+                        )}
+                        {character.details?.appearance && Object.values(character.details.appearance).some(Boolean) && (
+                          <p>
+                            <span className="font-semibold text-fontcolor">Appearance:</span>{" "}
+                            {Object.entries(character.details.appearance)
+                              .filter(([, value]) => value)
+                              .map(([key, value]) => `${key.charAt(0).toUpperCase()}${key.slice(1)} ${value}`)
+                              .join(", ")}
+                          </p>
+                        )}
+                        {character.details?.appearanceNotes && (
+                          <p className="whitespace-pre-line">
+                            <span className="font-semibold text-fontcolor">Physical description:</span>{" "}
+                            {character.details.appearanceNotes}
+                          </p>
+                        )}
+                        {character.details?.backstory && (
+                          <p className="whitespace-pre-line">
+                            <span className="font-semibold text-fontcolor">Backstory:</span> {character.details.backstory}
+                          </p>
+                        )}
+                        {character.details?.alliesAndOrganizations && (
+                          <p className="whitespace-pre-line">
+                            <span className="font-semibold text-fontcolor">Allies &amp; organizations:</span>{" "}
+                            {character.details.alliesAndOrganizations}
+                            {character.details.organizationSymbolName
+                              ? ` (symbol: ${character.details.organizationSymbolName})`
+                              : ""}
+                          </p>
+                        )}
+                        {character.details?.treasure && (
+                          <p className="whitespace-pre-line">
+                            <span className="font-semibold text-fontcolor">Treasure:</span> {character.details.treasure}
+                          </p>
+                        )}
+                        {character.details?.additionalFeaturesAndTraits && (
+                          <p className="whitespace-pre-line">
+                            <span className="font-semibold text-fontcolor">Additional features &amp; traits:</span>{" "}
+                            {character.details.additionalFeaturesAndTraits}
+                          </p>
+                        )}
+                        {character.details?.featuresAndTraitsNotes && (
+                          <p className="whitespace-pre-line">
+                            <span className="font-semibold text-fontcolor">Features &amp; traits notes:</span>{" "}
+                            {character.details.featuresAndTraitsNotes}
+                          </p>
+                        )}
+                        {character.details?.otherProficienciesNotes && (
+                          <p className="whitespace-pre-line">
+                            <span className="font-semibold text-fontcolor">Other proficiencies &amp; languages notes:</span>{" "}
+                            {character.details.otherProficienciesNotes}
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
               )}
-            </CardContent>
-          </Card>
-
-          {hasCharacterDetails(character.details) && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Character details</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-2 text-sm text-fontcolor-secondary">
-                {character.details?.playerName && <p>Player: {character.details.playerName}</p>}
-                {character.details?.flavor?.personalityTraits && (
-                  <p>
-                    <span className="font-semibold text-fontcolor">Personality traits:</span>{" "}
-                    {character.details.flavor.personalityTraits}
-                  </p>
-                )}
-                {character.details?.flavor?.ideals && (
-                  <p>
-                    <span className="font-semibold text-fontcolor">Ideals:</span> {character.details.flavor.ideals}
-                  </p>
-                )}
-                {character.details?.flavor?.bonds && (
-                  <p>
-                    <span className="font-semibold text-fontcolor">Bonds:</span> {character.details.flavor.bonds}
-                  </p>
-                )}
-                {character.details?.flavor?.flaws && (
-                  <p>
-                    <span className="font-semibold text-fontcolor">Flaws:</span> {character.details.flavor.flaws}
-                  </p>
-                )}
-                {character.details?.appearance && Object.values(character.details.appearance).some(Boolean) && (
-                  <p>
-                    <span className="font-semibold text-fontcolor">Appearance:</span>{" "}
-                    {Object.entries(character.details.appearance)
-                      .filter(([, value]) => value)
-                      .map(([key, value]) => `${key.charAt(0).toUpperCase()}${key.slice(1)} ${value}`)
-                      .join(", ")}
-                  </p>
-                )}
-                {character.details?.appearanceNotes && (
-                  <p className="whitespace-pre-line">
-                    <span className="font-semibold text-fontcolor">Physical description:</span>{" "}
-                    {character.details.appearanceNotes}
-                  </p>
-                )}
-                {character.details?.backstory && (
-                  <p className="whitespace-pre-line">
-                    <span className="font-semibold text-fontcolor">Backstory:</span> {character.details.backstory}
-                  </p>
-                )}
-                {character.details?.alliesAndOrganizations && (
-                  <p className="whitespace-pre-line">
-                    <span className="font-semibold text-fontcolor">Allies &amp; organizations:</span>{" "}
-                    {character.details.alliesAndOrganizations}
-                    {character.details.organizationSymbolName
-                      ? ` (symbol: ${character.details.organizationSymbolName})`
-                      : ""}
-                  </p>
-                )}
-                {character.details?.treasure && (
-                  <p className="whitespace-pre-line">
-                    <span className="font-semibold text-fontcolor">Treasure:</span> {character.details.treasure}
-                  </p>
-                )}
-                {character.details?.additionalFeaturesAndTraits && (
-                  <p className="whitespace-pre-line">
-                    <span className="font-semibold text-fontcolor">Additional features &amp; traits:</span>{" "}
-                    {character.details.additionalFeaturesAndTraits}
-                  </p>
-                )}
-                {character.details?.featuresAndTraitsNotes && (
-                  <p className="whitespace-pre-line">
-                    <span className="font-semibold text-fontcolor">Features &amp; traits notes:</span>{" "}
-                    {character.details.featuresAndTraitsNotes}
-                  </p>
-                )}
-                {character.details?.otherProficienciesNotes && (
-                  <p className="whitespace-pre-line">
-                    <span className="font-semibold text-fontcolor">Other proficiencies &amp; languages notes:</span>{" "}
-                    {character.details.otherProficienciesNotes}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          )}
+            </div>
+          </div>
 
           <div className="flex flex-wrap items-center gap-3 border-t border-border pt-6">
             <Button href={`/newCharacter/manual?edit=${character.id}`}>Edit character</Button>
@@ -694,6 +793,8 @@ export default function CharacterDetailsPage() {
           </div>
         </div>
       </Container>
+
+      <RollHistoryWidget history={rollHistory} onClear={() => setRollHistory([])} />
     </>
   );
 }
