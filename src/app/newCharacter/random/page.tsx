@@ -174,7 +174,7 @@ export default function RandomCharacterPage() {
 
                   <label className="flex flex-col gap-2">
                     <span className="text-sm font-medium text-fontcolor-secondary">Race</span>
-                    <Combobox options={ruleset ? ruleset.races.map((race) => ({ label: race.name, value: race.name })) : []}
+                    <Combobox options={ruleset ? ruleset.races.map((race) => ({ label: race.name, value: race.name })) : [{label: "None", value: "None"}]}
                               value={overrides.raceName ? { label: overrides.raceName, value: overrides.raceName } : null}
                               placeholder={ruleset ? "Search races..." : "Choose an edition first"}
                               onClear={() => setOverrides((o) => ({ ...o, raceName: undefined }))}

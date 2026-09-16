@@ -5,7 +5,7 @@ import { cn } from "@/utils/cn";
 
 type ComboboxProps<T> = {
   options: T[];
-  value: T | undefined;
+  value: T | null | undefined;
   getOptionLabel: (option: T) => string;
   getOptionValue: (option: T) => string;
   onChange: (option: T) => void;

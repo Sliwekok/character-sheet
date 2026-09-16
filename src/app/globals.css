@@ -61,3 +61,35 @@ body {
   background: var(--foreground);
   color: var(--background-darken);
 }
+
+/* Skeleton loading placeholders (see components/ui/Skeleton.tsx) - a slow
+   gold-tinted shimmer sweeping across the elevated-surface color, so route
+   `loading.tsx` screens read as "this app, mid-load" rather than a generic
+   gray flash. */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+.skeleton {
+  background-color: var(--background-elevated);
+  background-image: linear-gradient(
+    90deg,
+    var(--background-elevated) 0%,
+    rgba(245, 196, 94, 0.14) 50%,
+    var(--background-elevated) 100%
+  );
+  background-size: 400px 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background-image: none;
+  }
+}

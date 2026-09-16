@@ -6,6 +6,7 @@ export { Card, CardHeader, CardTitle, CardContent, CardFooter } from "./Card";
 export { Badge } from "./Badge";
 export { Container } from "./Container";
 export { SectionHeading } from "./SectionHeading";
+export { Skeleton, SkeletonHeading } from "./Skeleton";
 export { TextInput } from "./TextInput";
 export { Textarea } from "./Textarea";
 export { Select } from "./Select";
