@@ -32,6 +32,7 @@ import { levelLabel } from "@/components/character/wizard/SpellsStep";
 import { WeaponEntry } from "@/components/character/WeaponEntry";
 import { SpellEntry } from "@/components/character/SpellEntry";
 import { StatusPanel } from "@/components/character/StatusPanel";
+import { SkillsPanel } from "@/components/character/SkillsPanel";
 import { FeatureEntry, FeatureLike } from "@/components/character/FeatureEntry";
 import { FeatEntry } from "@/components/character/FeatEntry";
 import { PdfExportPanel } from "@/components/character/PdfExportPanel";
@@ -372,6 +373,8 @@ export default function CharacterDetailsPage() {
 
           <StatusPanel character={character} onUpdateDetails={handleUpdateDetails} />
 
+          <SkillsPanel character={character} />
+
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
@@ -399,7 +402,9 @@ export default function CharacterDetailsPage() {
                       .join(", ")}
                   </p>
                 )}
-                <p>Skills: {character.skillProficiencies.join(", ") || "None"}</p>
+                {/* Skill proficiencies now have their own always-visible card with modifiers and
+                    "Roll" buttons - see SkillsPanel - so they're no longer duplicated here as a
+                    flat name list. */}
                 <p>Saving throws: {character.savingThrowProficiencies.join(", ") || "None"}</p>
                 <p>Languages: {character.languages.join(", ") || "None"}</p>
               </CardContent>
