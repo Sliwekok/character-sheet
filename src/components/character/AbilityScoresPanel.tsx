@@ -1,9 +1,12 @@
 import {AbilityScores, Character} from "@/interfaces/Characters";
 import { Card, CardContent, CardHeader, CardTitle, Tooltip, formatModifier } from "@/components/ui";
 import { getAbilityScoreBreakdown } from "@/utils/statBreakdowns";
-import {describeDiceRoll, DiceRollResult} from "@/utils/dice";
-import {useState} from "react";
+import {describeDiceRoll, DiceRollResult, rollD20} from "@/utils/dice";
+import {MouseEvent, useState} from "react";
 import {SkillName} from "@/interfaces/Skill";
+import {isProficientInSave} from "@/utils/characterSheetHelpers";
+import {calculateProficiencyBonus} from "@/utils/calculateProficiencyBonus";
+import {cn} from "@/utils/cn";
 
 const ABILITY_LABELS: { key: keyof Character["abilityScores"]; label: string }[] = [
   { key: "strength", label: "STR" },
@@ -25,9 +28,20 @@ const ABILITY_LABELS: { key: keyof Character["abilityScores"]; label: string }[]
  * right underneath in smaller text, with the same breakdown Tooltip as
  * before for anyone who wants to see how it was assembled (race/background/
  * ASI bonuses - see utils/statBreakdowns.ts).
+ *
+ * Each tile also has a "Save" trigger underneath for that ability's saving
+ * throw - a d20 + the ability modifier, plus the proficiency bonus when
+ * `character.savingThrowProficiencies` includes it (see
+ * utils/characterSheetHelpers.ts's `isProficientInSave`), with the same
+ * filled/hollow proficiency dot SkillsPanel uses. It's a separate control
+ * from the tile's own click-to-roll ability check (the plain, non-proficient
+ * d20 + modifier every tile already rolled) rather than replacing it, since
+ * a save and a check are two different rolls a player reaches for.
  */
 export function AbilityScoresPanel({ character, onRoll }: { character: Character; onRoll: (label: string, result: DiceRollResult) => void; }) {
     const [rolled, setRolled] = useState<Partial<Record<keyof AbilityScores, DiceRollResult>>>({});
+    const [rolledSaves, setRolledSaves] = useState<Partial<Record<keyof AbilityScores, DiceRollResult>>>({});
+    const proficiencyBonus = calculateProficiencyBonus(character);
 
     function rollAbilityScore(abilityScore: keyof AbilityScores): DiceRollResult {
         const breakdown = getAbilityScoreBreakdown(character, abilityScore);
@@ -45,6 +59,17 @@ export function AbilityScoresPanel({ character, onRoll }: { character: Character
         return result;
     }
 
+    function rollSavingThrow(abilityScore: keyof AbilityScores, event: MouseEvent): DiceRollResult {
+        event.stopPropagation();
+        const breakdown = getAbilityScoreBreakdown(character, abilityScore);
+        const saveBonus = breakdown.modifier + (isProficientInSave(character, abilityScore) ? proficiencyBonus : 0);
+        const result = rollD20(saveBonus);
+        onRoll(`${abilityScore} save`, result);
+        setRolledSaves((current) => ({ ...current, [abilityScore]: result }));
+
+        return result;
+    }
+
   return (
     <Card>
       <CardHeader>
@@ -54,6 +79,9 @@ export function AbilityScoresPanel({ character, onRoll }: { character: Character
         {ABILITY_LABELS.map(({ key, label }) => {
           const breakdown = getAbilityScoreBreakdown(character, key);
             const result = rolled[key];
+            const saveResult = rolledSaves[key];
+            const saveProficient = isProficientInSave(character, key);
+            const saveBonus = breakdown.modifier + (saveProficient ? proficiencyBonus : 0);
             return (
             <div
               key={key}
@@ -74,6 +102,26 @@ export function AbilityScoresPanel({ character, onRoll }: { character: Character
                     <span className="w-full text-[11px] text-fontcolor text-center">
                     {describeDiceRoll(result)}
                   </span>
+                )}
+                <button
+                    type="button"
+                    onClick={(event) => rollSavingThrow(key, event)}
+                    title={saveProficient ? "Proficient saving throw" : "Saving throw"}
+                    className="mt-0.5 flex items-center gap-1 text-[10px] font-medium text-fontcolor-secondary hover:text-foreground"
+                >
+                    <span
+                        aria-hidden
+                        className={cn(
+                            "h-1.5 w-1.5 shrink-0 rounded-full border",
+                            saveProficient ? "border-foreground-hover bg-foreground" : "border-border-strong"
+                        )}
+                    />
+                    Save {formatModifier(saveBonus)}
+                </button>
+                {saveResult && (
+                    <span className="w-full text-[11px] text-fontcolor-secondary text-center">
+                        {describeDiceRoll(saveResult)}
+                    </span>
                 )}
             </div>
           );
