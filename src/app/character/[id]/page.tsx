@@ -385,7 +385,7 @@ export default function CharacterDetailsPage() {
       if (item.quantity > 1) {
         inventory[index] = {
           ...item,
-          quantity: item.qty - 1,
+          quantity: item.quantity - 1,
         };
       } else {
         inventory.splice(index, 1);
