@@ -73,7 +73,7 @@ function CategoryGroup({
         type="button"
         onClick={onToggle}
         aria-expanded={!isCollapsed}
-        className="flex w-full items-center justify-between gap-2 bg-background-darken/40 px-3 py-2 text-left text-sm font-semibold text-fontcolor"
+        className="flex w-full cursor-pointer items-center justify-between gap-2 bg-background-darken/40 px-3 py-2 text-left text-sm font-semibold text-fontcolor"
       >
         <span>{label}</span>
         <span className="flex items-center gap-2">
@@ -365,7 +365,7 @@ export function Shop({ character, onClose, onAddMagicItem, onAddGearItem }: Shop
             type="button"
             onClick={onClose}
             aria-label="Close shop"
-            className="flex h-8 w-8 items-center justify-center rounded-full text-fontcolor-secondary hover:bg-background-darken hover:text-fontcolor"
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-fontcolor-secondary hover:bg-background-darken hover:text-fontcolor"
           >
             ✕
           </button>

@@ -41,7 +41,7 @@ export function actionLabel(action: string): string {
 
 function pillClass(selected: boolean): string {
   return cn(
-    "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+    "cursor-pointer rounded-full border px-3 py-1 text-xs font-medium transition-colors",
     selected
       ? "border-foreground bg-foreground text-background-darken"
       : "border-border-strong text-fontcolor-secondary hover:border-foreground"
@@ -288,7 +288,7 @@ export function SpellsStep({
                     onClick={() => toggleSpell(spell)}
                     onMouseEnter={() => setPreviewSpell(spell)}
                     className={cn(
-                      "flex items-center justify-between gap-3 rounded-(--radius-sm) border px-3 py-2 text-left text-sm transition-colors",
+                      "flex cursor-pointer items-center justify-between gap-3 rounded-(--radius-sm) border px-3 py-2 text-left text-sm transition-colors",
                       selected
                         ? "border-foreground bg-foreground/10 text-fontcolor"
                         : "border-transparent text-fontcolor-secondary hover:border-border-strong",

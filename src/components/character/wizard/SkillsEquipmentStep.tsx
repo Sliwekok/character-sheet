@@ -29,7 +29,7 @@ type SkillsEquipmentStepProps = {
 
 function pillClass(selected: boolean, disabled?: boolean): string {
   return cn(
-    "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+    "cursor-pointer rounded-full border px-3 py-1 text-xs font-medium transition-colors",
     selected
       ? "border-foreground bg-foreground text-background-darken"
       : "border-border-strong text-fontcolor-secondary hover:border-foreground",

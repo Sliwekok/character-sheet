@@ -117,7 +117,7 @@ export default function Nav() {
             type="button"
             aria-label={isOpen ? "Close menu" : "Open menu"}
             onClick={toggleNav}
-            className="flex h-10 w-10 items-center justify-center rounded-(--radius-sm) text-fontcolor md:hidden"
+            className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-(--radius-sm) text-fontcolor md:hidden"
           >
             {isOpen ? (
               <svg viewBox="0 0 122.879 122.879" className="h-6 w-6">

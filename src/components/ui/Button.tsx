@@ -10,7 +10,7 @@ type Variant = "primary" | "secondary" | "ghost" | "danger" | "accent";
 type Size = "sm" | "md" | "lg";
 
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-(--radius-lg) font-medium " +
+  "inline-flex items-center justify-center gap-2 rounded-(--radius-lg) font-medium cursor-pointer " +
   "transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 " +
   "focus-visible:outline-foreground disabled:opacity-50 disabled:pointer-events-none";
 
@@ -21,7 +21,7 @@ const variants: Record<Variant, string> = {
   ghost:
     "text-fontcolor-secondary hover:text-fontcolor hover:bg-background-elevated",
   danger:
-    "bg-foreground-danger hover:bg-foreground-danger/90 text-fontcolor-secondary ml-auto cursor-pointer",
+    "bg-foreground-danger hover:bg-foreground-danger/90 text-fontcolor-secondary ml-auto",
   /** Colorful call-out variant - used for special/situational actions like a Weapon Mastery follow-up roll, to stand out from the plain "secondary" buttons around it. */
   accent:
     "border border-foreground-hover/60 bg-foreground/20 text-foreground hover:bg-foreground/35",

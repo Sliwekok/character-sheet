@@ -51,8 +51,8 @@ export function Combobox<T>({
     singleValue: () => "text-fontcolor",
     indicatorsContainer: () => "text-fontcolor-secondary",
     indicatorSeparator: () => "bg-border-strong",
-    dropdownIndicator: () => "text-fontcolor-secondary hover:text-fontcolor",
-    clearIndicator: () => "text-fontcolor-secondary hover:text-fontcolor",
+    dropdownIndicator: () => "cursor-pointer text-fontcolor-secondary hover:text-fontcolor",
+    clearIndicator: () => "cursor-pointer text-fontcolor-secondary hover:text-fontcolor",
     menu: () =>
       "mt-1 overflow-hidden rounded-(--radius) border border-border-strong bg-background-darken shadow-lg",
     menuList: () => "py-1",

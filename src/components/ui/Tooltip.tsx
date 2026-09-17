@@ -192,7 +192,7 @@ export function Tooltip({ title, lines, children, className, trigger, triggerCla
         <button
           type="button"
           aria-label={title ? `About ${title}` : "More information"}
-          className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-border-strong text-[10px] font-bold not-italic leading-none text-fontcolor-secondary transition-colors hover:border-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground select-none"
+          className="flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border-strong text-[10px] font-bold not-italic leading-none text-fontcolor-secondary transition-colors hover:border-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground select-none"
           {...sharedTriggerHandlers}
         >
           i

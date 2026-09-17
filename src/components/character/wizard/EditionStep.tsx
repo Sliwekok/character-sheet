@@ -38,7 +38,7 @@ export function EditionStep({ edition, onSelect }: EditionStepProps) {
             key={option.value}
             type="button"
             onClick={() => onSelect(option.value)}
-            className="text-left"
+            className="cursor-pointer text-left"
           >
             <Card
               className={cn(

@@ -136,7 +136,7 @@ export function AbilityScoresStep({
             type="button"
             onClick={() => onChange(abilityScoreStateForMethod(method.value))}
             className={cn(
-              "flex flex-col gap-1 rounded-(--radius) border px-4 py-3 text-left transition-colors",
+              "flex cursor-pointer flex-col gap-1 rounded-(--radius) border px-4 py-3 text-left transition-colors",
               state.method === method.value
                 ? "border-foreground bg-background-elevated/60"
                 : "border-border-strong hover:border-foreground"
@@ -152,7 +152,7 @@ export function AbilityScoresStep({
         <button
           type="button"
           onClick={() => onChange({ method: "roll", scores: state.scores, unassignedPool: rollAbilityScoreSet() })}
-          className="w-fit rounded-(--radius) border border-border-strong px-4 py-2 text-sm text-fontcolor hover:border-foreground"
+          className="w-fit cursor-pointer rounded-(--radius) border border-border-strong px-4 py-2 text-sm text-fontcolor hover:border-foreground"
         >
           🎲 Reroll all six
         </button>
@@ -207,7 +207,7 @@ export function AbilityScoresStep({
                 <button
                   type="button"
                   onClick={() => adjustPointBuy(key, -1)}
-                  className="flex h-7 w-7 items-center justify-center rounded-full border border-border-strong text-fontcolor hover:border-foreground"
+                  className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-border-strong text-fontcolor hover:border-foreground"
                   aria-label={`Decrease ${label}`}
                 >
                   −
@@ -221,7 +221,7 @@ export function AbilityScoresStep({
                 <button
                   type="button"
                   onClick={() => adjustPointBuy(key, 1)}
-                  className="flex h-7 w-7 items-center justify-center rounded-full border border-border-strong text-fontcolor hover:border-foreground"
+                  className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-border-strong text-fontcolor hover:border-foreground"
                   aria-label={`Increase ${label}`}
                 >
                   +
@@ -377,7 +377,7 @@ function BackgroundBonusPicker({
                     type="button"
                     onClick={() => selectTwoOneAmount(ability, 2)}
                     className={cn(
-                      "rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+                      "cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
                       currentBonus === 2
                         ? "border-foreground bg-foreground text-background-darken"
                         : "border-border-strong text-fontcolor-secondary hover:border-foreground"
@@ -389,7 +389,7 @@ function BackgroundBonusPicker({
                     type="button"
                     onClick={() => selectTwoOneAmount(ability, 1)}
                     className={cn(
-                      "rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+                      "cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
                       currentBonus === 1
                         ? "border-foreground bg-foreground text-background-darken"
                         : "border-border-strong text-fontcolor-secondary hover:border-foreground"
@@ -404,7 +404,7 @@ function BackgroundBonusPicker({
                   onClick={() => toggleOneOfThree(ability)}
                   disabled={currentBonus !== 1 && selectedCount >= 3}
                   className={cn(
-                    "rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+                    "cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
                     currentBonus === 1
                       ? "border-foreground bg-foreground text-background-darken"
                       : "border-border-strong text-fontcolor-secondary hover:border-foreground disabled:opacity-40"
@@ -492,7 +492,7 @@ function AbilityScoreImprovementPicker({
                   type="button"
                   onClick={() => togglePlusTwo(key)}
                   className={cn(
-                    "rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+                    "cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
                     currentBonus === 2
                       ? "border-foreground bg-foreground text-background-darken"
                       : "border-border-strong text-fontcolor-secondary hover:border-foreground"
@@ -505,7 +505,7 @@ function AbilityScoreImprovementPicker({
                   onClick={() => togglePlusOne(key)}
                   disabled={plusOneDisabled}
                   className={cn(
-                    "rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+                    "cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
                     currentBonus === 1
                       ? "border-foreground bg-foreground text-background-darken"
                       : "border-border-strong text-fontcolor-secondary hover:border-foreground disabled:opacity-40"

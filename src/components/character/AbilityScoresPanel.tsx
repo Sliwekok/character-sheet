@@ -85,7 +85,7 @@ export function AbilityScoresPanel({ character, onRoll }: { character: Character
             return (
             <div
               key={key}
-              className="flex flex-col items-center gap-0.5 rounded-(--radius-sm) bg-background-darken/60 px-2 py-2"
+              className="flex cursor-pointer flex-col items-center gap-0.5 rounded-(--radius-sm) bg-background-darken/60 px-2 py-2"
               onClick={() => rollAbilityScore(key)}
             >
               <span className="text-[11px] font-semibold uppercase tracking-wide text-fontcolor-secondary">
@@ -107,7 +107,7 @@ export function AbilityScoresPanel({ character, onRoll }: { character: Character
                     type="button"
                     onClick={(event) => rollSavingThrow(key, event)}
                     title={saveProficient ? "Proficient saving throw" : "Saving throw"}
-                    className="mt-0.5 flex items-center gap-1 text-[10px] font-medium text-fontcolor-secondary hover:text-foreground"
+                    className="mt-0.5 flex cursor-pointer items-center gap-1 text-[10px] font-medium text-fontcolor-secondary hover:text-foreground"
                 >
                     <span
                         aria-hidden

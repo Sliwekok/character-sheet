@@ -21,7 +21,7 @@ export function StepProgress({ steps, currentIndex, onSelect }: StepProgressProp
               type="button"
               onClick={() => onSelect(index)}
               aria-current={isCurrent ? "step" : undefined}
-              className="flex items-center gap-2 rounded-(--radius-sm) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+              className="flex cursor-pointer items-center gap-2 rounded-(--radius-sm) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
             >
               <span
                 className={cn(

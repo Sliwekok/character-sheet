@@ -21,7 +21,7 @@ function Pip({ filled, onClick, label }: { filled: boolean; onClick: () => void;
       aria-label={label}
       aria-pressed={filled}
       className={cn(
-        "h-3 w-3 shrink-0 rounded-full border transition-colors",
+        "h-3 w-3 shrink-0 cursor-pointer rounded-full border transition-colors",
         filled ? "border-foreground-hover bg-foreground" : "border-border-strong hover:border-foreground/60"
       )}
     />
@@ -140,7 +140,7 @@ export function StatusPanel({
                   type="button"
                   onClick={() => onUpdateDetails({ concentratingOn: undefined })}
                   aria-label="Stop concentrating"
-                  className="ml-1 leading-none opacity-80 hover:opacity-100"
+                  className="ml-1 cursor-pointer leading-none opacity-80 hover:opacity-100"
                 >
                   ✕
                 </button>
@@ -194,7 +194,7 @@ export function StatusPanel({
                   onClick={() => toggleCondition(condition)}
                   aria-pressed={active}
                   className={cn(
-                    "rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide transition-colors",
+                    "cursor-pointer rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide transition-colors",
                     active
                       ? "border-foreground-hover/60 bg-foreground/25 text-foreground hover:bg-foreground/40"
                       : "border-border-strong text-fontcolor-secondary hover:border-foreground/50 hover:text-foreground"

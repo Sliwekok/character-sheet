@@ -78,7 +78,7 @@ export function Alert({
           type="button"
           aria-label="Dismiss"
           onClick={onDismiss}
-          className="absolute right-4 top-4 text-fontcolor-secondary transition-colors hover:text-fontcolor"
+          className="absolute right-4 top-4 cursor-pointer text-fontcolor-secondary transition-colors hover:text-fontcolor"
         >
           ✕
         </button>
