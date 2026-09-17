@@ -50,7 +50,7 @@ export function RollHistoryWidget({ history, onClear }: { history: RollHistoryEn
               <button
                 type="button"
                 onClick={onClear}
-                className="text-xs text-fontcolor-secondary underline-offset-2 hover:text-fontcolor hover:underline"
+                className="cursor-pointer text-xs text-fontcolor-secondary underline-offset-2 hover:text-fontcolor hover:underline"
               >
                 Clear
               </button>
@@ -58,7 +58,7 @@ export function RollHistoryWidget({ history, onClear }: { history: RollHistoryEn
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Close roll history"
-                className="text-fontcolor-secondary hover:text-fontcolor"
+                className="text-fontcolor-secondary hover:text-fontcolor cursor-pointer"
               >
                 ✕
               </button>
@@ -66,7 +66,7 @@ export function RollHistoryWidget({ history, onClear }: { history: RollHistoryEn
           </div>
           <div className="flex flex-col divide-y divide-border overflow-y-auto">
             {historyReversed.map((entry) => (
-              <div key={entry.id} className="flex flex-col gap-0.5 px-4 py-2 text-xs">
+              <div key={entry.id} className="flex flex-col gap-0.5 px-4 py-2 text-xs cursor-pointer">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-semibold text-fontcolor">{entry.label}</span>
                   <span className="shrink-0 text-fontcolor-secondary">{formatRolledAt(entry.rolledAt)}</span>
@@ -83,7 +83,7 @@ export function RollHistoryWidget({ history, onClear }: { history: RollHistoryEn
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         className={cn(
-          "flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold shadow-[0_12px_30px_-16px_rgba(0,0,0,0.85)] transition-colors",
+          "cursor-pointer flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold shadow-[0_12px_30px_-16px_rgba(0,0,0,0.85)] transition-colors",
           open
             ? "border-foreground-hover bg-foreground text-background-darken"
             : "border-border-strong bg-background-elevated text-fontcolor hover:border-foreground/60"

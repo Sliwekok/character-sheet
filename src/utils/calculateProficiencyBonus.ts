@@ -33,7 +33,7 @@ export function getNextProficiencyBonus(character: Character): TooltipLine[] | f
   }
 
   return [{
-    label: `Level ${nextLevel}`,
+    label: `Next level ${nextLevel}`,
     value: `Proficiency Bonus +${nextBonus}`
   }];
 }

@@ -12,6 +12,13 @@ import { Edition } from "@/interfaces/Edition";
 import { MagicItem } from "@/interfaces/MagicItem";
 import { CharacterDetails } from "@/interfaces/CharacterDetails";
 import { HpLevelEntry, HpMethod } from "@/interfaces/Hp";
+import { GearItem } from "@/interfaces/GearItem";
+
+/** One stack of carried mundane gear (see GearItem.ts) - `quantity` lets e.g. "50 ft. of rope" or "5 rations" live as a single entry rather than several identical ones. */
+export interface InventoryEntry {
+    item: GearItem;
+    quantity: number;
+}
 
 export type AbilityScores = {
     strength: number;
@@ -108,6 +115,17 @@ export interface Character {
      * most characters start with none.
      */
     magicItems?: MagicItem[];
+    /**
+     * Mundane, non-magic gear carried/owned - rope, torches, a healer's
+     * kit, rations, an over-the-counter potion of healing, and so on (see
+     * GearItem.ts). Stored as `{ item, quantity }` stacks rather than one
+     * entry per unit, since this is exactly the stuff that stacks at the
+     * table. Populated via the Shop's "General Gear" browser
+     * (components/character/Shop.tsx). Optional/undefined for any
+     * character saved before this existed, or one that simply hasn't
+     * bought or found any gear yet - same convention as `magicItems`.
+     */
+    inventory?: InventoryEntry[];
     /**
      * The player's chosen allocation of `background.abilityScoreOptions`
      * (2024 only - see Background.ts). `abilityScores` above already has

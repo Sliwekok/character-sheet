@@ -38,10 +38,12 @@ import { FeatureEntry, FeatureLike } from "@/components/character/FeatureEntry";
 import { FeatEntry } from "@/components/character/FeatEntry";
 import { PdfExportPanel } from "@/components/character/PdfExportPanel";
 import { RollHistoryEntry, RollHistoryWidget } from "@/components/character/RollHistoryWidget";
+import { Shop } from "@/components/character/Shop";
 import { decodeFeatureChoiceSelection, featureChoiceKey, featureChoiceMaxSelections } from "@/utils/grantedSpells";
 import { Spell } from "@/interfaces/Spell";
 import { CharacterDetails } from "@/interfaces/CharacterDetails";
 import { MagicItem } from "@/interfaces/MagicItem";
+import { GearItem } from "@/interfaces/GearItem";
 import {calculateProficiencyBonus, getProficiencyBonusBreakdown} from "@/utils/calculateProficiencyBonus";
 import { DiceRollResult } from "@/utils/dice";
 import { generateId } from "@/utils/id";
@@ -227,6 +229,8 @@ export default function CharacterDetailsPage() {
   // during render - same reasoning as /home).
   const [character, setCharacter] = useState<StoredCharacter | null | undefined>(undefined);
 
+  const [showShop, setShowShop] = useState(false);
+
   useEffect(() => {
     setCharacter(loadCharacter(id) ?? null);
   }, [id]);
@@ -267,6 +271,7 @@ export default function CharacterDetailsPage() {
   const spellGroups = groupSpellsByLevel(character.spellsKnown);
   const totalSpellCount = character.spellsKnown.length + (character.grantedSpells?.length ?? 0);
   const magicItemCount = character.magicItems?.length ?? 0;
+  const gearItemCount = character.inventory?.reduce((total, entry) => total + entry.quantity, 0) ?? 0;
   const featureCount =
     character.classes.reduce((total, entry) => total + combinedFeatures(entry, 0, undefined).length, 0) +
     character.feats.length;
@@ -274,7 +279,7 @@ export default function CharacterDetailsPage() {
   const TAB_DEFINITIONS: TabItem<SheetTab>[] = [
     { key: "actions", label: "Actions" },
     { key: "spells", label: "Spells", count: totalSpellCount },
-    { key: "inventory", label: "Inventory", count: magicItemCount },
+    { key: "inventory", label: "Inventory", count: magicItemCount + gearItemCount },
     { key: "features", label: "Features & Traits", count: featureCount },
     { key: "background", label: "Background" },
   ];
@@ -333,6 +338,67 @@ export default function CharacterDetailsPage() {
   }
 
   /**
+   * Appends one magic item to `character.magicItems` and persists it
+   * immediately - the Shop's "Add" callback for its Magic Items browser
+   * (see components/character/Shop.tsx), mirroring `handleUpdateDetails`'s
+   * "update in place, then `saveCharacter`" pattern.
+   */
+  function handleAddMagicItem(item: MagicItem) {
+    setCharacter((current) => {
+      if (!current) return current;
+      return saveCharacter({ ...current, magicItems: [...(current.magicItems ?? []), item] });
+    });
+  }
+
+  /**
+   * Adds `quantity` of a mundane gear item to `character.inventory` - the
+   * Shop's "Add" callback for its General Gear browser. Stacks onto an
+   * existing entry for the same (non-custom) item rather than creating a
+   * duplicate row, so clicking "Add" on Rations a second time increments
+   * the one "Rations (1 day)" stack instead of listing it twice.
+   */
+  function handleAddGearItem(item: GearItem, quantity: number) {
+    setCharacter((current) => {
+      if (!current) return current;
+      const inventory = current.inventory ?? [];
+      const existingIndex = inventory.findIndex((entry) => entry.item.name === item.name && !item.isCustom);
+      const nextInventory =
+        existingIndex >= 0
+          ? inventory.map((entry, index) =>
+              index === existingIndex ? { ...entry, quantity: entry.quantity + quantity } : entry
+            )
+          : [...inventory, { item, quantity }];
+      return saveCharacter({ ...current, inventory: nextInventory });
+    });
+  }
+
+  /** Removes one gear stack from `character.inventory` - the "Remove" button next to each stack on the Inventory tab. */
+  function handleRemoveGearItem(index: number) {
+    setCharacter((current) => {
+      if (!current) return current;
+
+      const inventory = [...(current.inventory ?? [])];
+      const item = inventory[index];
+
+      if (!item) return current;
+
+      if (item.quantity > 1) {
+        inventory[index] = {
+          ...item,
+          quantity: item.qty - 1,
+        };
+      } else {
+        inventory.splice(index, 1);
+      }
+
+      return saveCharacter({
+        ...current,
+        inventory,
+      });
+    });
+  }
+
+  /**
    * Appends one roll to the shared history (newest first, capped at
    * `MAX_ROLL_HISTORY`) - passed as `onRoll` to every WeaponEntry/SpellEntry/
    * SkillsPanel on the page, so every "Roll ..." button feeds this one log
@@ -383,6 +449,15 @@ export default function CharacterDetailsPage() {
           This will permanently remove <span className="font-semibold text-fontcolor">{character.name}</span> - this
           can&apos;t be undone.
         </Alert>
+      )}
+
+      {showShop && (
+        <Shop
+          character={character}
+          onClose={() => setShowShop(false)}
+          onAddMagicItem={handleAddMagicItem}
+          onAddGearItem={handleAddGearItem}
+        />
       )}
 
       <Container size="2xl" className="pb-24">
@@ -572,6 +647,10 @@ export default function CharacterDetailsPage() {
                   <CardHeader>
                     <CardTitle>Inventory</CardTitle>
                     {magicItemCount > 0 && <Badge variant="muted">{magicItemCount} magic item{magicItemCount === 1 ? "" : "s"}</Badge>}
+                    {gearItemCount > 0 && <Badge variant="muted">{gearItemCount} gear item{gearItemCount === 1 ? "" : "s"}</Badge>}
+                    <div onClick={() => setShowShop(true)} className="cursor-pointer flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border-strong text-[16px] font-bold leading-none text-fontcolor-secondary select-none">
+                      <span className="relative top-[-1px]">+</span>
+                    </div>
                   </CardHeader>
                   <CardContent className="flex flex-col gap-3 text-sm text-fontcolor-secondary">
                     <div className="flex flex-wrap items-center gap-2">
@@ -610,6 +689,33 @@ export default function CharacterDetailsPage() {
                         ))
                       ) : (
                         <p>No magic items yet - edit this character to add some.</p>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col gap-2 border-t border-border pt-3">
+                      <p className="font-semibold text-fontcolor">General Gear</p>
+                      {character.inventory && character.inventory.length > 0 ? (
+                        character.inventory.map((entry, index) => (
+                          <div
+                            key={`${entry.item.name}-${index}`}
+                            className="flex flex-wrap items-center justify-between gap-2 rounded-(--radius-sm) bg-background-darken/60 px-3 py-2"
+                          >
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-semibold text-fontcolor">{entry.item.name}</span>
+                              <Badge variant="outline">{entry.item.category}</Badge>
+                              <Badge variant="muted">×{entry.quantity}</Badge>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveGearItem(index)}
+                              className="text-xs text-fontcolor-secondary underline-offset-2 hover:text-fontcolor hover:underline cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))
+                      ) : (
+                        <p>No general gear yet - use the shop to add some.</p>
                       )}
                     </div>
                   </CardContent>
