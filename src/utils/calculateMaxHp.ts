@@ -134,7 +134,7 @@ function describeLevel(entry: HpLevelEntry, className: string): StatLine {
     const rawSum = entry.dieValue + entry.conModifier;
     const clamped = rawSum < 1;
     const equation = `${entry.dieValue} ${formatEquationTerm(entry.conModifier)} = ${rawSum}`;
-    const value = clamped ? `${equation} → 1 (minimum 1 HP per level)` : equation;
+    const value = clamped ? `${equation} → 1` : equation;
 
     if (entry.isFirstLevel) {
         return { label: `${className} level ${entry.levelInClass} (first level - max hit die)`, value };
