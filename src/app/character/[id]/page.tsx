@@ -44,6 +44,8 @@ import { Spell } from "@/interfaces/Spell";
 import { CharacterDetails } from "@/interfaces/CharacterDetails";
 import { MagicItem } from "@/interfaces/MagicItem";
 import { GearItem } from "@/interfaces/GearItem";
+import { Weapon } from "@/interfaces/Weapon";
+import { Armor } from "@/interfaces/Armor";
 import {calculateProficiencyBonus, getProficiencyBonusBreakdown} from "@/utils/calculateProficiencyBonus";
 import { DiceRollResult } from "@/utils/dice";
 import { generateId } from "@/utils/id";
@@ -76,6 +78,41 @@ function magicItemBonusSuffix(item: MagicItem): string {
   if (bonuses.attackRolls) parts.push(`${formatModifier(bonuses.attackRolls)} attack`);
   if (bonuses.damageRolls) parts.push(`${formatModifier(bonuses.damageRolls)} damage`);
   return parts.length > 0 ? ` (${parts.join(", ")})` : "";
+}
+
+/**
+ * One equipped armor/shield row on the Inventory tab's Armor section (used
+ * for both `character.equippedArmor` and `character.shield`) - its
+ * category/rarity/attunement pills, magic description if any (mundane
+ * armor simply has none of these to show), and an "Unequip" control that
+ * clears the slot back to `undefined`/"Unarmored" (see `handleUnequipArmor`
+ * - there's nothing to swap TO here; replacing what's equipped happens by
+ * picking something new from the Shop's Armor browser instead).
+ */
+function ArmorEntry({ armor, onUnequip }: { armor: Armor; onUnequip: () => void }) {
+  return (
+    <div className="rounded-(--radius-sm) bg-background-darken/60 px-3 py-2">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-semibold text-fontcolor">
+            {armor.name}
+            {armor.bonus ? ` (${formatModifier(armor.bonus)} AC)` : ""}
+          </span>
+          <Badge variant="outline">{armor.category}</Badge>
+          {armor.rarity && <Badge variant="muted">{armor.rarity}</Badge>}
+          {armor.requiresAttunement && <Badge variant="muted">Attunement</Badge>}
+        </div>
+        <button
+          type="button"
+          onClick={onUnequip}
+          className="shrink-0 text-xs text-fontcolor-secondary underline-offset-2 hover:text-fontcolor hover:underline cursor-pointer"
+        >
+          Unequip
+        </button>
+      </div>
+      {armor.magicDescription && <p className="mt-1 whitespace-pre-line text-xs">{armor.magicDescription}</p>}
+    </div>
+  );
 }
 
 function formatSlots(slots: Record<number, number> | null, label: string) {
@@ -308,6 +345,29 @@ export default function CharacterDetailsPage() {
   }
 
   /**
+   * Removes one weapon (mundane or magic) from `character.weapons` and
+   * persists it immediately - the "Remove" control on each weapon in the
+   * Actions tab (see WeaponEntry's `onRemove`). Also drops `weaponIndex`
+   * from `chosenWeaponMasteryIndexes` and shifts every later index down by
+   * one to match the now-shorter array - `getChosenWeaponMasteryIndexes`
+   * (utils/weaponMastery.ts) only checks that the weapon CURRENTLY at a
+   * stored index still has a `mastery` property, not that it's the same
+   * weapon that was originally chosen, so leaving stale/shifted indexes in
+   * place could silently reassign a mastery slot to whichever weapon slides
+   * into the removed one's old position.
+   */
+  function handleRemoveWeapon(weaponIndex: number) {
+    setCharacter((current) => {
+      if (!current) return current;
+      const weapons = current.weapons.filter((_, index) => index !== weaponIndex);
+      const chosenWeaponMasteryIndexes = (current.chosenWeaponMasteryIndexes ?? [])
+        .filter((index) => index !== weaponIndex)
+        .map((index) => (index > weaponIndex ? index - 1 : index));
+      return saveCharacter({ ...current, weapons, chosenWeaponMasteryIndexes });
+    });
+  }
+
+  /**
    * Merges `patch` into `character.details` and persists it immediately -
    * the single write path behind every control on the Status card
    * (inspiration, exhaustion, death saves, conditions) below, mirroring
@@ -347,6 +407,52 @@ export default function CharacterDetailsPage() {
     setCharacter((current) => {
       if (!current) return current;
       return saveCharacter({ ...current, magicItems: [...(current.magicItems ?? []), item] });
+    });
+  }
+
+  /**
+   * Appends one magic weapon to `character.weapons` and persists it
+   * immediately - the Shop's "Add" callback for its Weapons browser (see
+   * components/character/Shop.tsx), mirroring `handleAddMagicItem`.
+   */
+  function handleAddWeapon(weapon: Weapon) {
+    setCharacter((current) => {
+      if (!current) return current;
+      return saveCharacter({ ...current, weapons: [...current.weapons, weapon] });
+    });
+  }
+
+  /**
+   * Equips one magic armor/shield and persists it immediately - the Shop's
+   * "Equip" callback for its Armor browser. A shield-category item sets
+   * `character.shield`; anything else (light/medium/heavy) sets
+   * `character.equippedArmor` - either way replacing whatever was equipped
+   * in that slot before, since this app tracks only one of each at a time
+   * (see Characters.ts).
+   */
+  function handleEquipArmor(armor: Armor) {
+    setCharacter((current) => {
+      if (!current) return current;
+      return armor.category === "shield"
+        ? saveCharacter({ ...current, shield: armor })
+        : saveCharacter({ ...current, equippedArmor: armor });
+    });
+  }
+
+  /**
+   * Unequips whichever armor/shield sits in `slot` (mundane or magic) and
+   * persists it immediately - the "Unequip" control next to each on the
+   * Inventory tab's Armor section. There's no separate "delete" for these
+   * (unlike `character.weapons`/`inventory`, they're single slots, not a
+   * list) - clearing the slot back to `undefined` (Unarmored/no shield) is
+   * the equivalent of removing it.
+   */
+  function handleUnequipArmor(slot: "armor" | "shield") {
+    setCharacter((current) => {
+      if (!current) return current;
+      return slot === "shield"
+        ? saveCharacter({ ...current, shield: undefined })
+        : saveCharacter({ ...current, equippedArmor: undefined });
     });
   }
 
@@ -456,6 +562,8 @@ export default function CharacterDetailsPage() {
           character={character}
           onClose={() => setShowShop(false)}
           onAddMagicItem={handleAddMagicItem}
+          onAddWeapon={handleAddWeapon}
+          onEquipArmor={handleEquipArmor}
           onAddGearItem={handleAddGearItem}
         />
       )}
@@ -653,12 +761,16 @@ export default function CharacterDetailsPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="flex flex-col gap-3 text-sm text-fontcolor-secondary">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold text-fontcolor">Armor:</span>
-                      <span>
-                        {character.equippedArmor?.name ?? "Unarmored"}
-                        {character.shield ? ` + ${character.shield.name}` : ""}
-                      </span>
+                    <div className="flex flex-col gap-2">
+                      <p className="font-semibold text-fontcolor">Armor</p>
+                      {character.equippedArmor ? (
+                        <ArmorEntry armor={character.equippedArmor} onUnequip={() => handleUnequipArmor("armor")} />
+                      ) : (
+                        <p>Unarmored.</p>
+                      )}
+                      {character.shield && (
+                        <ArmorEntry armor={character.shield} onUnequip={() => handleUnequipArmor("shield")} />
+                      )}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
@@ -668,6 +780,31 @@ export default function CharacterDetailsPage() {
                       <Badge variant="muted">{character.currency.copper} cp</Badge>
                       {character.currency.electrum ? <Badge variant="muted">{character.currency.electrum} ep</Badge> : null}
                       {character.currency.platinum ? <Badge variant="muted">{character.currency.platinum} pp</Badge> : null}
+                    </div>
+
+                    <div className="flex flex-col gap-2 border-t border-border pt-3">
+                      <p className="font-semibold text-fontcolor">Magic Weapons</p>
+                      {character.weapons && character.weapons.length > 0 ? (
+                          character.weapons.map((item, index) => (
+                              <div key={`${item.name}-${index}`} className="rounded-(--radius-sm) bg-background-darken/60 px-3 py-2">
+                                <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-semibold text-fontcolor">
+                                {item.name}
+                              </span>
+                                  <Badge variant="outline">{item.category}</Badge>
+                                  <Badge variant="outline">{item.type}</Badge>
+                                  <Badge variant="muted">{item.rarity}</Badge>
+                                  {item.requiresAttunement && <Badge variant="muted">Attunement</Badge>}
+                                  {item.properties && item.properties.map((property) => (
+                                      <Badge variant="muted">{property}</Badge>
+                                  ))}
+                                </div>
+                                {item.magicDescription && <p className="mt-1 whitespace-pre-line text-xs">{item.magicDescription}</p>}
+                              </div>
+                          ))
+                      ) : (
+                          <p>No magic items yet - edit this character to add some.</p>
+                      )}
                     </div>
 
                     <div className="flex flex-col gap-2 border-t border-border pt-3">

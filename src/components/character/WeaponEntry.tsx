@@ -47,6 +47,13 @@ type RolledResult = { label: string; result: DiceRollResult };
  * is how a checkbox change gets persisted by the parent page (it calls
  * `toggleWeaponMasteryChoice` and `saveCharacter`); omit it to render this
  * component read-only (no checkbox at all), e.g. on a print/preview view.
+ *
+ * A magic weapon (see the magic-item fields on Weapon.ts) also gets its
+ * rarity/attunement pills and its `magicDescription` text under the damage
+ * line, and - only when `onRemove` is supplied - a "Remove" control next to
+ * its name. `onRemove` is omitted for the synthetic Unarmed Strike entry
+ * (see `getUnarmedStrikeWeapon`), which isn't a real entry in
+ * `character.weapons` and so has nothing to remove.
  */
 export function WeaponEntry({
   character,
@@ -54,6 +61,7 @@ export function WeaponEntry({
   index,
   onToggleMastery,
   onRoll,
+  onRemove,
 }: {
   character: Character;
   weapon: Weapon;
@@ -61,6 +69,8 @@ export function WeaponEntry({
   onToggleMastery?: (index: number) => void;
   /** Called with a human-readable label and the roll result every time one of this weapon's "Roll ..." buttons is used, on top of the inline result already shown below - feeds the page's shared Roll History widget (see RollHistoryWidget.tsx). Omit to render read-only for history purposes (the inline result still shows either way). */
   onRoll?: (label: string, result: DiceRollResult) => void;
+  /** Called with `index` when this weapon's "Remove" control is clicked - deletes it from `character.weapons`. Omit to render without that control (read-only, or the synthetic Unarmed Strike). */
+  onRemove?: (index: number) => void;
 }) {
   const [useVersatile, setUseVersatile] = useState(false);
   const [rolled, setRolled] = useState<RolledResult | null>(null);
@@ -104,46 +114,63 @@ export function WeaponEntry({
 
   return (
     <div className="rounded-(--radius-sm) bg-background-darken/60 px-3 py-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="font-semibold text-fontcolor">{weapon.name}</span>
-        <Badge variant="outline">{weapon.category}</Badge>
-        <Badge variant="muted">{weapon.type}</Badge>
-        {weapon.mastery && masteryEffect && (
-          <Tooltip
-            title={`${weapon.mastery} (Weapon Mastery)`}
-            lines={masteryLines}
-            trigger={
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors",
-                  isMasteryActive
-                    ? "border-foreground-hover/60 bg-foreground/25 text-foreground hover:bg-foreground/40"
-                    : masteryUsableAtAll
-                      ? "border-border-strong text-fontcolor-secondary hover:border-foreground/50 hover:text-foreground"
-                      : "border-border-strong bg-background-darken text-fontcolor-secondary"
-                )}
-              >
-                {weapon.mastery}
-              </span>
-            }
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-semibold text-fontcolor">{weapon.name}</span>
+          <Badge variant="outline">{weapon.category}</Badge>
+          <Badge variant="muted">{weapon.type}</Badge>
+          {weapon.rarity && <Badge variant="muted">{weapon.rarity}</Badge>}
+          {weapon.requiresAttunement && <Badge variant="muted">Attunement</Badge>}
+          {weapon.mastery && masteryEffect && (
+            <Tooltip
+              title={`${weapon.mastery} (Weapon Mastery)`}
+              lines={masteryLines}
+              trigger={
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors",
+                    isMasteryActive
+                      ? "border-foreground-hover/60 bg-foreground/25 text-foreground hover:bg-foreground/40"
+                      : masteryUsableAtAll
+                        ? "border-border-strong text-fontcolor-secondary hover:border-foreground/50 hover:text-foreground"
+                        : "border-border-strong bg-background-darken text-fontcolor-secondary"
+                  )}
+                >
+                  {weapon.mastery}
+                </span>
+              }
+            >
+              <p>{masteryEffect.description}</p>
+              {!masteryUsableAtAll && (
+                <p className="mt-2 text-[11px] italic">
+                  Not usable right now - Weapon Mastery is a 2024-rules mechanic, and this character has no mastery
+                  slots (2014 rules, or no class levels that grant one yet).
+                </p>
+              )}
+              {masteryUsableAtAll && !isMasteryActive && (
+                <p className="mt-2 text-[11px] italic">
+                  Not currently one of this character&apos;s {masteryCap} chosen weapon
+                  {masteryCap === 1 ? "" : "s"} - use the checkbox below to assign a mastery slot to it.
+                </p>
+              )}
+            </Tooltip>
+          )}
+          {!attack.proficient && <Badge variant="muted">Not proficient</Badge>}
+        </div>
+        {onRemove && (
+          <button
+            type="button"
+            onClick={() => onRemove(index)}
+            className="shrink-0 text-xs text-fontcolor-secondary underline-offset-2 hover:text-fontcolor hover:underline cursor-pointer"
           >
-            <p>{masteryEffect.description}</p>
-            {!masteryUsableAtAll && (
-              <p className="mt-2 text-[11px] italic">
-                Not usable right now - Weapon Mastery is a 2024-rules mechanic, and this character has no mastery
-                slots (2014 rules, or no class levels that grant one yet).
-              </p>
-            )}
-            {masteryUsableAtAll && !isMasteryActive && (
-              <p className="mt-2 text-[11px] italic">
-                Not currently one of this character&apos;s {masteryCap} chosen weapon
-                {masteryCap === 1 ? "" : "s"} - use the checkbox below to assign a mastery slot to it.
-              </p>
-            )}
-          </Tooltip>
+            Remove
+          </button>
         )}
-        {!attack.proficient && <Badge variant="muted">Not proficient</Badge>}
       </div>
+
+      {weapon.magicDescription && (
+        <p className="mt-1 whitespace-pre-line text-xs text-fontcolor-secondary">{weapon.magicDescription}</p>
+      )}
 
       <p className="mt-1 text-xs">
         {weapon.damage.dice} {weapon.damage.type}

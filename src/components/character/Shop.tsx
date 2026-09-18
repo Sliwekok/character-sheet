@@ -4,14 +4,21 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Character } from "@/interfaces/Characters";
 import { MagicItem, MagicItemCategory, MagicItemRarity } from "@/interfaces/MagicItem";
 import { GearItem, GearCategory } from "@/interfaces/GearItem";
+import { Weapon, WeaponCategory } from "@/interfaces/Weapon";
+import { Armor, ArmorCategory } from "@/interfaces/Armor";
 import { GEAR_ITEMS } from "@/data/gear/GearItems";
-import { Badge, Button, Select, Tabs, TextInput, type TabItem } from "@/components/ui";
+import { Badge, Button, Select, Tabs, TextInput, Tooltip, type TabItem } from "@/components/ui";
+import { cn } from "@/utils/cn";
 
 type ShopProps = {
   character: Character;
   onClose: () => void;
   /** Appends one non-armor/weapon magic item to `Character.magicItems` (see MagicItem.ts). */
   onAddMagicItem: (item: MagicItem) => void;
+  /** Appends one magic weapon to `Character.weapons` (see Weapon.ts). */
+  onAddWeapon: (weapon: Weapon) => void;
+  /** Equips one magic armor/shield - sets `Character.shield` for a shield, or `Character.equippedArmor` for anything else, replacing whatever was equipped there before (see Armor.ts). */
+  onEquipArmor: (armor: Armor) => void;
   /** Adds `quantity` of a mundane gear item to `Character.inventory`, stacking onto an existing entry of the same item rather than duplicating it. */
   onAddGearItem: (item: GearItem, quantity: number) => void;
 };
@@ -31,6 +38,10 @@ const MAGIC_CATEGORIES: MagicItemCategory[] = [
 const RARITIES: MagicItemRarity[] = ["common", "uncommon", "rare", "very rare", "legendary", "artifact", "varies"];
 
 const GEAR_CATEGORIES: GearCategory[] = ["adventuring gear", "tool", "consumable", "container", "ammunition", "trade good"];
+
+const WEAPON_CATEGORIES: WeaponCategory[] = ["simple", "martial"];
+
+const ARMOR_CATEGORIES: ArmorCategory[] = ["light", "medium", "heavy", "shield"];
 
 function capitalize(word: string): string {
   return word.charAt(0).toUpperCase() + word.slice(1);
@@ -55,12 +66,12 @@ function groupByCategory<T, C extends string>(items: T[], getCategory: (item: T)
  * to scroll past every ring and wand first.
  */
 function CategoryGroup({
-  label,
-  count,
-  isCollapsed,
-  onToggle,
-  children,
-}: {
+                         label,
+                         count,
+                         isCollapsed,
+                         onToggle,
+                         children,
+                       }: {
   label: string;
   count: number;
   isCollapsed: boolean;
@@ -68,21 +79,42 @@ function CategoryGroup({
   children: ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-(--radius) border border-border">
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={!isCollapsed}
-        className="flex w-full cursor-pointer items-center justify-between gap-2 bg-background-darken/40 px-3 py-2 text-left text-sm font-semibold text-fontcolor"
-      >
-        <span>{label}</span>
-        <span className="flex items-center gap-2">
+      <div className="overflow-hidden rounded-(--radius) border border-border">
+        <button
+            type="button"
+            onClick={onToggle}
+            aria-expanded={!isCollapsed}
+            className="flex w-full cursor-pointer items-center justify-between gap-2 bg-background-darken/40 px-3 py-2 text-left text-sm font-semibold text-fontcolor"
+        >
+          <span>{label}</span>
+          <span className="flex items-center gap-2">
           <Badge variant="muted">{count}</Badge>
           <span className="text-fontcolor-secondary">{isCollapsed ? "▸" : "▾"}</span>
         </span>
-      </button>
-      {!isCollapsed && <div className="flex flex-col divide-y divide-border border-t border-border">{children}</div>}
-    </div>
+        </button>
+        {!isCollapsed && <div className="flex flex-col divide-y divide-border border-t border-border">{children}</div>}
+      </div>
+  );
+}
+
+/**
+ * A 2-line-clamped description/flavor-text paragraph, shared by every
+ * browser below, that reveals the FULL text in a hover/click panel (see
+ * `Tooltip`) rather than just cutting it off - clamping alone hid the rest
+ * of a long magic item/weapon/armor description with no way to read it
+ * without leaving the Shop to look it up elsewhere.
+ */
+function ClampedText({ text, className }: { text: string; className?: string }) {
+  return (
+      <Tooltip className="w-full" triggerClassName="block w-full text-left">
+        <Tooltip
+            className="w-full"
+            triggerClassName="block w-full text-left"
+            trigger={<p className={cn("line-clamp-2 cursor-help", className)}>{text}</p>}
+        >
+          <p className="whitespace-pre-line">{text}</p>
+        </Tooltip>
+      </Tooltip>
   );
 }
 
@@ -117,16 +149,16 @@ function MagicItemsBrowser({ onAdd }: { onAdd: (item: MagicItem) => void }) {
     if (!items) return [];
     const query = search.trim().toLowerCase();
     return items.filter(
-      (item) =>
-        (categoryFilter === "all" || item.category === categoryFilter) &&
-        (rarityFilter === "all" || item.rarity === rarityFilter) &&
-        (query === "" || item.name.toLowerCase().includes(query))
+        (item) =>
+            (categoryFilter === "all" || item.category === categoryFilter) &&
+            (rarityFilter === "all" || item.rarity === rarityFilter) &&
+            (query === "" || item.name.toLowerCase().includes(query))
     );
   }, [items, search, categoryFilter, rarityFilter]);
 
   const grouped = useMemo(
-    () => groupByCategory(filtered, (item) => item.category, MAGIC_CATEGORIES),
-    [filtered]
+      () => groupByCategory(filtered, (item) => item.category, MAGIC_CATEGORIES),
+      [filtered]
   );
 
   function toggleGroup(category: MagicItemCategory) {
@@ -139,77 +171,339 @@ function MagicItemsBrowser({ onAdd }: { onAdd: (item: MagicItem) => void }) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <TextInput
-        value={search}
-        onChange={(event) => setSearch(event.target.value)}
-        placeholder="Search magic items..."
-      />
+      <div className="flex flex-col gap-3">
+        <TextInput
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search magic items..."
+        />
 
-      <div className="grid grid-cols-2 gap-2">
-        <Select
-          value={categoryFilter}
-          onChange={(event) => setCategoryFilter(event.target.value as MagicItemCategory | "all")}
-        >
-          <option value="all">All types</option>
-          {MAGIC_CATEGORIES.map((category) => (
-            <option key={category} value={category}>
-              {capitalize(category)}
-            </option>
-          ))}
-        </Select>
-        <Select value={rarityFilter} onChange={(event) => setRarityFilter(event.target.value as MagicItemRarity | "all")}>
-          <option value="all">All rarities</option>
-          {RARITIES.map((rarity) => (
-            <option key={rarity} value={rarity}>
-              {capitalize(rarity)}
-            </option>
-          ))}
-        </Select>
-      </div>
-
-      {items === null ? (
-        <p className="text-xs text-fontcolor-secondary">Loading magic item compendium...</p>
-      ) : (
-        <>
-          <p className="text-xs text-fontcolor-secondary">
-            {filtered.length} of {items.length} match{categoryFilter !== "all" || rarityFilter !== "all" || search ? " these filters" : ""}.
-          </p>
-          <div className="flex flex-col gap-2">
-            {grouped.length === 0 && (
-              <p className="text-sm text-fontcolor-secondary">No matches - try a different search or filter.</p>
-            )}
-            {grouped.map(([category, groupItems]) => (
-              <CategoryGroup
-                key={category}
-                label={capitalize(category)}
-                count={groupItems.length}
-                isCollapsed={collapsed.has(category)}
-                onToggle={() => toggleGroup(category)}
-              >
-                {groupItems.map((item, index) => (
-                  <div key={`${item.name}-${index}`} className="flex items-start justify-between gap-2 px-3 py-2">
-                    <div className="flex min-w-0 flex-col gap-1">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="text-sm font-medium text-fontcolor">{item.name}</span>
-                        <Badge variant="muted">{capitalize(item.rarity)}</Badge>
-                        {item.requiresAttunement && <Badge variant="outline">Attunement</Badge>}
-                      </div>
-                      {item.description && (
-                        <p className="line-clamp-2 text-xs text-fontcolor-secondary">{item.description}</p>
-                      )}
-                    </div>
-                    <Button size="sm" variant="secondary" onClick={() => onAdd(item)} className="shrink-0">
-                      Add
-                    </Button>
-                  </div>
-                ))}
-              </CategoryGroup>
+        <div className="grid grid-cols-2 gap-2">
+          <Select
+              value={categoryFilter}
+              onChange={(event) => setCategoryFilter(event.target.value as MagicItemCategory | "all")}
+          >
+            <option value="all">All types</option>
+            {MAGIC_CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {capitalize(category)}
+                </option>
             ))}
-          </div>
-        </>
-      )}
-    </div>
+          </Select>
+          <Select value={rarityFilter} onChange={(event) => setRarityFilter(event.target.value as MagicItemRarity | "all")}>
+            <option value="all">All rarities</option>
+            {RARITIES.map((rarity) => (
+                <option key={rarity} value={rarity}>
+                  {capitalize(rarity)}
+                </option>
+            ))}
+          </Select>
+        </div>
+
+        {items === null ? (
+            <p className="text-xs text-fontcolor-secondary">Loading magic item compendium...</p>
+        ) : (
+            <>
+              <p className="text-xs text-fontcolor-secondary">
+                {filtered.length} of {items.length} match{categoryFilter !== "all" || rarityFilter !== "all" || search ? " these filters" : ""}.
+              </p>
+              <div className="flex flex-col gap-2">
+                {grouped.length === 0 && (
+                    <p className="text-sm text-fontcolor-secondary">No matches - try a different search or filter.</p>
+                )}
+                {grouped.map(([category, groupItems]) => (
+                    <CategoryGroup
+                        key={category}
+                        label={capitalize(category)}
+                        count={groupItems.length}
+                        isCollapsed={collapsed.has(category)}
+                        onToggle={() => toggleGroup(category)}
+                    >
+                      {groupItems.map((item, index) => (
+                          <div key={`${item.name}-${index}`} className="flex items-start justify-between gap-2 px-3 py-2">
+                            <div className="flex min-w-0 flex-col gap-1">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="text-sm font-medium text-fontcolor">{item.name}</span>
+                                <Badge variant="muted">{capitalize(item.rarity)}</Badge>
+                                {item.requiresAttunement && <Badge variant="outline">Attunement</Badge>}
+                              </div>
+                              {item.description && (
+                                  <p className="line-clamp-2 text-xs text-fontcolor-secondary">{item.description}</p>
+                              )}
+                            </div>
+                            <Button size="sm" variant="secondary" onClick={() => onAdd(item)} className="shrink-0">
+                              Add
+                            </Button>
+                          </div>
+                      ))}
+                    </CategoryGroup>
+                ))}
+              </div>
+            </>
+        )}
+      </div>
+  );
+}
+
+/**
+ * "Weapons" tab - the magic-weapon counterpart to the magic item browser
+ * above: named items like "Flame Tongue Longsword" or "+1 Longsword" (see
+ * data/magicItems/MagicWeapons.ts), searchable/filterable by weapon
+ * category and rarity, for one-click adding to `Character.weapons`. Loads
+ * the same `@/data/magicItems` barrel as `MagicItemsBrowser` (its
+ * `MAGIC_WEAPONS` export rather than `MAGIC_ITEMS`), so switching to this
+ * tab after the Magic Items tab is already warm doesn't re-fetch anything.
+ */
+function WeaponsBrowser({ onAdd }: { onAdd: (weapon: Weapon) => void }) {
+  const [items, setItems] = useState<Weapon[] | null>(null);
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<WeaponCategory | "all">("all");
+  const [rarityFilter, setRarityFilter] = useState<MagicItemRarity | "all">("all");
+  const [collapsed, setCollapsed] = useState<Set<WeaponCategory>>(new Set());
+
+  useEffect(() => {
+    let cancelled = false;
+    import("@/data/magicItems").then((mod) => {
+      if (!cancelled) setItems(mod.MAGIC_WEAPONS);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const filtered = useMemo(() => {
+    if (!items) return [];
+    const query = search.trim().toLowerCase();
+    return items.filter(
+        (item) =>
+            (categoryFilter === "all" || item.category === categoryFilter) &&
+            (rarityFilter === "all" || item.rarity === rarityFilter) &&
+            (query === "" || item.name.toLowerCase().includes(query))
+    );
+  }, [items, search, categoryFilter, rarityFilter]);
+
+  const grouped = useMemo(
+      () => groupByCategory(filtered, (item) => item.category, WEAPON_CATEGORIES),
+      [filtered]
+  );
+
+  function toggleGroup(category: WeaponCategory) {
+    setCollapsed((current) => {
+      const next = new Set(current);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
+  }
+
+  return (
+      <div className="flex flex-col gap-3">
+        <TextInput
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search magic weapons..."
+        />
+
+        <div className="grid grid-cols-2 gap-2">
+          <Select
+              value={categoryFilter}
+              onChange={(event) => setCategoryFilter(event.target.value as WeaponCategory | "all")}
+          >
+            <option value="all">All types</option>
+            {WEAPON_CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {capitalize(category)}
+                </option>
+            ))}
+          </Select>
+          <Select value={rarityFilter} onChange={(event) => setRarityFilter(event.target.value as MagicItemRarity | "all")}>
+            <option value="all">All rarities</option>
+            {RARITIES.map((rarity) => (
+                <option key={rarity} value={rarity}>
+                  {capitalize(rarity)}
+                </option>
+            ))}
+          </Select>
+        </div>
+
+        {items === null ? (
+            <p className="text-xs text-fontcolor-secondary">Loading magic weapon compendium...</p>
+        ) : (
+            <>
+              <p className="text-xs text-fontcolor-secondary">
+                {filtered.length} of {items.length} match{categoryFilter !== "all" || rarityFilter !== "all" || search ? " these filters" : ""}.
+              </p>
+              <div className="flex flex-col gap-2">
+                {grouped.length === 0 && (
+                    <p className="text-sm text-fontcolor-secondary">No matches - try a different search or filter.</p>
+                )}
+                {grouped.map(([category, groupItems]) => (
+                    <CategoryGroup
+                        key={category}
+                        label={capitalize(category)}
+                        count={groupItems.length}
+                        isCollapsed={collapsed.has(category)}
+                        onToggle={() => toggleGroup(category)}
+                    >
+                      {groupItems.map((item, index) => (
+                          <div key={`${item.name}-${index}`} className="flex items-start justify-between gap-2 px-3 py-2">
+                            <div className="flex min-w-0 flex-col gap-1">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="text-sm font-medium text-fontcolor">{item.name}</span>
+                                <Badge variant="outline">{item.type}</Badge>
+                                {item.rarity && <Badge variant="muted">{capitalize(item.rarity)}</Badge>}
+                                {item.requiresAttunement && <Badge variant="outline">Attunement</Badge>}
+                              </div>
+                              <p className="text-xs text-fontcolor-secondary">
+                                {item.damage.dice} {item.damage.type}
+                                {item.bonus ? ` · ${item.bonus > 0 ? "+" : ""}${item.bonus} to attack/damage` : ""}
+                              </p>
+                              {item.magicDescription && (
+                                  <p className="line-clamp-2 text-xs text-fontcolor-secondary">{item.magicDescription}</p>
+                              )}
+                            </div>
+                            <Button size="sm" variant="secondary" onClick={() => onAdd(item)} className="shrink-0">
+                              Add
+                            </Button>
+                          </div>
+                      ))}
+                    </CategoryGroup>
+                ))}
+              </div>
+            </>
+        )}
+      </div>
+  );
+}
+
+/**
+ * "Armor" tab - the magic-armor/shield counterpart to the magic item
+ * browser above: named items like "Adamantine Splint" or "+1 Shield" (see
+ * data/magicItems/MagicArmor.ts), searchable/filterable by armor category
+ * and rarity. Unlike the other browsers, "Equip" doesn't append to a list -
+ * this app tracks only one worn armor and one shield at a time (see
+ * `Character.equippedArmor`/`shield`) - so clicking it replaces whatever
+ * was equipped in that slot before, the same "no confirm step" tradeoff
+ * the rest of the Shop makes.
+ */
+function ArmorBrowser({ onEquip }: { onEquip: (armor: Armor) => void }) {
+  const [items, setItems] = useState<Armor[] | null>(null);
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<ArmorCategory | "all">("all");
+  const [rarityFilter, setRarityFilter] = useState<MagicItemRarity | "all">("all");
+  const [collapsed, setCollapsed] = useState<Set<ArmorCategory>>(new Set());
+
+  useEffect(() => {
+    let cancelled = false;
+    import("@/data/magicItems").then((mod) => {
+      if (!cancelled) setItems(mod.MAGIC_ARMOR);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const filtered = useMemo(() => {
+    if (!items) return [];
+    const query = search.trim().toLowerCase();
+    return items.filter(
+        (item) =>
+            (categoryFilter === "all" || item.category === categoryFilter) &&
+            (rarityFilter === "all" || item.rarity === rarityFilter) &&
+            (query === "" || item.name.toLowerCase().includes(query))
+    );
+  }, [items, search, categoryFilter, rarityFilter]);
+
+  const grouped = useMemo(
+      () => groupByCategory(filtered, (item) => item.category, ARMOR_CATEGORIES),
+      [filtered]
+  );
+
+  function toggleGroup(category: ArmorCategory) {
+    setCollapsed((current) => {
+      const next = new Set(current);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
+  }
+
+  return (
+      <div className="flex flex-col gap-3">
+        <TextInput
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search magic armor..."
+        />
+
+        <div className="grid grid-cols-2 gap-2">
+          <Select
+              value={categoryFilter}
+              onChange={(event) => setCategoryFilter(event.target.value as ArmorCategory | "all")}
+          >
+            <option value="all">All types</option>
+            {ARMOR_CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {capitalize(category)}
+                </option>
+            ))}
+          </Select>
+          <Select value={rarityFilter} onChange={(event) => setRarityFilter(event.target.value as MagicItemRarity | "all")}>
+            <option value="all">All rarities</option>
+            {RARITIES.map((rarity) => (
+                <option key={rarity} value={rarity}>
+                  {capitalize(rarity)}
+                </option>
+            ))}
+          </Select>
+        </div>
+
+        {items === null ? (
+            <p className="text-xs text-fontcolor-secondary">Loading magic armor compendium...</p>
+        ) : (
+            <>
+              <p className="text-xs text-fontcolor-secondary">
+                {filtered.length} of {items.length} match{categoryFilter !== "all" || rarityFilter !== "all" || search ? " these filters" : ""}. Equipping replaces the current armor/shield.
+              </p>
+              <div className="flex flex-col gap-2">
+                {grouped.length === 0 && (
+                    <p className="text-sm text-fontcolor-secondary">No matches - try a different search or filter.</p>
+                )}
+                {grouped.map(([category, groupItems]) => (
+                    <CategoryGroup
+                        key={category}
+                        label={capitalize(category)}
+                        count={groupItems.length}
+                        isCollapsed={collapsed.has(category)}
+                        onToggle={() => toggleGroup(category)}
+                    >
+                      {groupItems.map((item, index) => (
+                          <div key={`${item.name}-${index}`} className="flex items-start justify-between gap-2 px-3 py-2">
+                            <div className="flex min-w-0 flex-col gap-1">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="text-sm font-medium text-fontcolor">{item.name}</span>
+                                {item.rarity && <Badge variant="muted">{capitalize(item.rarity)}</Badge>}
+                                {item.requiresAttunement && <Badge variant="outline">Attunement</Badge>}
+                              </div>
+                              <p className="text-xs text-fontcolor-secondary">
+                                AC {item.baseAC}
+                                {item.bonus ? ` (${item.bonus > 0 ? "+" : ""}${item.bonus})` : ""}
+                              </p>
+                              {item.magicDescription && (
+                                  <p className="line-clamp-2 text-xs text-fontcolor-secondary">{item.magicDescription}</p>
+                              )}
+                            </div>
+                            <Button size="sm" variant="secondary" onClick={() => onEquip(item)} className="shrink-0">
+                              Equip
+                            </Button>
+                          </div>
+                      ))}
+                    </CategoryGroup>
+                ))}
+              </div>
+            </>
+        )}
+      </div>
   );
 }
 
@@ -231,9 +525,9 @@ function GearBrowser({ onAdd }: { onAdd: (item: GearItem, quantity: number) => v
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
     return GEAR_ITEMS.filter(
-      (item) =>
-        (categoryFilter === "all" || item.category === categoryFilter) &&
-        (query === "" || item.name.toLowerCase().includes(query))
+        (item) =>
+            (categoryFilter === "all" || item.category === categoryFilter) &&
+            (query === "" || item.name.toLowerCase().includes(query))
     );
   }, [search, categoryFilter]);
 
@@ -262,124 +556,131 @@ function GearBrowser({ onAdd }: { onAdd: (item: GearItem, quantity: number) => v
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <TextInput
-        value={search}
-        onChange={(event) => setSearch(event.target.value)}
-        placeholder="Search general gear..."
-      />
+      <div className="flex flex-col gap-3">
+        <TextInput
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search general gear..."
+        />
 
-      <Select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value as GearCategory | "all")}>
-        <option value="all">All categories</option>
-        {GEAR_CATEGORIES.map((category) => (
-          <option key={category} value={category}>
-            {capitalize(category)}
-          </option>
-        ))}
-      </Select>
+        <Select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value as GearCategory | "all")}>
+          <option value="all">All categories</option>
+          {GEAR_CATEGORIES.map((category) => (
+              <option key={category} value={category}>
+                {capitalize(category)}
+              </option>
+          ))}
+        </Select>
 
-      <p className="text-xs text-fontcolor-secondary">
-        {filtered.length} of {GEAR_ITEMS.length} match{categoryFilter !== "all" || search ? " these filters" : ""}.
-      </p>
+        <p className="text-xs text-fontcolor-secondary">
+          {filtered.length} of {GEAR_ITEMS.length} match{categoryFilter !== "all" || search ? " these filters" : ""}.
+        </p>
 
-      <div className="flex flex-col gap-2">
-        {grouped.length === 0 && (
-          <p className="text-sm text-fontcolor-secondary">No matches - try a different search or filter.</p>
-        )}
-        {grouped.map(([category, groupItems]) => (
-          <CategoryGroup
-            key={category}
-            label={capitalize(category)}
-            count={groupItems.length}
-            isCollapsed={collapsed.has(category)}
-            onToggle={() => toggleGroup(category)}
-          >
-            {groupItems.map((item, index) => (
-              <div key={`${item.name}-${index}`} className="flex items-start justify-between gap-2 px-3 py-2">
-                <div className="flex min-w-0 flex-col gap-1">
-                  <span className="text-sm font-medium text-fontcolor">{item.name}</span>
-                  <div className="flex flex-wrap items-center gap-1.5 text-xs text-fontcolor-secondary">
-                    {item.cost && <span>{item.cost}</span>}
-                    {item.weight !== undefined && <span>{item.weight} lb.</span>}
-                  </div>
-                  {item.description && (
-                    <p className="line-clamp-2 text-xs text-fontcolor-secondary">{item.description}</p>
-                  )}
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <TextInput
-                    type="number"
-                    min={1}
-                    value={quantityFor(item.name)}
-                    onChange={(event) => setQuantityFor(item.name, Number(event.target.value))}
-                    className="w-14 px-2 text-center"
-                  />
-                  <Button size="sm" variant="secondary" onClick={() => handleAdd(item)}>
-                    Add
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </CategoryGroup>
-        ))}
+        <div className="flex flex-col gap-2">
+          {grouped.length === 0 && (
+              <p className="text-sm text-fontcolor-secondary">No matches - try a different search or filter.</p>
+          )}
+          {grouped.map(([category, groupItems]) => (
+              <CategoryGroup
+                  key={category}
+                  label={capitalize(category)}
+                  count={groupItems.length}
+                  isCollapsed={collapsed.has(category)}
+                  onToggle={() => toggleGroup(category)}
+              >
+                {groupItems.map((item, index) => (
+                    <div key={`${item.name}-${index}`} className="flex items-start justify-between gap-2 px-3 py-2">
+                      <div className="flex min-w-0 flex-col gap-1">
+                        <span className="text-sm font-medium text-fontcolor">{item.name}</span>
+                        <div className="flex flex-wrap items-center gap-1.5 text-xs text-fontcolor-secondary">
+                          {item.cost && <span>{item.cost}</span>}
+                          {item.weight !== undefined && <span>{item.weight} lb.</span>}
+                        </div>
+                        {item.description && (
+                            <p className="line-clamp-2 text-xs text-fontcolor-secondary">{item.description}</p>
+                        )}
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <TextInput
+                            type="number"
+                            min={1}
+                            value={quantityFor(item.name)}
+                            onChange={(event) => setQuantityFor(item.name, Number(event.target.value))}
+                            className="w-14 px-2 text-center"
+                        />
+                        <Button size="sm" variant="secondary" onClick={() => handleAdd(item)}>
+                          Add
+                        </Button>
+                      </div>
+                    </div>
+                ))}
+              </CategoryGroup>
+          ))}
+        </div>
       </div>
-    </div>
   );
 }
 
-type ShopTab = "magic" | "gear";
+type ShopTab = "magic" | "weapons" | "armor" | "gear";
 
 /**
  * Slide-in shop panel opened from the Inventory tab's "+" control (see
- * app/character/[id]/page.tsx) - two searchable, filterable, grouped
- * browsers (magic items; general/mundane gear) for quickly stocking up
- * mid-session without leaving the character sheet. Every "Add" click
- * writes straight through the callbacks below, which the page persists via
- * `saveCharacter` exactly like every other in-place edit on that page
- * (see e.g. `handleToggleWeaponMastery`) - there's no separate "confirm
- * purchase" step, matching the "fast adding" this was built for. Currency
- * isn't deducted automatically (prices are shown for reference only) -
- * the player still tracks gold spent themselves, the same as every other
+ * app/character/[id]/page.tsx) - four searchable, filterable, grouped
+ * browsers (magic items; magic weapons; magic armor/shields;
+ * general/mundane gear) for quickly stocking up mid-session without
+ * leaving the character sheet. Every "Add"/"Equip" click writes straight
+ * through the callbacks below, which the page persists via `saveCharacter`
+ * exactly like every other in-place edit on that page (see e.g.
+ * `handleToggleWeaponMastery`) - there's no separate "confirm purchase"
+ * step, matching the "fast adding" this was built for. Currency isn't
+ * deducted automatically (prices are shown for reference only) - the
+ * player still tracks gold spent themselves, the same as every other
  * manually-edited field on the Inventory tab.
  */
-export function Shop({ character, onClose, onAddMagicItem, onAddGearItem }: ShopProps) {
+export function Shop({ character, onClose, onAddMagicItem, onAddWeapon, onEquipArmor, onAddGearItem }: ShopProps) {
   const [tab, setTab] = useState<ShopTab>("magic");
 
   const magicItemCount = character.magicItems?.length ?? 0;
+  const weaponCount = character.weapons.length;
+  const armorCount = [character.equippedArmor, character.shield].filter(Boolean).length;
   const gearItemCount = character.inventory?.reduce((total, entry) => total + entry.quantity, 0) ?? 0;
 
   const tabs: TabItem<ShopTab>[] = [
     { key: "magic", label: "Magic Items", count: magicItemCount },
+    { key: "weapons", label: "Weapons", count: weaponCount },
+    { key: "armor", label: "Armor", count: armorCount },
     { key: "gear", label: "General Gear", count: gearItemCount },
   ];
 
   return (
-    <div className="fixed inset-0 z-1000 flex justify-end bg-black/50" onClick={onClose}>
-      <div
-        onClick={(event) => event.stopPropagation()}
-        className="flex h-dvh w-full max-w-md flex-col overflow-hidden border-l border-border bg-background-elevated shadow-[0_12px_30px_-16px_rgba(0,0,0,0.85)]"
-      >
-        <div className="flex items-center justify-between gap-2 border-b border-border px-5 py-4">
-          <h2 className="font-display text-lg tracking-wide text-fontcolor">Shop</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close shop"
-            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-fontcolor-secondary hover:bg-background-darken hover:text-fontcolor"
-          >
-            ✕
-          </button>
-        </div>
+      <div className="fixed inset-0 z-1000 flex justify-end bg-black/50" onClick={onClose}>
+        <div
+            onClick={(event) => event.stopPropagation()}
+            className="flex h-dvh w-full max-w-md flex-col overflow-hidden border-l border-border bg-background-elevated shadow-[0_12px_30px_-16px_rgba(0,0,0,0.85)]"
+        >
+          <div className="flex items-center justify-between gap-2 border-b border-border px-5 py-4">
+            <h2 className="font-display text-lg tracking-wide text-fontcolor">Shop</h2>
+            <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close shop"
+                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-fontcolor-secondary hover:bg-background-darken hover:text-fontcolor"
+            >
+              ✕
+            </button>
+          </div>
 
-        <div className="px-5 pt-3">
-          <Tabs tabs={tabs} active={tab} onChange={setTab} />
-        </div>
+          <div className="px-5 pt-3">
+            <Tabs tabs={tabs} active={tab} onChange={setTab} />
+          </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4">
-          {tab === "magic" && <MagicItemsBrowser onAdd={onAddMagicItem} />}
-          {tab === "gear" && <GearBrowser onAdd={onAddGearItem} />}
+          <div className="flex-1 overflow-y-auto px-5 py-4">
+            {tab === "magic" && <MagicItemsBrowser onAdd={onAddMagicItem} />}
+            {tab === "weapons" && <WeaponsBrowser onAdd={onAddWeapon} />}
+            {tab === "armor" && <ArmorBrowser onEquip={onEquipArmor} />}
+            {tab === "gear" && <GearBrowser onAdd={onAddGearItem} />}
+          </div>
         </div>
       </div>
-    </div>
   );
 }
