@@ -38,6 +38,26 @@ export default function AboutPage() {
             </p>
           </CardContent>
         </Card>
+
+        <Card className="mt-8">
+          <CardContent className="flex flex-col gap-4 text-fontcolor-secondary">
+            <p>
+              Check out also chrome extension for Roll20 that allows to pass rolls directly into your game chat!
+            </p>
+            <p>
+              You can get it here on {" "}
+              <a
+                  href="https://github.com/Sliwekok/character-sheet-extension-roll20"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground underline underline-offset-4 hover:text-foreground-hover"
+              >
+                GitHub
+              </a>
+              .
+            </p>
+          </CardContent>
+        </Card>
       </Container>
     </>
   );
