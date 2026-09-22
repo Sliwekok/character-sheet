@@ -13,6 +13,7 @@ import { areAsiSlotsComplete, getAsiSlots, pruneAsiAllocations, sumAsiAllocation
 import { classCanUseArmor, classCanUseWeapon } from "@/utils/proficiencyMatch";
 import { getSpellLimits, pruneSpellsToLimits } from "@/utils/spellcasting";
 import { areFeatureChoicesComplete, pruneFeatureChoices } from "@/utils/grantedSpells";
+import { getEquippedArmor, getEquippedShield, reconcileOwnedArmors } from "@/utils/armor";
 
 const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
 
@@ -61,6 +62,7 @@ export function createEmptyDraft(edition?: Edition): CharacterDraft {
         backgroundAbilityBonuses: {},
         abilityScoreImprovements: {},
         skillProficiencies: [],
+        ownedArmors: [],
         weapons: [],
         feats: [],
         magicItems: [],
@@ -174,8 +176,15 @@ export function draftFromCharacter(character: StoredCharacter): CharacterDraft {
         skillProficiencies: character.skillProficiencies.filter(
             (skill) => !character.background.skillProficiencies.includes(skill)
         ),
-        equippedArmor: character.equippedArmor,
-        shield: character.shield,
+        // The wizard step only ever lets the player edit one worn armor and
+        // one worn shield at a time (see `equippedArmor`/`shield`'s header
+        // comment on CharacterDraft) - `ownedArmors` carries the character's
+        // FULL armor/shield list through untouched so `finalizeDraft` can
+        // reconcile these two picks back into it without losing anything
+        // else the Shop added (see utils/armor.ts's `reconcileOwnedArmors`).
+        equippedArmor: getEquippedArmor(character),
+        shield: getEquippedShield(character),
+        ownedArmors: character.armors ?? [],
         weapons: character.weapons,
         feats: character.feats ?? [],
         magicItems: character.magicItems ?? [],
@@ -276,8 +285,7 @@ export function finalizeDraft(draft: CharacterDraft): StoredCharacter | null {
             Object.keys(draft.abilityScoreImprovements).length > 0 ? draft.abilityScoreImprovements : undefined,
         skillProficiencies: [...draft.background.skillProficiencies, ...draft.skillProficiencies],
         savingThrowProficiencies: primary.proficiencies.savingThrows,
-        equippedArmor: draft.equippedArmor,
-        shield: draft.shield,
+        armors: reconcileOwnedArmors(draft.ownedArmors, draft.equippedArmor, draft.shield),
         weapons: draft.weapons,
         magicItems: draft.magicItems.length > 0 ? draft.magicItems : undefined,
         currency: draft.currency,

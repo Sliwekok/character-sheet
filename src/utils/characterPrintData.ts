@@ -14,6 +14,7 @@ import {
   primarySpellcastingEntry,
   skillModifier,
 } from "@/utils/characterSheetHelpers";
+import { getEquippedArmor, getEquippedShield } from "@/utils/armor";
 
 /**
  * Weapon's attack-roll ability modifier: DEX for ranged weapons, the better
@@ -116,8 +117,8 @@ export function derivePrintData(character: Character) {
   ];
 
   const equipmentLines = [
-    character.equippedArmor ? character.equippedArmor.name : null,
-    character.shield ? character.shield.name : null,
+    getEquippedArmor(character)?.name ?? null,
+    getEquippedShield(character)?.name ?? null,
     ...(character.magicItems ?? []).map((item) => item.name),
   ].filter(Boolean) as string[];
 

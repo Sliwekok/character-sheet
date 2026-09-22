@@ -46,6 +46,7 @@ import { MagicItem } from "@/interfaces/MagicItem";
 import { GearItem } from "@/interfaces/GearItem";
 import { Weapon } from "@/interfaces/Weapon";
 import { Armor } from "@/interfaces/Armor";
+import { addArmor, getEquippedArmor, getEquippedShield, removeArmor, toggleArmorEquipped } from "@/utils/armor";
 import {calculateProficiencyBonus, getProficiencyBonusBreakdown} from "@/utils/calculateProficiencyBonus";
 import { DiceRollResult } from "@/utils/dice";
 import { generateId } from "@/utils/id";
@@ -81,15 +82,23 @@ function magicItemBonusSuffix(item: MagicItem): string {
 }
 
 /**
- * One equipped armor/shield row on the Inventory tab's Armor section (used
- * for both `character.equippedArmor` and `character.shield`) - its
+ * One owned armor/shield row on the Inventory tab's Armor section - its
  * category/rarity/attunement pills, magic description if any (mundane
- * armor simply has none of these to show), and an "Unequip" control that
- * clears the slot back to `undefined`/"Unarmored" (see `handleUnequipArmor`
- * - there's nothing to swap TO here; replacing what's equipped happens by
- * picking something new from the Shop's Armor browser instead).
+ * armor simply has none of these to show), a "Wear"/"Take Off" toggle (see
+ * `handleToggleArmorEquipped` - equipping one unequips whatever else was in
+ * that same slot, body armor and shields being independent slots), and a
+ * "Remove" control that drops it from the owned list entirely (see
+ * `handleRemoveArmor`).
  */
-function ArmorEntry({ armor, onUnequip }: { armor: Armor; onUnequip: () => void }) {
+function ArmorEntry({
+  armor,
+  onToggleEquip,
+  onRemove,
+}: {
+  armor: Armor;
+  onToggleEquip: () => void;
+  onRemove: () => void;
+}) {
   return (
     <div className="rounded-(--radius-sm) bg-background-darken/60 px-3 py-2">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -99,16 +108,28 @@ function ArmorEntry({ armor, onUnequip }: { armor: Armor; onUnequip: () => void 
             {armor.bonus ? ` (${formatModifier(armor.bonus)} AC)` : ""}
           </span>
           <Badge variant="outline">{armor.category}</Badge>
+          {armor.equipped ? (
+            <Badge variant="muted">Worn</Badge>
+          ) : null}
           {armor.rarity && <Badge variant="muted">{armor.rarity}</Badge>}
           {armor.requiresAttunement && <Badge variant="muted">Attunement</Badge>}
         </div>
-        <button
-          type="button"
-          onClick={onUnequip}
-          className="shrink-0 text-xs text-fontcolor-secondary underline-offset-2 hover:text-fontcolor hover:underline cursor-pointer"
-        >
-          Unequip
-        </button>
+        <div className="flex shrink-0 items-center gap-3">
+          <button
+            type="button"
+            onClick={onToggleEquip}
+            className="text-xs text-fontcolor-secondary underline-offset-2 hover:text-fontcolor hover:underline cursor-pointer"
+          >
+            {armor.equipped ? "Take Off" : "Wear"}
+          </button>
+          <button
+            type="button"
+            onClick={onRemove}
+            className="text-xs text-fontcolor-secondary underline-offset-2 hover:text-fontcolor hover:underline cursor-pointer"
+          >
+            Remove
+          </button>
+        </div>
       </div>
       {armor.magicDescription && <p className="mt-1 whitespace-pre-line text-xs">{armor.magicDescription}</p>}
     </div>
@@ -309,6 +330,7 @@ export default function CharacterDetailsPage() {
   const totalSpellCount = character.spellsKnown.length + (character.grantedSpells?.length ?? 0);
   const magicItemCount = character.magicItems?.length ?? 0;
   const gearItemCount = character.inventory?.reduce((total, entry) => total + entry.quantity, 0) ?? 0;
+  const armorCount = character.armors?.length ?? 0;
   const featureCount =
     character.classes.reduce((total, entry) => total + combinedFeatures(entry, 0, undefined).length, 0) +
     character.feats.length;
@@ -316,7 +338,7 @@ export default function CharacterDetailsPage() {
   const TAB_DEFINITIONS: TabItem<SheetTab>[] = [
     { key: "actions", label: "Actions" },
     { key: "spells", label: "Spells", count: totalSpellCount },
-    { key: "inventory", label: "Inventory", count: magicItemCount + gearItemCount },
+    { key: "inventory", label: "Inventory", count: magicItemCount + gearItemCount + armorCount },
     { key: "features", label: "Features & Traits", count: featureCount },
     { key: "background", label: "Background" },
   ];
@@ -423,36 +445,43 @@ export default function CharacterDetailsPage() {
   }
 
   /**
-   * Equips one magic armor/shield and persists it immediately - the Shop's
-   * "Equip" callback for its Armor browser. A shield-category item sets
-   * `character.shield`; anything else (light/medium/heavy) sets
-   * `character.equippedArmor` - either way replacing whatever was equipped
-   * in that slot before, since this app tracks only one of each at a time
-   * (see Characters.ts).
+   * Adds one armor/shield (mundane or magic) to `character.armors` and
+   * persists it immediately - the Shop's "Add" callback for its Armor
+   * browser. Auto-equips it only if that slot (body armor vs. shield) is
+   * currently empty, replicating the old "first pick equips" feel while
+   * letting the player own more than one - see utils/armor.ts's `addArmor`.
    */
-  function handleEquipArmor(armor: Armor) {
+  function handleAddArmor(armor: Armor) {
     setCharacter((current) => {
       if (!current) return current;
-      return armor.category === "shield"
-        ? saveCharacter({ ...current, shield: armor })
-        : saveCharacter({ ...current, equippedArmor: armor });
+      return saveCharacter({ ...current, armors: addArmor(current, armor) });
     });
   }
 
   /**
-   * Unequips whichever armor/shield sits in `slot` (mundane or magic) and
-   * persists it immediately - the "Unequip" control next to each on the
-   * Inventory tab's Armor section. There's no separate "delete" for these
-   * (unlike `character.weapons`/`inventory`, they're single slots, not a
-   * list) - clearing the slot back to `undefined` (Unarmored/no shield) is
-   * the equivalent of removing it.
+   * Toggles whether the armor/shield at `index` in `character.armors` is
+   * worn, and persists it immediately - the "Wear"/"Take Off" control on
+   * each Inventory tab Armor row. Equipping one unequips whatever else was
+   * occupying that same slot (body armor and shields are independent
+   * slots) - see utils/armor.ts's `toggleArmorEquipped`.
    */
-  function handleUnequipArmor(slot: "armor" | "shield") {
+  function handleToggleArmorEquipped(index: number) {
     setCharacter((current) => {
       if (!current) return current;
-      return slot === "shield"
-        ? saveCharacter({ ...current, shield: undefined })
-        : saveCharacter({ ...current, equippedArmor: undefined });
+      return saveCharacter({ ...current, armors: toggleArmorEquipped(current, index) });
+    });
+  }
+
+  /**
+   * Removes one armor/shield from `character.armors` entirely and persists
+   * it immediately - the "Remove" control on each Inventory tab Armor row.
+   * Unlike taking it off, there's no getting it back without re-adding it
+   * from the Shop.
+   */
+  function handleRemoveArmor(index: number) {
+    setCharacter((current) => {
+      if (!current) return current;
+      return saveCharacter({ ...current, armors: removeArmor(current, index) });
     });
   }
 
@@ -563,7 +592,7 @@ export default function CharacterDetailsPage() {
           onClose={() => setShowShop(false)}
           onAddMagicItem={handleAddMagicItem}
           onAddWeapon={handleAddWeapon}
-          onEquipArmor={handleEquipArmor}
+          onAddArmor={handleAddArmor}
           onAddGearItem={handleAddGearItem}
         />
       )}
@@ -754,6 +783,7 @@ export default function CharacterDetailsPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Inventory</CardTitle>
+                    {armorCount > 0 && <Badge variant="muted">{armorCount} armor{armorCount === 1 ? "" : "s"}</Badge>}
                     {magicItemCount > 0 && <Badge variant="muted">{magicItemCount} magic item{magicItemCount === 1 ? "" : "s"}</Badge>}
                     {gearItemCount > 0 && <Badge variant="muted">{gearItemCount} gear item{gearItemCount === 1 ? "" : "s"}</Badge>}
                     <div onClick={() => setShowShop(true)} className="cursor-pointer flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border-strong text-[16px] font-bold leading-none text-fontcolor-secondary select-none">
@@ -763,13 +793,20 @@ export default function CharacterDetailsPage() {
                   <CardContent className="flex flex-col gap-3 text-sm text-fontcolor-secondary">
                     <div className="flex flex-col gap-2">
                       <p className="font-semibold text-fontcolor">Armor</p>
-                      {character.equippedArmor ? (
-                        <ArmorEntry armor={character.equippedArmor} onUnequip={() => handleUnequipArmor("armor")} />
-                      ) : (
+                      {!getEquippedArmor(character) && !getEquippedShield(character) && (
                         <p>Unarmored.</p>
                       )}
-                      {character.shield && (
-                        <ArmorEntry armor={character.shield} onUnequip={() => handleUnequipArmor("shield")} />
+                      {character.armors && character.armors.length > 0 ? (
+                        character.armors.map((armor, index) => (
+                          <ArmorEntry
+                            key={`${armor.name}-${index}`}
+                            armor={armor}
+                            onToggleEquip={() => handleToggleArmorEquipped(index)}
+                            onRemove={() => handleRemoveArmor(index)}
+                          />
+                        ))
+                      ) : (
+                        <p>No armor or shields owned yet - add some from the Shop.</p>
                       )}
                     </div>
 

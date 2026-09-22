@@ -16,6 +16,7 @@ import { getAsiSlots, randomAsiAllocations, sumAsiAllocations } from "@/utils/ab
 import { getSpellLimits } from "@/utils/spellcasting";
 import { encodeFeatureChoiceSelection, getAutoGrantedSpellNames, getFeatureChoices, resolveSpellsByName } from "@/utils/grantedSpells";
 import { Spell } from "@/interfaces/Spell";
+import { buildOwnedArmors } from "@/utils/armor";
 
 /**
  * Everything the "guided random" flow lets a player pin down before the
@@ -176,8 +177,7 @@ export async function generateRandomCharacter(overrides: RandomCharacterOverride
         abilityScoreImprovements: Object.keys(abilityScoreImprovements).length > 0 ? abilityScoreImprovements : undefined,
         skillProficiencies,
         savingThrowProficiencies: characterClass.proficiencies.savingThrows,
-        equippedArmor,
-        shield,
+        armors: buildOwnedArmors(equippedArmor, shield),
         weapons,
         currency: { copper: 0, silver: 0, electrum: 0, gold: rollGold(), platinum: 0 },
         initiative: 0,

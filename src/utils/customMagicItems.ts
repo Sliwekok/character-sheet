@@ -18,7 +18,7 @@ import { AttunementRequirement, CustomMagicItemInput, MagicItem, MagicItemRarity
  *
  * Both paths produce a plain `Weapon`/`Armor` (tagged `isCustom: true`),
  * not a separate type, so they drop straight into
- * `Character.weapons`/`equippedArmor`/`shield` with no other plumbing.
+ * `Character.weapons`/`armors` with no other plumbing.
  * `createCustomMagicItem` covers everything that isn't armor or a weapon -
  * wondrous items, rings, rods, staves, wands, potions, scrolls - producing
  * a `MagicItem` for `Character.magicItems`.

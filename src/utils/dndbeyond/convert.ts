@@ -11,6 +11,7 @@ import { generateId } from "@/utils/id";
 import { enchantArmor, enchantWeapon, createCustomMagicItem } from "@/utils/customMagicItems";
 import { sumAbilityScores } from "@/utils/abilityScoreBonuses";
 import { getAsiSlots } from "@/utils/abilityScoreImprovements";
+import { buildOwnedArmors } from "@/utils/armor";
 
 import {DdbActions, DdbCharacterData, DdbClassEntry, DdbClassSpellsEntry, DdbGrantedModifier, DdbInventoryItem, DdbSourceRef, DdbSpells} from "./types";
 import { findByName } from "./matchCompendium";
@@ -529,8 +530,7 @@ export async function convertDndBeyondCharacter(
     abilityScoreImprovements: undefined,
     skillProficiencies,
     savingThrowProficiencies,
-    equippedArmor,
-    shield,
+    armors: buildOwnedArmors(equippedArmor, shield),
     weapons,
     currency,
     initiative,

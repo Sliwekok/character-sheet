@@ -16,8 +16,8 @@ type ShopProps = {
   onAddMagicItem: (item: MagicItem) => void;
   /** Appends one magic weapon to `Character.weapons` (see Weapon.ts). */
   onAddWeapon: (weapon: Weapon) => void;
-  /** Equips one magic armor/shield - sets `Character.shield` for a shield, or `Character.equippedArmor` for anything else, replacing whatever was equipped there before (see Armor.ts). */
-  onEquipArmor: (armor: Armor) => void;
+  /** Adds one armor/shield (mundane or magic) to `Character.armors` - auto-equips it only if its slot (body armor vs. shield) is currently empty, otherwise it's just added to the collection unequipped (see Armor.ts, utils/armor.ts). */
+  onAddArmor: (armor: Armor) => void;
   /** Adds `quantity` of a mundane gear item to `Character.inventory`, stacking onto an existing entry of the same item rather than duplicating it. */
   onAddGearItem: (item: GearItem, quantity: number) => void;
 };
@@ -390,13 +390,13 @@ function WeaponsBrowser({ onAdd }: { onAdd: (weapon: Weapon) => void }) {
  * "Armor" tab - the magic-armor/shield counterpart to the magic item
  * browser above: named items like "Adamantine Splint" or "+1 Shield" (see
  * data/magicItems/MagicArmor.ts), searchable/filterable by armor category
- * and rarity. Unlike the other browsers, "Equip" doesn't append to a list -
- * this app tracks only one worn armor and one shield at a time (see
- * `Character.equippedArmor`/`shield`) - so clicking it replaces whatever
- * was equipped in that slot before, the same "no confirm step" tradeoff
- * the rest of the Shop makes.
+ * and rarity. "Add" appends to `Character.armors` - a character can own as
+ * many armors/shields as they like, only one non-shield entry and one
+ * shield entry can be worn at a time (see Armor.ts, utils/armor.ts). The
+ * new item is auto-equipped only if that slot is currently empty; otherwise
+ * it's added unequipped and the player toggles it on from the Inventory tab.
  */
-function ArmorBrowser({ onEquip }: { onEquip: (armor: Armor) => void }) {
+function ArmorBrowser({ onAdd }: { onAdd: (armor: Armor) => void }) {
   const [items, setItems] = useState<Armor[] | null>(null);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<ArmorCategory | "all">("all");
@@ -473,7 +473,7 @@ function ArmorBrowser({ onEquip }: { onEquip: (armor: Armor) => void }) {
         ) : (
             <>
               <p className="text-xs text-fontcolor-secondary">
-                {filtered.length} of {items.length} match{categoryFilter !== "all" || rarityFilter !== "all" || search ? " these filters" : ""}. Equipping replaces the current armor/shield.
+                {filtered.length} of {items.length} match{categoryFilter !== "all" || rarityFilter !== "all" || search ? " these filters" : ""}. Added unequipped unless that slot is empty - toggle it on from the Inventory tab.
               </p>
               <div className="flex flex-col gap-2">
                 {grouped.length === 0 && (
@@ -505,8 +505,8 @@ function ArmorBrowser({ onEquip }: { onEquip: (armor: Armor) => void }) {
                                   <p className="mt-1 whitespace-pre-line text-xs text-fontcolor-secondary">{item.magicDescription}</p>
                               )}
                             </details>
-                            <Button size="sm" variant="secondary" onClick={() => onEquip(item)} className="shrink-0">
-                              Equip
+                            <Button size="sm" variant="secondary" onClick={() => onAdd(item)} className="shrink-0">
+                              Add
                             </Button>
                           </div>
                       ))}
@@ -656,12 +656,12 @@ type ShopTab = "magic" | "weapons" | "armor" | "gear";
  * player still tracks gold spent themselves, the same as every other
  * manually-edited field on the Inventory tab.
  */
-export function Shop({ character, onClose, onAddMagicItem, onAddWeapon, onEquipArmor, onAddGearItem }: ShopProps) {
+export function Shop({ character, onClose, onAddMagicItem, onAddWeapon, onAddArmor, onAddGearItem }: ShopProps) {
   const [tab, setTab] = useState<ShopTab>("magic");
 
   const magicItemCount = character.magicItems?.length ?? 0;
   const weaponCount = character.weapons.length;
-  const armorCount = [character.equippedArmor, character.shield].filter(Boolean).length;
+  const armorCount = character.armors?.length ?? 0;
   const gearItemCount = character.inventory?.reduce((total, entry) => total + entry.quantity, 0) ?? 0;
 
   const tabs: TabItem<ShopTab>[] = [
@@ -696,7 +696,7 @@ export function Shop({ character, onClose, onAddMagicItem, onAddWeapon, onEquipA
           <div className="flex-1 overflow-y-auto px-5 py-4">
             {tab === "magic" && <MagicItemsBrowser onAdd={onAddMagicItem} />}
             {tab === "weapons" && <WeaponsBrowser onAdd={onAddWeapon} />}
-            {tab === "armor" && <ArmorBrowser onEquip={onEquipArmor} />}
+            {tab === "armor" && <ArmorBrowser onAdd={onAddArmor} />}
             {tab === "gear" && <GearBrowser onAdd={onAddGearItem} />}
           </div>
         </div>

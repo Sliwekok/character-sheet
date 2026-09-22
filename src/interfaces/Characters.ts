@@ -61,8 +61,18 @@ export interface Character {
     abilityScores: AbilityScores;
     skillProficiencies: SkillName[];
     savingThrowProficiencies: (keyof AbilityScores)[];
-    equippedArmor?: Armor;
-    shield?: Armor;
+    /**
+     * Every armor/shield the character owns, mundane or magic - a character
+     * can carry as many as they like, but at most one non-shield entry and
+     * one shield entry can have `Armor.equipped` set at a time (body armor
+     * and a shield are independent slots). Always read the currently-worn
+     * piece(s) via utils/armor.ts's `getEquippedArmor`/`getEquippedShield`
+     * rather than assuming array order or position - never index into this
+     * directly for "what's worn right now". Undefined for a character
+     * saved before this existed, or one who owns nothing yet, same
+     * convention as `magicItems`/`inventory`.
+     */
+    armors?: Armor[];
     weapons: Weapon[];
     currency: Currency;
     initiative: number;
@@ -107,10 +117,10 @@ export interface Character {
     featureChoices?: Record<string, string>;
     languages: string[];
     /**
-     * Magic items carried/owned that aren't the equipped armor, shield, or
-     * one of `weapons` above (those three can each be magic ITEMS in their
-     * own right via the magic-item fields on Armor/Weapon - see e.g.
-     * `equippedArmor.rarity`). This covers everything else: wondrous
+     * Magic items carried/owned that aren't one of `armors` or `weapons`
+     * above (those can each be magic ITEMS in their own right via the
+     * magic-item fields on Armor/Weapon - see e.g. `Armor.rarity`). This
+     * covers everything else: wondrous
      * items, rings, rods, staves, wands, potions, scrolls. Optional since
      * most characters start with none.
      */

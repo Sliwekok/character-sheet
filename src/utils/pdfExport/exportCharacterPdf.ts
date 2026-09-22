@@ -3,6 +3,7 @@ import { StoredCharacter } from "@/interfaces/StoredCharacter";
 import { Character, getCharacterLevel } from "@/interfaces/Characters";
 import { Edition } from "@/interfaces/Edition";
 import { derivePrintData } from "@/utils/characterPrintData";
+import { getEquippedArmor, getEquippedShield } from "@/utils/armor";
 import { getChosenWeaponMasteryIndexes } from "@/utils/weaponMastery";
 import {
   ABILITY_ORDER,
@@ -364,7 +365,7 @@ async function fillCharacterPdf2024(character: StoredCharacter, templateUrl: str
   setText(form, PDF_2024_TEXT_FIELDS.speed, character.race.speed);
   setText(form, PDF_2024_TEXT_FIELDS.exhaustion, data.details.exhaustionLevel || undefined);
 
-  setCheckbox(form, PDF_2024_MISC_CHECKBOXES.shield, Boolean(character.shield));
+  setCheckbox(form, PDF_2024_MISC_CHECKBOXES.shield, Boolean(getEquippedShield(character)));
   setCheckbox(form, PDF_2024_MISC_CHECKBOXES.heroicInspiration, Boolean(data.details.inspiration));
 
   (Object.keys(PDF_2024_CONDITION_CHECKBOXES) as (keyof typeof PDF_2024_CONDITION_CHECKBOXES)[]).forEach(
@@ -445,7 +446,7 @@ async function fillCharacterPdf2024(character: StoredCharacter, templateUrl: str
   setText(form, PDF_2024_PAGE1_FIELDS.classFeaturesOverflow, overflowFeatures.join("\n"), PARAGRAPH_FONT_SIZE);
 
   // Page 2.
-  setText(form, PDF_2024_PAGE2_FIELDS.armorWorn, character.equippedArmor?.name);
+  setText(form, PDF_2024_PAGE2_FIELDS.armorWorn, getEquippedArmor(character)?.name);
   setText(
     form,
     PDF_2024_PAGE2_FIELDS.weapons,

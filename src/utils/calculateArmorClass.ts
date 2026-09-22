@@ -2,6 +2,7 @@ import { Character } from '@/interfaces/Characters';
 import { calculateAbilityModifiers } from './abilityModifiers';
 import { StatLine, formatSigned } from './statLine';
 import { getChosenFightingStyleEffects } from './fightingStyles';
+import { getEquippedArmor, getEquippedShield } from './armor';
 
 export type ArmorClassBreakdown = {
     lines: StatLine[];
@@ -17,8 +18,8 @@ export type ArmorClassBreakdown = {
  * calculation.
  */
 export function getArmorClassBreakdown(character: Character): ArmorClassBreakdown {
-    const armor = character.equippedArmor;
-    const shield = character.shield;
+    const armor = getEquippedArmor(character);
+    const shield = getEquippedShield(character);
     const dexMod = calculateAbilityModifiers(character.abilityScores).dexterity;
     const lines: StatLine[] = [];
     let total: number;

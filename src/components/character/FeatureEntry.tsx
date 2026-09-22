@@ -70,7 +70,7 @@ export function FeatureEntry({
 
   const headerContent = (
     <>
-      <span className="font-semibold text-fontcolor">{feature.name}</span>
+      <span className="font-semibold text-fontcolor cursor-pointer">{feature.name}</span>
       <Badge variant="muted">Level {feature.level}</Badge>
       {!reached && <Badge variant="outline">Locked</Badge>}
       {reached &&

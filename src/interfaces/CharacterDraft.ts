@@ -120,6 +120,16 @@ export interface CharacterDraft {
     skillProficiencies: SkillName[];
     equippedArmor?: Armor;
     shield?: Armor;
+    /**
+     * The character's full owned-armor list, carried through the wizard
+     * untouched so editing a character doesn't drop any armor/shield the
+     * Shop added beyond the one worn armor and one worn shield this wizard
+     * actually lets the player edit (`equippedArmor`/`shield` above) - see
+     * `draftFromCharacter`/`finalizeDraft` (utils/characterDraft.ts) and
+     * utils/armor.ts's `reconcileOwnedArmors`. Always `[]` for a
+     * brand-new draft, same convention as `weapons`/`magicItems`.
+     */
+    ownedArmors: Armor[];
     weapons: Weapon[];
     /**
      * Feats picked on the Skills & Equipment step - currently only ever

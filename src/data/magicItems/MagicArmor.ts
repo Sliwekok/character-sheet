@@ -8,7 +8,7 @@ import { GENERATED_MAGIC_ARMOR } from "./generated/GeneratedMagicArmor";
  * scripts/convert_items.py. Every entry is a plain `Armor` (matching what
  * utils/customMagicItems.ts's `enchantArmor` produces by hand) - see that
  * file's header comment for how a magic armor/shield fits into
- * `Character.equippedArmor`/`shield`.
+ * `Character.armors`.
  *
  * Not merged into `Ruleset.armor` itself (the mundane list) - exposed
  * separately as `Ruleset.magicArmor`. The character wizard's equipment step

@@ -29,4 +29,11 @@ export interface Armor {
     magicDescription?: string;
     /** Set on armor a player homebrewed via createCustomArmor() rather than official content. */
     isCustom?: boolean;
+    /**
+     * Whether this owned copy is currently worn - a character can own many
+     * armors/shields (see `Character.armors`) but only one non-shield armor
+     * and one shield can be `equipped` at a time. Undefined is the same as
+     * `false`. See utils/armor.ts for the helpers that read/toggle this.
+     */
+    equipped?: boolean;
 }
