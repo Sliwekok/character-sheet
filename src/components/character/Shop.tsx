@@ -7,8 +7,7 @@ import { GearItem, GearCategory } from "@/interfaces/GearItem";
 import { Weapon, WeaponCategory } from "@/interfaces/Weapon";
 import { Armor, ArmorCategory } from "@/interfaces/Armor";
 import { GEAR_ITEMS } from "@/data/gear/GearItems";
-import { Badge, Button, Select, Tabs, TextInput, Tooltip, type TabItem } from "@/components/ui";
-import { cn } from "@/utils/cn";
+import { Badge, Button, Select, Tabs, TextInput, type TabItem } from "@/components/ui";
 
 type ShopProps = {
   character: Character;
@@ -98,23 +97,27 @@ function CategoryGroup({
 }
 
 /**
- * A 2-line-clamped description/flavor-text paragraph, shared by every
- * browser below, that reveals the FULL text in a hover/click panel (see
- * `Tooltip`) rather than just cutting it off - clamping alone hid the rest
- * of a long magic item/weapon/armor description with no way to read it
- * without leaving the Shop to look it up elsewhere.
+ * Small rotating chevron for a row's `<summary>`, shared by every browser
+ * below - same click-to-expand affordance as SpellEntry.tsx, so a row's
+ * full description stays collapsed (just the name/badges/stat line) until
+ * clicked, instead of being cut off mid-sentence with no way to read the
+ * rest without leaving the Shop.
  */
-function ClampedText({ text, className }: { text: string; className?: string }) {
+function ExpandChevron() {
   return (
-      <Tooltip className="w-full" triggerClassName="block w-full text-left">
-        <Tooltip
-            className="w-full"
-            triggerClassName="block w-full text-left"
-            trigger={<p className={cn("line-clamp-2 cursor-help", className)}>{text}</p>}
+      <span className="shrink-0 transition-transform group-open:rotate-90">
+        <svg
+            className="h-3 w-3"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
         >
-          <p className="whitespace-pre-line">{text}</p>
-        </Tooltip>
-      </Tooltip>
+          <path d="m9 18 6-6-6-6" />
+        </svg>
+      </span>
   );
 }
 
@@ -221,16 +224,18 @@ function MagicItemsBrowser({ onAdd }: { onAdd: (item: MagicItem) => void }) {
                     >
                       {groupItems.map((item, index) => (
                           <div key={`${item.name}-${index}`} className="flex items-start justify-between gap-2 px-3 py-2">
-                            <div className="flex min-w-0 flex-col gap-1">
-                              <div className="flex flex-wrap items-center gap-1.5">
+                            <details className="group min-w-0 flex-1">
+                              <summary className="flex cursor-pointer flex-wrap items-center gap-1.5">
+                                <ExpandChevron />
                                 <span className="text-sm font-medium text-fontcolor">{item.name}</span>
+                                <Badge variant="outline">{capitalize(item.category)}</Badge>
                                 <Badge variant="muted">{capitalize(item.rarity)}</Badge>
                                 {item.requiresAttunement && <Badge variant="outline">Attunement</Badge>}
-                              </div>
+                              </summary>
                               {item.description && (
-                                  <p className="line-clamp-2 text-xs text-fontcolor-secondary">{item.description}</p>
+                                  <p className="mt-1 whitespace-pre-line text-xs text-fontcolor-secondary">{item.description}</p>
                               )}
-                            </div>
+                            </details>
                             <Button size="sm" variant="secondary" onClick={() => onAdd(item)} className="shrink-0">
                               Add
                             </Button>
@@ -347,21 +352,26 @@ function WeaponsBrowser({ onAdd }: { onAdd: (weapon: Weapon) => void }) {
                     >
                       {groupItems.map((item, index) => (
                           <div key={`${item.name}-${index}`} className="flex items-start justify-between gap-2 px-3 py-2">
-                            <div className="flex min-w-0 flex-col gap-1">
-                              <div className="flex flex-wrap items-center gap-1.5">
+                            <details className="group min-w-0 flex-1">
+                              <summary className="flex cursor-pointer flex-wrap items-center gap-1.5">
+                                <ExpandChevron />
                                 <span className="text-sm font-medium text-fontcolor">{item.name}</span>
+                                <Badge variant="outline">{capitalize(item.category)}</Badge>
                                 <Badge variant="outline">{item.type}</Badge>
                                 {item.rarity && <Badge variant="muted">{capitalize(item.rarity)}</Badge>}
                                 {item.requiresAttunement && <Badge variant="outline">Attunement</Badge>}
-                              </div>
-                              <p className="text-xs text-fontcolor-secondary">
-                                {item.damage.dice} {item.damage.type}
-                                {item.bonus ? ` · ${item.bonus > 0 ? "+" : ""}${item.bonus} to attack/damage` : ""}
-                              </p>
+                                {item.properties.map((property) => (
+                                    <Badge key={property} variant="muted">{property}</Badge>
+                                ))}
+                                <p className="basis-full text-xs text-fontcolor-secondary">
+                                  {item.damage.dice} {item.damage.type}
+                                  {item.bonus ? ` · ${item.bonus > 0 ? "+" : ""}${item.bonus} to attack/damage` : ""}
+                                </p>
+                              </summary>
                               {item.magicDescription && (
-                                  <p className="line-clamp-2 text-xs text-fontcolor-secondary">{item.magicDescription}</p>
+                                  <p className="mt-1 whitespace-pre-line text-xs text-fontcolor-secondary">{item.magicDescription}</p>
                               )}
-                            </div>
+                            </details>
                             <Button size="sm" variant="secondary" onClick={() => onAdd(item)} className="shrink-0">
                               Add
                             </Button>
@@ -479,20 +489,22 @@ function ArmorBrowser({ onEquip }: { onEquip: (armor: Armor) => void }) {
                     >
                       {groupItems.map((item, index) => (
                           <div key={`${item.name}-${index}`} className="flex items-start justify-between gap-2 px-3 py-2">
-                            <div className="flex min-w-0 flex-col gap-1">
-                              <div className="flex flex-wrap items-center gap-1.5">
+                            <details className="group min-w-0 flex-1">
+                              <summary className="flex cursor-pointer flex-wrap items-center gap-1.5">
+                                <ExpandChevron />
                                 <span className="text-sm font-medium text-fontcolor">{item.name}</span>
+                                <Badge variant="outline">{capitalize(item.category)}</Badge>
                                 {item.rarity && <Badge variant="muted">{capitalize(item.rarity)}</Badge>}
                                 {item.requiresAttunement && <Badge variant="outline">Attunement</Badge>}
-                              </div>
-                              <p className="text-xs text-fontcolor-secondary">
-                                AC {item.baseAC}
-                                {item.bonus ? ` (${item.bonus > 0 ? "+" : ""}${item.bonus})` : ""}
-                              </p>
+                                <p className="basis-full text-xs text-fontcolor-secondary">
+                                  AC {item.baseAC}
+                                  {item.bonus ? ` (${item.bonus > 0 ? "+" : ""}${item.bonus})` : ""}
+                                </p>
+                              </summary>
                               {item.magicDescription && (
-                                  <p className="line-clamp-2 text-xs text-fontcolor-secondary">{item.magicDescription}</p>
+                                  <p className="mt-1 whitespace-pre-line text-xs text-fontcolor-secondary">{item.magicDescription}</p>
                               )}
-                            </div>
+                            </details>
                             <Button size="sm" variant="secondary" onClick={() => onEquip(item)} className="shrink-0">
                               Equip
                             </Button>
@@ -590,16 +602,23 @@ function GearBrowser({ onAdd }: { onAdd: (item: GearItem, quantity: number) => v
               >
                 {groupItems.map((item, index) => (
                     <div key={`${item.name}-${index}`} className="flex items-start justify-between gap-2 px-3 py-2">
-                      <div className="flex min-w-0 flex-col gap-1">
-                        <span className="text-sm font-medium text-fontcolor">{item.name}</span>
-                        <div className="flex flex-wrap items-center gap-1.5 text-xs text-fontcolor-secondary">
-                          {item.cost && <span>{item.cost}</span>}
-                          {item.weight !== undefined && <span>{item.weight} lb.</span>}
-                        </div>
+                      <details className="group min-w-0 flex-1">
+                        <summary className="flex cursor-pointer flex-wrap items-center gap-1.5">
+                          <ExpandChevron />
+                          <span className="text-sm font-medium text-fontcolor">{item.name}</span>
+                          <Badge variant="outline">{capitalize(item.category)}</Badge>
+                          {(item.cost || item.weight !== undefined) && (
+                              <p className="basis-full text-xs text-fontcolor-secondary">
+                                {[item.cost, item.weight !== undefined ? `${item.weight} lb.` : null]
+                                    .filter(Boolean)
+                                    .join(" · ")}
+                              </p>
+                          )}
+                        </summary>
                         {item.description && (
-                            <p className="line-clamp-2 text-xs text-fontcolor-secondary">{item.description}</p>
+                            <p className="mt-1 whitespace-pre-line text-xs text-fontcolor-secondary">{item.description}</p>
                         )}
-                      </div>
+                      </details>
                       <div className="flex shrink-0 items-center gap-2">
                         <TextInput
                             type="number"
@@ -656,7 +675,7 @@ export function Shop({ character, onClose, onAddMagicItem, onAddWeapon, onEquipA
       <div className="fixed inset-0 z-1000 flex justify-end bg-black/50" onClick={onClose}>
         <div
             onClick={(event) => event.stopPropagation()}
-            className="flex h-dvh w-full max-w-md flex-col overflow-hidden border-l border-border bg-background-elevated shadow-[0_12px_30px_-16px_rgba(0,0,0,0.85)]"
+            className="flex h-dvh w-full max-w-6/12 flex-col overflow-hidden border-l border-border bg-background-elevated shadow-[0_12px_30px_-16px_rgba(0,0,0,0.85)]"
         >
           <div className="flex items-center justify-between gap-2 border-b border-border px-5 py-4">
             <h2 className="font-display text-lg tracking-wide text-fontcolor">Shop</h2>
