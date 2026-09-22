@@ -186,9 +186,6 @@ function MagicGearCard({
   description,
   isCustom,
   onRemove,
-  properties,
-  type,
-  category
 }: {
   name: string;
   typeLabel: string;
@@ -199,9 +196,6 @@ function MagicGearCard({
   description?: string;
   isCustom?: boolean;
   onRemove: () => void;
-  properties?: WeaponProperty[];
-  type?: WeaponRange;
-  category?: WeaponCategory;
 }) {
   return (
     <Card>
@@ -240,9 +234,6 @@ function itemToDisplay(item: MagicItem, onRemove: () => void) {
     description: item.description,
     isCustom: item.isCustom,
     onRemove,
-    properties: weapon.properties,
-    type: weapon.type,
-    category: weapon.category,
   };
 }
 
@@ -257,9 +248,6 @@ function weaponToDisplay(weapon: Weapon, onRemove: () => void) {
     description: weapon.magicDescription,
     isCustom: weapon.isCustom,
     onRemove,
-    properties: weapon.properties,
-    type: weapon.type,
-    category: weapon.category,
   };
 }
 
@@ -502,7 +490,7 @@ export function MagicItemsStep({
 
   return (
     <div className="flex flex-col gap-6">
-      <Card className="z-100">
+      <Card className="z-1000">
         <CardContent className="flex flex-col gap-3">
           <p className="text-sm font-medium text-fontcolor-secondary">Add from the compendium</p>
 
