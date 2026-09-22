@@ -601,7 +601,7 @@ export default function CharacterDetailsPage() {
                 </span>
                 <span className="flex items-center gap-1">
                   <Badge variant="muted">Proficiency {formatModifier(calculateProficiencyBonus(character))}</Badge>
-                  <Tooltip title="Initiative" lines={getProficiencyBonusBreakdown(character)} />
+                  <Tooltip title="Proficiency" lines={getProficiencyBonusBreakdown(character)} />
                 </span>
               </div>
               <Badge variant="outline">{character.alignment}</Badge>
