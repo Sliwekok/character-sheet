@@ -171,4 +171,53 @@ export const PaladinSubclasses: Subclass[] = [
             { name: "Dread Lord", level: 20, description: "At 20th level, the paladin can, as an action, surround himself or herself with an aura of gloom that lasts for 1 minute. The aura reduces any bright light in a 30-foot radius around the paladin to dim light. Whenever an enemy that is frightened by the paladin starts its turn in the aura, it takes 4d10 psychic damage. Additionally, the paladin and creatures he or she chooses in the aura are draped in deeper shadow. Creatures that rely on sight have disadvantage on attack rolls against creatures draped in this shadow.\nWhile the aura lasts, the paladin can use a bonus action on his or her turn to cause the shadows in the aura to attack one creature. The paladin makes a melee spell attack against the target. If the attack hits, the target takes necrotic damage equal to 3d10 + the paladin's Charisma modifier.\nAfter activating the aura, the paladin can't do so again until he or she finishes a long rest." },
         ],
     },
+    {
+        name: "Oath of the Open Sea",
+        parentClass: "Paladin",
+        edition: "2014",
+        grantedAtLevel: 3,
+        description: "The Oath of the Open Sea calls to seafaring warriors, swashbuckling sailors, and guardians who seek adventure and mystery across the oceans. These paladins value freedom, adaptability, exploration, and the natural power of the sea.",
+        features: [
+            {
+                name: "Channel Divinity",
+                level: 3,
+                description: "You gain the following two Channel Divinity options: Marine Layer and Fury of the Tides."
+            },
+            {
+                name: "Marine Layer",
+                level: 3,
+                description: "As an action, you create a 20-foot-radius cloud of fog centered on yourself. The fog moves with you and heavily obscures its area. You and creatures within 5 feet of you instead treat the area as lightly obscured. The fog lasts for 10 minutes, spreads around corners, and cannot be dispersed unless you choose to end it."
+            },
+            {
+                name: "Fury of the Tides",
+                level: 3,
+                description: "As a bonus action, you channel the power of the waves for 1 minute. Once per turn when you hit a creature with a weapon attack, you can push it 10 feet away from you. If the creature is pushed into an obstacle or another creature, it takes bludgeoning damage equal to your Charisma modifier."
+            },
+            {
+                name: "Oath Spells",
+                level: 3,
+                description: "You gain oath spells at the paladin levels listed in the Oath of the Open Sea table.\n3 | Create or Destroy Water, Expeditious Retreat\n5 | Augury, Misty Step\n9 | Call Lightning, Freedom of the Waves\n13 | Control Water, Freedom of Movement\n17 | Commune with Nature, Freedom of the Winds"
+            },
+            {
+                name: "Aura of Liberation",
+                level: 7,
+                description: "While you aren't incapacitated, you and creatures of your choice within 10 feet of you cannot be Grappled or Restrained and ignore penalties to movement and attacks while underwater. A creature that is already Grappled or Restrained when it enters the aura can spend 5 feet of movement to automatically escape unless it is held by magical restraints."
+            },
+            {
+                name: "Aura of Liberation",
+                level: 18,
+                description: "The range of your Aura of Liberation increases from 10 feet to 30 feet."
+            },
+            {
+                name: "Stormy Waters",
+                level: 15,
+                description: "When a creature moves into or out of your reach, you can use your Reaction to summon crashing waters around it. The creature takes 1d12 Bludgeoning damage and must succeed on a Strength saving throw against your spell save DC or fall Prone."
+            },
+            {
+                name: "Mythic Swashbuckler",
+                level: 20,
+                description: "As an action, you channel the spirits of legendary sea captains for 1 minute. You gain advantage on Strength (Athletics) checks and a climbing speed equal to your walking speed. If you are within 5 feet of a creature and no other creatures are within 5 feet of you, you have advantage on attack rolls against that creature. You can take the Dash or Disengage action as a bonus action. You also have advantage on Dexterity checks and Dexterity saving throws against effects you can see. Once used, this feature cannot be used again until you finish a Long Rest."
+            }
+        ],
+    },
 ];
