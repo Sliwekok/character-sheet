@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Character } from "@/interfaces/Characters";
-import { MagicItem, MagicItemCategory, MagicItemRarity } from "@/interfaces/MagicItem";
+import { AttunementRequirement, MagicItem, MagicItemCategory, MagicItemRarity } from "@/interfaces/MagicItem";
 import { GearItem, GearCategory } from "@/interfaces/GearItem";
 import { Weapon, WeaponCategory } from "@/interfaces/Weapon";
 import { Armor, ArmorCategory } from "@/interfaces/Armor";
 import { GEAR_ITEMS } from "@/data/gear/GearItems";
+import { WEAPON_MASTERY_EFFECTS } from "@/utils/weaponMastery";
 import { Badge, Button, Select, Tabs, TextInput, type TabItem } from "@/components/ui";
 
 type ShopProps = {
@@ -44,6 +45,135 @@ const ARMOR_CATEGORIES: ArmorCategory[] = ["light", "medium", "heavy", "shield"]
 
 function capitalize(word: string): string {
   return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
+function formatSigned(value: number): string {
+  return `${value > 0 ? "+" : ""}${value}`;
+}
+
+/** Same wording as ItemDetailPanel / MagicItemsStep - `true` is a plain requirement, a string names the restriction verbatim. */
+function attunementLabel(requirement: AttunementRequirement | undefined): string | undefined {
+  if (!requirement) return undefined;
+  return requirement === true ? "Required" : `Required ${requirement}`;
+}
+
+/** "+1 AC, +1 attack rolls" - only the MagicItemBonuses fields actually set. */
+function magicItemBonusesLabel(item: MagicItem): string | undefined {
+  const bonuses = item.bonuses;
+  if (!bonuses) return undefined;
+  const parts: string[] = [];
+  if (bonuses.armorClass) parts.push(`${formatSigned(bonuses.armorClass)} AC`);
+  if (bonuses.attackRolls) parts.push(`${formatSigned(bonuses.attackRolls)} attack rolls`);
+  if (bonuses.damageRolls) parts.push(`${formatSigned(bonuses.damageRolls)} damage rolls`);
+  return parts.length > 0 ? parts.join(", ") : undefined;
+}
+
+/** A label/value line, only rendered when `value` is present - mirrors ItemDetailPanel's DetailRow so an expanded Shop row lists the same fields the wizard's inspector does, without empty "Weight:" lines for fields an item doesn't set. */
+function DetailRow({ label, value }: { label: string; value: string | number | undefined }) {
+  if (value === undefined || value === "") return null;
+  return (
+      <p>
+        <span className="font-semibold text-fontcolor">{label}:</span> {value}
+      </p>
+  );
+}
+
+/** Wrapper for an expanded row's full stat block + description. */
+function DetailBody({ children }: { children: ReactNode }) {
+  return <div className="mt-2 flex flex-col gap-1 pl-4.5 text-xs text-fontcolor-secondary">{children}</div>;
+}
+
+function MagicItemDetails({ item }: { item: MagicItem }) {
+  return (
+      <DetailBody>
+        <DetailRow label="Type" value={capitalize(item.category)} />
+        <DetailRow label="Rarity" value={capitalize(item.rarity)} />
+        <DetailRow label="Attunement" value={attunementLabel(item.requiresAttunement)} />
+        <DetailRow
+            label="Charges"
+            value={
+              item.charges
+                  ? `${item.charges.max}${item.charges.rechargeFormula ? ` (${item.charges.rechargeFormula})` : ""}`
+                  : undefined
+            }
+        />
+        <DetailRow label="Bonuses" value={magicItemBonusesLabel(item)} />
+        {item.description && <p className="mt-1 whitespace-pre-line">{item.description}</p>}
+      </DetailBody>
+  );
+}
+
+function WeaponDetails({ weapon }: { weapon: Weapon }) {
+  const masteryEffect = weapon.mastery ? WEAPON_MASTERY_EFFECTS[weapon.mastery] : undefined;
+  return (
+      <DetailBody>
+        <DetailRow label="Type" value={`${capitalize(weapon.category)} ${weapon.type} weapon`} />
+        <DetailRow
+            label="Damage"
+            value={`${weapon.damage.dice} ${weapon.damage.type}`}
+        />
+        <DetailRow label="Versatile damage" value={weapon.versatileDamage} />
+        <DetailRow label="Attack/damage bonus" value={weapon.bonus ? formatSigned(weapon.bonus) : undefined} />
+        <DetailRow
+            label="Properties"
+            value={weapon.properties.length > 0 ? weapon.properties.map(capitalize).join(", ") : undefined}
+        />
+        <DetailRow
+            label="Mastery"
+            value={weapon.mastery ? `${weapon.mastery}${masteryEffect ? ` - ${masteryEffect.description}` : ""}` : undefined}
+        />
+        <DetailRow label="Weight" value={weapon.weight ? `${weapon.weight} lb.` : undefined} />
+        <DetailRow label="Cost" value={weapon.cost} />
+        <DetailRow label="Rarity" value={weapon.rarity ? capitalize(weapon.rarity) : undefined} />
+        <DetailRow label="Attunement" value={attunementLabel(weapon.requiresAttunement)} />
+        {weapon.magicDescription && <p className="mt-1 whitespace-pre-line">{weapon.magicDescription}</p>}
+      </DetailBody>
+  );
+}
+
+function ArmorDetails({ armor }: { armor: Armor }) {
+  const isShield = armor.category === "shield";
+  const dex = armor.dexterityModifier;
+  return (
+      <DetailBody>
+        <DetailRow label="Type" value={isShield ? "Shield" : `${capitalize(armor.category)} armor`} />
+        <DetailRow
+            label={isShield ? "AC bonus" : "Base AC"}
+            value={`${isShield ? "+" : ""}${armor.baseAC}${armor.bonus ? ` (${formatSigned(armor.bonus)} magic)` : ""}`}
+        />
+        {!isShield && (
+            <DetailRow
+                label="Dexterity modifier"
+                value={
+                  dex === undefined
+                      ? undefined
+                      : dex.enabled
+                          ? `Applies${dex.max !== undefined ? ` (max +${dex.max})` : ""}`
+                          : "Does not apply"
+                }
+            />
+        )}
+        <DetailRow label="Stealth" value={armor.stealthDisadvantage ? "Disadvantage" : undefined} />
+        <DetailRow label="Strength requirement" value={armor.strengthRequirement || undefined} />
+        <DetailRow label="Material" value={armor.material ? capitalize(armor.material) : undefined} />
+        <DetailRow label="Weight" value={armor.weight ? `${armor.weight} lb.` : undefined} />
+        <DetailRow label="Cost" value={armor.cost} />
+        <DetailRow label="Rarity" value={armor.rarity ? capitalize(armor.rarity) : undefined} />
+        <DetailRow label="Attunement" value={attunementLabel(armor.requiresAttunement)} />
+        {armor.magicDescription && <p className="mt-1 whitespace-pre-line">{armor.magicDescription}</p>}
+      </DetailBody>
+  );
+}
+
+function GearDetails({ item }: { item: GearItem }) {
+  return (
+      <DetailBody>
+        <DetailRow label="Category" value={capitalize(item.category)} />
+        <DetailRow label="Cost" value={item.cost} />
+        <DetailRow label="Weight" value={item.weight !== undefined ? `${item.weight} lb.` : undefined} />
+        {item.description && <p className="mt-1 whitespace-pre-line">{item.description}</p>}
+      </DetailBody>
+  );
 }
 
 /** Buckets `items` by `getCategory`, in `order`'s fixed order, dropping any category with no matches - what makes the browsers below read as a shop's shelves rather than one long flat list. */
@@ -232,9 +362,7 @@ function MagicItemsBrowser({ onAdd }: { onAdd: (item: MagicItem) => void }) {
                                 <Badge variant="muted">{capitalize(item.rarity)}</Badge>
                                 {item.requiresAttunement && <Badge variant="outline">Attunement</Badge>}
                               </summary>
-                              {item.description && (
-                                  <p className="mt-1 whitespace-pre-line text-xs text-fontcolor-secondary">{item.description}</p>
-                              )}
+                              <MagicItemDetails item={item} />
                             </details>
                             <Button size="sm" variant="secondary" onClick={() => onAdd(item)} className="shrink-0">
                               Add
@@ -365,12 +493,12 @@ function WeaponsBrowser({ onAdd }: { onAdd: (weapon: Weapon) => void }) {
                                 ))}
                                 <p className="basis-full text-xs text-fontcolor-secondary">
                                   {item.damage.dice} {item.damage.type}
+                                  {item.versatileDamage ? ` (${item.versatileDamage} two-handed)` : ""}
+                                  {item.mastery ? ` · ${item.mastery}` : ""}
                                   {item.bonus ? ` · ${item.bonus > 0 ? "+" : ""}${item.bonus} to attack/damage` : ""}
                                 </p>
                               </summary>
-                              {item.magicDescription && (
-                                  <p className="mt-1 whitespace-pre-line text-xs text-fontcolor-secondary">{item.magicDescription}</p>
-                              )}
+                              <WeaponDetails weapon={item} />
                             </details>
                             <Button size="sm" variant="secondary" onClick={() => onAdd(item)} className="shrink-0">
                               Add
@@ -496,14 +624,14 @@ function ArmorBrowser({ onAdd }: { onAdd: (armor: Armor) => void }) {
                                 <Badge variant="outline">{capitalize(item.category)}</Badge>
                                 {item.rarity && <Badge variant="muted">{capitalize(item.rarity)}</Badge>}
                                 {item.requiresAttunement && <Badge variant="outline">Attunement</Badge>}
+                                {item.stealthDisadvantage && <Badge variant="muted">Stealth disadv.</Badge>}
+                                {item.strengthRequirement ? <Badge variant="muted">Str {item.strengthRequirement}</Badge> : null}
                                 <p className="basis-full text-xs text-fontcolor-secondary">
                                   AC {item.baseAC}
                                   {item.bonus ? ` (${item.bonus > 0 ? "+" : ""}${item.bonus})` : ""}
                                 </p>
                               </summary>
-                              {item.magicDescription && (
-                                  <p className="mt-1 whitespace-pre-line text-xs text-fontcolor-secondary">{item.magicDescription}</p>
-                              )}
+                              <ArmorDetails armor={item} />
                             </details>
                             <Button size="sm" variant="secondary" onClick={() => onAdd(item)} className="shrink-0">
                               Add
@@ -615,9 +743,7 @@ function GearBrowser({ onAdd }: { onAdd: (item: GearItem, quantity: number) => v
                               </p>
                           )}
                         </summary>
-                        {item.description && (
-                            <p className="mt-1 whitespace-pre-line text-xs text-fontcolor-secondary">{item.description}</p>
-                        )}
+                        <GearDetails item={item} />
                       </details>
                       <div className="flex shrink-0 items-center gap-2">
                         <TextInput
