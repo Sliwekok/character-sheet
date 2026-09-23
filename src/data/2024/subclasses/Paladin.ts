@@ -176,8 +176,26 @@ export const PaladinSubclasses: Subclass[] = [
         parentClass: "Paladin",
         edition: "2024",
         grantedAtLevel: 3,
-        description: "The Oath of the Open Sea calls to seafaring warriors, swashbuckling sailors, and guardians who seek adventure and mystery across the oceans. These paladins value freedom, adaptability, exploration, and the natural power of the sea.",
+        description: "The Oath of the Open Sea calls to seafaring warriors, swashbuckling sailors, and traveling guardians who seek the thrill of a limitless horizon. Driven to search for adventure and mystery across and beneath every endless oceanic expanse, paladins who swear this oath stand against those who would deny liberty to like-minded travelers, rooting out tyranny and corruption wherever it is found.\n" +
+            "\n" +
+            "Such guardians believe in the natural beauty of the sea, often making offerings and prayers to entities or deities such as the Wildmother or the Stormlord who influence safe passage. At the same time, they answer the call to hunt the monstrous creatures that too often bloody the waters with wanton violence and ill intent, and which terrorize the folk of the sea and shore.",
         features: [
+            {
+                name: "Oath Spells",
+                level: 3,
+                description: "You gain oath spells at the paladin levels listed in the Oath of the Open Sea Spells table. Spells marked with an asterisk are new spells described on the spells page.",
+                grantedSpells: [
+                    { spellName: "Create or destroy water", limit: "Available in spell list" },
+                    { spellName: "Expeditious Retreat", limit: "Available in spell list" },
+                    { spellName: "Augury", limit: "Available in spell list" },
+                    { spellName: "Misty step", limit: "Available in spell list" },
+                    { spellName: "Call lightning", limit: "Available in spell list" },
+                    { spellName: "Freedom of the waves", limit: "Available in spell list" },
+                    { spellName: "Control water", limit: "Available in spell list" },
+                    { spellName: "Commune with nature", limit: "Available in spell list" },
+                    { spellName: "Freedom of the winds", limit: "Available in spell list" },
+                ]
+            },
             {
                 name: "Channel Divinity",
                 level: 3,
