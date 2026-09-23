@@ -186,6 +186,9 @@ function MagicGearCard({
   description,
   isCustom,
   onRemove,
+  properties,
+  type,
+  category,
 }: {
   name: string;
   typeLabel: string;
@@ -196,6 +199,9 @@ function MagicGearCard({
   description?: string;
   isCustom?: boolean;
   onRemove: () => void;
+  properties?: WeaponProperty[];
+  type?: WeaponRange;
+  category?: WeaponCategory;
 }) {
   return (
     <Card>
@@ -204,8 +210,15 @@ function MagicGearCard({
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-semibold text-fontcolor">{name}</span>
             <Badge variant="outline">{typeLabel}</Badge>
+            {category && <Badge variant="muted">{capitalize(category)}</Badge>}
+            {type && <Badge variant="muted">{capitalize(type)}</Badge>}
             <Badge variant="muted">{capitalize(rarity)}</Badge>
             {isCustom && <Badge variant="muted">Homebrew</Badge>}
+            {properties?.map((property) => (
+              <Badge key={property} variant="muted">
+                {capitalize(property)}
+              </Badge>
+            ))}
           </div>
           <Button variant="ghost" size="sm" onClick={onRemove}>
             Remove
@@ -244,10 +257,21 @@ function weaponToDisplay(weapon: Weapon, onRemove: () => void) {
     typeLabel: "Weapon",
     rarity: weapon.rarity as MagicItemRarity,
     attunement: attunementLabel(weapon.requiresAttunement),
-    statLine: `${weapon.damage.dice} ${weapon.damage.type}${weapon.bonus ? ` (+${weapon.bonus})` : ""}`,
+    statLine: [
+      `${weapon.damage.dice} ${weapon.damage.type}${weapon.bonus ? ` (+${weapon.bonus})` : ""}`,
+      weapon.versatileDamage ? `${weapon.versatileDamage} two-handed` : undefined,
+      weapon.mastery ? `Mastery: ${weapon.mastery}` : undefined,
+      weapon.weight ? `${weapon.weight} lb.` : undefined,
+      weapon.cost,
+    ]
+      .filter(Boolean)
+      .join(" · "),
     description: weapon.magicDescription,
     isCustom: weapon.isCustom,
     onRemove,
+    properties: weapon.properties,
+    type: weapon.type,
+    category: weapon.category,
   };
 }
 
@@ -259,7 +283,21 @@ function armorToDisplay(armor: Armor, onRemove: () => void) {
     typeLabel: isShield ? "Shield" : "Armor",
     rarity: armor.rarity as MagicItemRarity,
     attunement: attunementLabel(armor.requiresAttunement),
-    statLine: `${isShield ? "+" : "AC "}${armor.baseAC}${armor.bonus ? ` (+${armor.bonus} magic)` : ""}`,
+    statLine: [
+      `${isShield ? "+" : "AC "}${armor.baseAC}${armor.bonus ? ` (+${armor.bonus} magic)` : ""}`,
+      !isShield && armor.dexterityModifier
+        ? armor.dexterityModifier.enabled
+          ? `+ Dex${armor.dexterityModifier.max !== undefined ? ` (max ${armor.dexterityModifier.max})` : ""}`
+          : "no Dex"
+        : undefined,
+      armor.stealthDisadvantage ? "Stealth disadvantage" : undefined,
+      armor.strengthRequirement ? `Str ${armor.strengthRequirement}` : undefined,
+      armor.material,
+      armor.weight ? `${armor.weight} lb.` : undefined,
+      armor.cost,
+    ]
+      .filter(Boolean)
+      .join(" · "),
     description: armor.magicDescription,
     isCustom: armor.isCustom,
     onRemove,
@@ -490,7 +528,7 @@ export function MagicItemsStep({
 
   return (
     <div className="flex flex-col gap-6">
-      <Card className="z-1000">
+      <Card className="z-100">
         <CardContent className="flex flex-col gap-3">
           <p className="text-sm font-medium text-fontcolor-secondary">Add from the compendium</p>
 

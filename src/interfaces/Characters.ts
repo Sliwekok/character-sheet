@@ -13,6 +13,7 @@ import { MagicItem } from "@/interfaces/MagicItem";
 import { CharacterDetails } from "@/interfaces/CharacterDetails";
 import { HpLevelEntry, HpMethod } from "@/interfaces/Hp";
 import { GearItem } from "@/interfaces/GearItem";
+import {useState} from "react";
 
 /** One stack of carried mundane gear (see GearItem.ts) - `quantity` lets e.g. "50 ft. of rope" or "5 rations" live as a single entry rather than several identical ones. */
 export interface InventoryEntry {
@@ -72,6 +73,8 @@ export interface Character {
      * saved before this existed, or one who owns nothing yet, same
      * convention as `magicItems`/`inventory`.
      */
+    equippedArmor?: Armor;
+    shield?: Armor;
     armors?: Armor[];
     weapons: Weapon[];
     currency: Currency;
