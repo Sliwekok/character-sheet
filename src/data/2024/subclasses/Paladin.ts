@@ -174,7 +174,7 @@ export const PaladinSubclasses: Subclass[] = [
     {
         name: "Oath of the Open Sea",
         parentClass: "Paladin",
-        edition: "2014",
+        edition: "2024",
         grantedAtLevel: 3,
         description: "The Oath of the Open Sea calls to seafaring warriors, swashbuckling sailors, and guardians who seek adventure and mystery across the oceans. These paladins value freedom, adaptability, exploration, and the natural power of the sea.",
         features: [
