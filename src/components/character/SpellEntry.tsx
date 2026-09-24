@@ -1,82 +1,141 @@
 "use client";
 
 import { useState } from "react";
-import { Spell } from "@/interfaces/Spell";
+import { Spell, SpellMechanics } from "@/interfaces/Spell";
 import { Badge, Button, Tooltip, formatModifier } from "@/components/ui";
 import { SpellcastingInfo } from "@/utils/attackCalculations";
+import { levelLabel } from "@/components/character/wizard/SpellsStep";
+import { DiceRollResult, describeDiceRoll, rollD20 } from "@/utils/dice";
 import {
-    DiceRollResult,
-    describeDiceRoll,
-    findDiceNotation,
-    rollD20,
-    rollDiceFormula,
-} from "@/utils/dice";
+    SPELL_ROLE_LABELS,
+    ScaledSpellRoll,
+    fallbackMechanics,
+    formatScaledRoll,
+    getScaledSpellRolls,
+    rollScaledSpellRoll,
+    scaledRollLabel,
+    spellCanUpcast,
+} from "@/utils/spellRolls";
+import { cn } from "@/utils/cn";
 
 type RolledResult = { label: string; result: DiceRollResult };
 
+const ABILITY_NAMES: Record<string, string> = {
+    strength: "Strength",
+    dexterity: "Dexterity",
+    constitution: "Constitution",
+    intelligence: "Intelligence",
+    wisdom: "Wisdom",
+    charisma: "Charisma",
+};
+
+/** "Damage", "Healing", "Temp HP" + damage type, e.g. "Damage (Fire)" - the prefix of a roll button / history entry. */
+function rollTitle(roll: ScaledSpellRoll): string {
+    const label = scaledRollLabel(roll);
+    return roll.source.damageType ? `${label} (${roll.source.damageType})` : label;
+}
+
 /**
- * One known spell on the character sheet. Alongside the existing
- * name/school/casting details, shows the character's spell attack bonus
- * and save DC (same numbers for every spell - see
- * utils/attackCalculations.ts's `getSpellcastingInfo`) with a "Roll spell
- * attack" button, plus a best-effort "Roll <dice>" button when a dice
- * notation (e.g. "3d6") can be found in the spell's own description -
- * interfaces/Spell.ts has no structured damage field, so this is pattern-
- * matched from free text rather than modeled data (see
- * utils/dice.ts's `findDiceNotation`). It intentionally does NOT add the
- * spellcasting ability modifier on top of that roll, since only some
- * spells (mostly healing) add it per their own text - the button's tooltip
- * says so rather than guessing.
+ * One spell on the character sheet (and, read-only, on the compendium
+ * search page).
  *
- * A concentration spell (`spell.concentration`) gets a "Concentrate"
- * toggle when `onToggleConcentration` is supplied - clicking it calls back
- * with this spell's name, and the parent page (which owns
- * `character.details.concentratingOn`, the single source of truth since
- * only one spell can be concentrated on at a time) decides whether that
- * sets or clears it. `concentratingOn` is compared against `spell.name` to
- * render the toggle as active. Omit both props to render read-only (e.g. a
- * future print/preview view), matching the optional-callback pattern
- * `WeaponEntry.onToggleMastery` already uses.
+ * What it offers is driven by the spell's structured `mechanics` (see
+ * interfaces/Spell.ts and data/spells/Spells.ts), not by regex over the
+ * description any more:
+ * - role badges (Damage / Healing / Buff / Control / ...), primary first;
+ * - "Roll spell attack" ONLY for spells that make a spell attack, and a
+ *   "DC 14 Dexterity save" note ONLY for spells that call for a save;
+ * - one roll button per damage / healing / other-effect roll the spell has
+ *   (a healing spell gets a "Healing" button, Bless a "Bonus die" one, a
+ *   pure utility spell none at all), with the spellcasting modifier folded
+ *   in where the spell says to add it;
+ * - an upcasting selector for leveled spells that scale: picking a higher
+ *   slot level re-computes every roll (upcastDice / upcastCount) and shows
+ *   the spell's upcast note, and "Cast" spends a slot of that level via
+ *   `onCast`. Cantrips scale automatically from `characterLevel` instead.
  *
- * By default the description sits behind a click-to-expand `<details>`
- * disclosure, same as every other spell on the sheet. Pass `alwaysExpanded`
- * (used by the compendium search result page, where there's exactly one
- * spell to look at and no reason to make the player click for it) to skip
- * that entirely - no arrow, no toggle, description just shown.
+ * `mechanics` is normally resolved by the page from the compendium (a
+ * character's stored spells can be older copies without it - see
+ * utils/spellRolls.ts's `useSpellMechanicsLookup`); when omitted, the
+ * spell's own copy is used, then a best-effort dice-in-text fallback.
+ *
+ * With `spellcasting={null}` (the search page) nothing is rollable - the
+ * dice are shown as plain chips, and the slot selector just previews how
+ * the spell scales.
  */
 export function SpellEntry({
                                spell,
+                               mechanics: mechanicsProp,
                                spellcasting,
+                               characterLevel = 1,
+                               maxSlotLevel,
+                               castableSlotLevels,
+                               onCast,
                                concentratingOn,
                                onToggleConcentration,
                                onRoll,
                                alwaysExpanded = false,
                            }: {
     spell: Spell;
+    /** Resolved roll data - see the header comment. */
+    mechanics?: SpellMechanics;
     spellcasting: SpellcastingInfo | null;
+    /** Total character level - drives cantrip damage upgrades at 5/11/17. */
+    characterLevel?: number;
+    /** Highest slot level the character has at all (either pool) - caps the upcast selector. Omit to allow up to 9th (preview). */
+    maxSlotLevel?: number;
+    /** Slot levels that still have at least one unspent slot - "Cast" is only enabled at these. */
+    castableSlotLevels?: number[];
+    /** Spends one slot of the given level. Omit to hide the "Cast" button. */
+    onCast?: (slotLevel: number) => void;
     concentratingOn?: string;
     onToggleConcentration?: (spellName: string) => void;
-    /** Called with a human-readable label and the roll result every time this spell's "Roll spell attack"/"Roll <dice>" button is used, on top of the inline result already shown below - feeds the page's shared Roll History widget (see RollHistoryWidget.tsx). */
+    /** Called with a human-readable label and the roll result for every roll made here - feeds the page's shared Roll History widget (see RollHistoryWidget.tsx). */
     onRoll?: (label: string, result: DiceRollResult) => void;
     alwaysExpanded?: boolean;
 }) {
+    const mechanics = mechanicsProp ?? spell.mechanics ?? fallbackMechanics(spell);
+    const topSlotLevel = Math.max(spell.level, Math.min(9, maxSlotLevel ?? 9));
+    const upcastable = spellCanUpcast(spell, mechanics) && topSlotLevel > spell.level;
+
+    // Default to the lowest level that actually has a slot left, so "Cast" works without touching the selector.
+    const defaultLevel = castableSlotLevels?.find((level) => level >= spell.level) ?? spell.level;
+    const [chosenLevel, setChosenLevel] = useState<number | null>(null);
+    const castLevel = Math.min(topSlotLevel, Math.max(spell.level, chosenLevel ?? defaultLevel));
+
     const [rolled, setRolled] = useState<RolledResult | null>(null);
-    const detectedDice = findDiceNotation(spell.description);
+    const [lastCast, setLastCast] = useState<string | null>(null);
     const isConcentrating = concentratingOn === spell.name;
+    const abilityModifier = spellcasting ? spellcasting.abilityModifier : null;
+
+    const rolls = getScaledSpellRolls(mechanics, {
+        spellLevel: spell.level,
+        castLevel,
+        characterLevel,
+    });
+    const castSuffix = spell.level > 0 && castLevel > spell.level ? ` (${levelLabel(castLevel)} slot)` : "";
+    const canCastNow = castableSlotLevels?.includes(castLevel) ?? false;
+
+    function record(label: string, result: DiceRollResult) {
+        setRolled({ label, result });
+        onRoll?.(`${spell.name}${castSuffix} — ${label}`, result);
+    }
 
     function rollAttack() {
         if (!spellcasting) return;
-        const result = rollD20(spellcasting.spellAttackBonus);
-        setRolled({ label: "Spell attack roll", result });
-        onRoll?.(`${spell.name} — Spell attack roll`, result);
+        record("Spell attack roll", rollD20(spellcasting.spellAttackBonus));
     }
 
-    function rollEffect() {
-        if (!detectedDice) return;
-        const result = rollDiceFormula(detectedDice);
-        const label = `Rolled ${detectedDice}`;
-        setRolled({ label, result });
-        onRoll?.(`${spell.name} — ${label}`, result);
+    function rollEffect(roll: ScaledSpellRoll) {
+        if (abilityModifier === null) return;
+        const result = rollScaledSpellRoll(roll, abilityModifier);
+        record(`${rollTitle(roll)} · ${result.formula}`, result);
+    }
+
+    function cast() {
+        if (!onCast || !canCastNow) return;
+        onCast(castLevel);
+        setLastCast(`Cast using a ${levelLabel(castLevel)} slot.`);
     }
 
     const headerContent = (
@@ -99,6 +158,12 @@ export function SpellEntry({
             <span className="font-semibold text-fontcolor">{spell.name}</span>
 
             <Badge variant="outline">{spell.school}</Badge>
+
+            {mechanics.roles.map((role, index) => (
+                <Badge key={role} variant={index === 0 ? "solid" : "muted"}>
+                    {SPELL_ROLE_LABELS[role]}
+                </Badge>
+            ))}
 
             {spell.ritual && <Badge variant="muted">Ritual</Badge>}
 
@@ -136,32 +201,92 @@ export function SpellEntry({
                 </details>
             )}
 
-            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
-                {spellcasting && detectedDice && (
-                    <>
-                        <span className="flex items-center gap-1 text-xs text-fontcolor-secondary">
-                          Attack {formatModifier(spellcasting.spellAttackBonus)} · Save DC{" "}
-                            {spellcasting.spellSaveDC}
-                            <Tooltip title="Spellcasting" lines={spellcasting.lines} />
-                        </span>
-                        <Button size="sm" variant="secondary" onClick={rollAttack}>
-                            Roll spell attack
-                        </Button>
+            {/* Upcasting: pick the slot level to cast with. Every roll below re-scales to it. */}
+            {upcastable && (
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                    <span className="text-fontcolor-secondary">Cast at</span>
+                    <div className="flex flex-wrap gap-1" role="radiogroup" aria-label={`${spell.name} slot level`}>
+                        {Array.from({ length: topSlotLevel - spell.level + 1 }, (_, i) => spell.level + i).map((level) => {
+                            const active = level === castLevel;
+                            const hasSlot = castableSlotLevels ? castableSlotLevels.includes(level) : true;
+                            return (
+                                <button
+                                    key={level}
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={active}
+                                    onClick={() => setChosenLevel(level)}
+                                    title={hasSlot ? `${levelLabel(level)} slot` : `${levelLabel(level)} slot - none left`}
+                                    className={cn(
+                                        "h-7 min-w-7 cursor-pointer rounded-full border px-2 text-xs font-semibold transition-colors",
+                                        active
+                                            ? "border-foreground-hover bg-foreground text-background-darken"
+                                            : "border-border-strong text-fontcolor hover:border-foreground",
+                                        !hasSlot && !active && "opacity-50"
+                                    )}
+                                >
+                                    {level}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    {mechanics.upcastNote && castLevel > spell.level && (
+                        <span className="basis-full text-fontcolor-secondary">Upcast: {mechanics.upcastNote}</span>
+                    )}
+                </div>
+            )}
 
-                        <span className="flex items-center gap-1">
-                        <Button size="sm" variant="secondary" onClick={rollEffect}>
-                          Roll {detectedDice}
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+                {spellcasting && mechanics.attack && (
+                    <span className="flex items-center gap-1">
+                        <Button size="sm" variant="secondary" onClick={rollAttack}>
+                            {mechanics.attack === "melee" ? "Melee" : "Ranged"} spell attack{" "}
+                            {formatModifier(spellcasting.spellAttackBonus)}
                         </Button>
-                        <Tooltip title={`Rolling ${detectedDice}`}>
-                          <p>
-                            Taken from the first dice notation found in this
-                            spell&apos;s description. Check the text for extra modifiers
-                            it might call for - some healing spells, for example, add
-                            your spellcasting ability modifier on top.
-                          </p>
-                        </Tooltip>
-                      </span>
-                    </>
+                        <Tooltip title="Spellcasting" lines={spellcasting.lines} />
+                    </span>
+                )}
+
+                {mechanics.save && (
+                    <span className="flex items-center gap-1 text-xs text-fontcolor-secondary">
+                        {spellcasting ? `DC ${spellcasting.spellSaveDC} ` : ""}
+                        {ABILITY_NAMES[mechanics.save]} save
+                        {spellcasting && <Tooltip title="Spellcasting" lines={spellcasting.lines} />}
+                    </span>
+                )}
+
+                {rolls.map((roll, index) => {
+                    const formula = formatScaledRoll(roll, abilityModifier);
+                    const text = `${rollTitle(roll)} · ${formula}`;
+                    return spellcasting ? (
+                        <Button
+                            key={index}
+                            size="sm"
+                            variant={roll.kind === "healing" ? "accent" : "secondary"}
+                            onClick={() => rollEffect(roll)}
+                        >
+                            {text}
+                        </Button>
+                    ) : (
+                        <span
+                            key={index}
+                            className="rounded-full border border-border-strong px-3 py-1 text-xs text-fontcolor"
+                        >
+                            {text}
+                        </span>
+                    );
+                })}
+
+                {onCast && spell.level > 0 && (
+                    <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={cast}
+                        disabled={!canCastNow}
+                        title={canCastNow ? `Spend one ${levelLabel(castLevel)} slot` : `No ${levelLabel(castLevel)} slots left`}
+                    >
+                        Cast ({levelLabel(castLevel)})
+                    </Button>
                 )}
 
                 {spell.concentration && onToggleConcentration && (
@@ -174,6 +299,8 @@ export function SpellEntry({
                     </Button>
                 )}
             </div>
+
+            {lastCast && <p className="mt-2 text-xs text-fontcolor-secondary">{lastCast}</p>}
 
             {rolled && (
                 <p className="mt-2 text-xs text-fontcolor">

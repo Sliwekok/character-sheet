@@ -9,6 +9,14 @@ import { Spell } from "@/interfaces/Spell";
  * Spell.ts - so there's one shared list rather than a 2014/2024 split;
  * both rulesets reference this same array in data/index.ts, the same
  * pattern already used for weapons.
+ *
+ * Every spell also carries a hand-reviewed `mechanics` block (roles,
+ * attack/save, damage/healing/effect dice, upcast and cantrip scaling -
+ * see interfaces/Spell.ts's `SpellMechanics`). That structured data, not
+ * regex over `description`, is what drives the character sheet's roll
+ * buttons and upcasting selector (see components/character/SpellEntry.tsx
+ * and utils/spellRolls.ts). If a description is edited, re-check its
+ * `mechanics` block too.
  */
 export const SPELLS: Spell[] = [
     {
@@ -22,6 +30,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "dexterity",
+            damage: [
+                { dice: "1d6", damageType: "Acid", cantripDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Blade Ward",
@@ -34,6 +49,12 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["defense"],
+            effects: [
+                { label: "Penalty die", dice: "1d4" },
+            ],
+        },
     },
     {
         name: "Booming Blade",
@@ -46,6 +67,13 @@ export const SPELLS: Spell[] = [
         duration: "1 round",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            damage: [
+                { label: "On hit", dice: "", damageType: "Thunder", cantripDice: "1d8" },
+                { label: "If target moves", dice: "1d8", damageType: "Thunder", cantripDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Chill Touch",
@@ -58,6 +86,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "debuff"],
+            attack: "melee",
+            damage: [
+                { dice: "1d10", damageType: "Necrotic", cantripDice: "1d10" },
+            ],
+        },
     },
     {
         name: "Control Flames",
@@ -70,6 +105,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous or 1 hour (see below)",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Create Bonfire",
@@ -82,6 +120,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "dexterity",
+            damage: [
+                { dice: "1d8", damageType: "Fire", cantripDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Dancing Lights",
@@ -94,6 +139,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Druidcraft",
@@ -106,6 +154,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Eldritch Blast",
@@ -118,6 +169,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            attack: "ranged",
+            damage: [
+                { label: "Per beam", dice: "1d10", damageType: "Force", cantripCount: 1 },
+            ],
+        },
     },
     {
         name: "Elementalism",
@@ -130,6 +188,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Encode Thoughts",
@@ -142,6 +203,9 @@ export const SPELLS: Spell[] = [
         duration: "8 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Fire Bolt",
@@ -154,6 +218,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            attack: "ranged",
+            damage: [
+                { dice: "1d10", damageType: "Fire", cantripDice: "1d10" },
+            ],
+        },
     },
     {
         name: "Friends",
@@ -166,6 +237,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control", "utility"],
+            save: "wisdom",
+        },
     },
     {
         name: "Frostbite",
@@ -178,6 +253,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "debuff"],
+            save: "constitution",
+            damage: [
+                { dice: "1d6", damageType: "Cold", cantripDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Green-Flame Blade",
@@ -190,6 +272,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            damage: [
+                { label: "On hit", dice: "", damageType: "Fire", cantripDice: "1d8" },
+                { label: "Second creature", dice: "", damageType: "Fire", addModifier: true, cantripDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Guidance",
@@ -202,6 +291,12 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["buff"],
+            effects: [
+                { label: "Bonus die", dice: "1d4" },
+            ],
+        },
     },
     {
         name: "Gust",
@@ -214,6 +309,10 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["control", "utility"],
+            save: "strength",
+        },
     },
     {
         name: "Infestation",
@@ -226,6 +325,16 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "constitution",
+            damage: [
+                { dice: "1d6", damageType: "Poison", cantripDice: "1d6" },
+            ],
+            effects: [
+                { label: "Direction", dice: "1d4" },
+            ],
+        },
     },
     {
         name: "Light",
@@ -238,6 +347,9 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Lightning Lure",
@@ -250,6 +362,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "strength",
+            damage: [
+                { dice: "1d8", damageType: "Lightning", cantripDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Mage Hand",
@@ -262,6 +381,9 @@ export const SPELLS: Spell[] = [
         duration: "1 minute",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Magic Stone",
@@ -274,6 +396,13 @@ export const SPELLS: Spell[] = [
         duration: "1 minute",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            attack: "ranged",
+            damage: [
+                { label: "Per pebble", dice: "1d6", damageType: "Bludgeoning", addModifier: true },
+            ],
+        },
     },
     {
         name: "Mending",
@@ -286,6 +415,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Message",
@@ -298,6 +430,9 @@ export const SPELLS: Spell[] = [
         duration: "1 round",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Mind Sliver",
@@ -310,6 +445,16 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "debuff"],
+            save: "intelligence",
+            damage: [
+                { dice: "1d6", damageType: "Psychic", cantripDice: "1d6" },
+            ],
+            effects: [
+                { label: "Penalty die", dice: "1d4" },
+            ],
+        },
     },
     {
         name: "Minor Illusion",
@@ -322,6 +467,9 @@ export const SPELLS: Spell[] = [
         duration: "1 minute",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Mold Earth",
@@ -334,6 +482,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous or 1 hour (see below)",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility", "control"],
+        },
     },
     {
         name: "Poison Spray",
@@ -346,6 +497,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            attack: "ranged",
+            damage: [
+                { dice: "1d12", damageType: "Poison", cantripDice: "1d12" },
+            ],
+        },
     },
     {
         name: "Prestidigitation",
@@ -358,6 +516,9 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Primal Savagery",
@@ -370,6 +531,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            attack: "melee",
+            damage: [
+                { dice: "1d10", damageType: "Acid", cantripDice: "1d10" },
+            ],
+        },
     },
     {
         name: "Produce Flame",
@@ -382,6 +550,13 @@ export const SPELLS: Spell[] = [
         duration: "10 minutes",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "utility"],
+            attack: "ranged",
+            damage: [
+                { dice: "1d8", damageType: "Fire", cantripDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Ray of Frost",
@@ -394,6 +569,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "debuff"],
+            attack: "ranged",
+            damage: [
+                { dice: "1d8", damageType: "Cold", cantripDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Resistance",
@@ -406,6 +588,12 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["defense"],
+            effects: [
+                { label: "Damage reduction", dice: "1d4" },
+            ],
+        },
     },
     {
         name: "Sacred Flame",
@@ -418,6 +606,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "dexterity",
+            damage: [
+                { dice: "1d8", damageType: "Radiant", cantripDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Sapping Sting",
@@ -430,6 +625,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "constitution",
+            damage: [
+                { dice: "1d4", damageType: "Necrotic", cantripDice: "1d4" },
+            ],
+        },
     },
     {
         name: "Shape Water",
@@ -442,6 +644,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous or 1 hour (see below)",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Shillelagh",
@@ -454,6 +659,13 @@ export const SPELLS: Spell[] = [
         duration: "1 minute",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["buff", "damage"],
+            damage: [
+                { label: "Weapon hit", dice: "1d8", damageType: "Bludgeoning/Force", addModifier: true },
+            ],
+            upcastNote: "Damage die becomes d10 at level 5, d12 at level 11, and 2d6 at level 17.",
+        },
     },
     {
         name: "Shocking Grasp",
@@ -466,6 +678,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "debuff"],
+            attack: "melee",
+            damage: [
+                { dice: "1d8", damageType: "Lightning", cantripDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Sorcerous Burst",
@@ -478,6 +697,14 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            attack: "ranged",
+            damage: [
+                { dice: "1d8", damageType: "Acid/Cold/Fire/Lightning/Poison/Psychic/Thunder", cantripDice: "1d8" },
+                { label: "Extra d8 (on an 8)", dice: "1d8", damageType: "Acid/Cold/Fire/Lightning/Poison/Psychic/Thunder" },
+            ],
+        },
     },
     {
         name: "Spare the Dying",
@@ -490,6 +717,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["healing"],
+        },
     },
     {
         name: "Starry Wisp",
@@ -502,6 +732,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "debuff"],
+            attack: "ranged",
+            damage: [
+                { dice: "1d8", damageType: "Radiant", cantripDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Sword Burst",
@@ -514,6 +751,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "dexterity",
+            damage: [
+                { dice: "1d6", damageType: "Force", cantripDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Thaumaturgy",
@@ -526,6 +770,9 @@ export const SPELLS: Spell[] = [
         duration: "1 minute",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Thorn Whip",
@@ -538,6 +785,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            attack: "melee",
+            damage: [
+                { dice: "1d6", damageType: "Piercing", cantripDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Thunderclap",
@@ -550,6 +804,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "constitution",
+            damage: [
+                { dice: "1d6", damageType: "Thunder", cantripDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Toll the Dead",
@@ -562,6 +823,14 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "wisdom",
+            damage: [
+                { dice: "1d8", damageType: "Necrotic", cantripDice: "1d8" },
+                { label: "Missing HP", dice: "1d12", damageType: "Necrotic", cantripDice: "1d12" },
+            ],
+        },
     },
     {
         name: "True Strike",
@@ -574,6 +843,12 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "buff"],
+            damage: [
+                { label: "Extra Radiant", dice: "", damageType: "Radiant", cantripDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Vicious Mockery",
@@ -586,6 +861,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "debuff"],
+            save: "wisdom",
+            damage: [
+                { dice: "1d6", damageType: "Psychic", cantripDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Word of Radiance",
@@ -598,6 +880,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "constitution",
+            damage: [
+                { dice: "1d6", damageType: "Radiant", cantripDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Absorb Elements",
@@ -610,6 +899,12 @@ export const SPELLS: Spell[] = [
         duration: "1 round",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense", "damage"],
+            damage: [
+                { label: "Next melee hit", dice: "1d6", upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Alarm",
@@ -622,6 +917,9 @@ export const SPELLS: Spell[] = [
         duration: "8 hours",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Animal Friendship",
@@ -634,6 +932,11 @@ export const SPELLS: Spell[] = [
         duration: "24 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["control", "utility"],
+            save: "wisdom",
+            upcastNote: "+1 Beast target per slot level above 1st.",
+        },
     },
     {
         name: "Armor of Agathys",
@@ -646,6 +949,15 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense", "damage"],
+            damage: [
+                { label: "Melee attacker", dice: "5", damageType: "Cold", upcastDice: "5" },
+            ],
+            effects: [
+                { label: "Temp HP", dice: "5", upcastDice: "5" },
+            ],
+        },
     },
     {
         name: "Arms of Hadar",
@@ -658,6 +970,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "debuff"],
+            save: "strength",
+            damage: [
+                { dice: "2d6", damageType: "Necrotic", upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Bane",
@@ -670,6 +989,14 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["debuff"],
+            save: "charisma",
+            effects: [
+                { label: "Penalty die", dice: "1d4" },
+            ],
+            upcastNote: "+1 target per slot level above 1st.",
+        },
     },
     {
         name: "Beast Bond",
@@ -682,6 +1009,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["utility", "buff"],
+        },
     },
     {
         name: "Bless",
@@ -694,6 +1024,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["buff"],
+            effects: [
+                { label: "Bonus die", dice: "1d4" },
+            ],
+            upcastNote: "+1 target per slot level above 1st.",
+        },
     },
     {
         name: "Burning Hands",
@@ -706,6 +1043,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "dexterity",
+            damage: [
+                { dice: "3d6", damageType: "Fire", upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Catapult",
@@ -718,6 +1062,14 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "dexterity",
+            damage: [
+                { dice: "3d8", damageType: "Bludgeoning", upcastDice: "1d8" },
+            ],
+            upcastNote: "Max object weight +5 lb per slot level above 1st.",
+        },
     },
     {
         name: "Cause Fear",
@@ -730,6 +1082,11 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "wisdom",
+            upcastNote: "+1 target per slot level above 1st (within 30 ft of each other).",
+        },
     },
     {
         name: "Ceremony",
@@ -742,6 +1099,12 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["utility", "buff"],
+            effects: [
+                { label: "Bonus die", dice: "1d4" },
+            ],
+        },
     },
     {
         name: "Chaos Bolt",
@@ -754,6 +1117,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            attack: "ranged",
+            damage: [
+                { dice: "2d8+1d6", damageType: "Acid/Cold/Fire/Force/Lightning/Poison/Psychic/Thunder", upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Charm Person",
@@ -766,6 +1136,11 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["control", "utility"],
+            save: "wisdom",
+            upcastNote: "+1 target per slot level above 1st.",
+        },
     },
     {
         name: "Chromatic Orb",
@@ -778,6 +1153,14 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            attack: "ranged",
+            damage: [
+                { dice: "3d8", damageType: "Acid/Cold/Fire/Lightning/Poison/Thunder", upcastDice: "1d8" },
+            ],
+            upcastNote: "The orb can leap a number of times equal to the slot level.",
+        },
     },
     {
         name: "Color Spray",
@@ -790,6 +1173,10 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["control"],
+            save: "constitution",
+        },
     },
     {
         name: "Command",
@@ -802,6 +1189,11 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["control"],
+            save: "wisdom",
+            upcastNote: "+1 target per slot level above 1st.",
+        },
     },
     {
         name: "Compelled Duel",
@@ -814,6 +1206,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["debuff", "control"],
+            save: "wisdom",
+        },
     },
     {
         name: "Comprehend Languages",
@@ -826,6 +1222,9 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Create or Destroy Water",
@@ -838,6 +1237,10 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+            upcastNote: "+10 gallons or +5 ft Cube size per slot level above 1st.",
+        },
     },
     {
         name: "Cure Wounds",
@@ -850,6 +1253,12 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["healing"],
+            healing: [
+                { dice: "2d8", addModifier: true, upcastDice: "2d8" },
+            ],
+        },
     },
     {
         name: "Detect Evil and Good",
@@ -862,6 +1271,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Detect Magic",
@@ -874,6 +1286,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: true,
         concentration: true,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Detect Poison and Disease",
@@ -886,6 +1301,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: true,
         concentration: true,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Disguise Self",
@@ -898,6 +1316,9 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Dissonant Whispers",
@@ -910,6 +1331,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "wisdom",
+            damage: [
+                { dice: "3d6", damageType: "Psychic", upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Distort Value",
@@ -922,6 +1350,10 @@ export const SPELLS: Spell[] = [
         duration: "8 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+            upcastNote: "Max object size +1 foot per slot level above 1st.",
+        },
     },
     {
         name: "Divine Favor",
@@ -934,6 +1366,12 @@ export const SPELLS: Spell[] = [
         duration: "1 minute",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "buff"],
+            damage: [
+                { label: "Per weapon hit", dice: "1d4", damageType: "Radiant" },
+            ],
+        },
     },
     {
         name: "Divine Smite",
@@ -946,6 +1384,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            damage: [
+                { dice: "2d8", damageType: "Radiant", upcastDice: "1d8" },
+                { label: "Fiend or Undead", dice: "1d8", damageType: "Radiant" },
+            ],
+        },
     },
     {
         name: "Earth Tremor",
@@ -958,6 +1403,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "dexterity",
+            damage: [
+                { dice: "1d6", damageType: "Bludgeoning", upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Ensnaring Strike",
@@ -970,6 +1422,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control", "damage"],
+            save: "strength",
+            damage: [
+                { label: "Start of turn", dice: "1d6", damageType: "Piercing", upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Entangle",
@@ -982,6 +1441,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "strength",
+        },
     },
     {
         name: "Expeditious Retreat",
@@ -994,6 +1457,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["buff", "utility"],
+        },
     },
     {
         name: "Faerie Fire",
@@ -1006,6 +1472,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["debuff"],
+            save: "dexterity",
+        },
     },
     {
         name: "False Life",
@@ -1018,6 +1488,12 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense"],
+            effects: [
+                { label: "Temp HP", dice: "2d4+4", upcastDice: "5" },
+            ],
+        },
     },
     {
         name: "Feather Fall",
@@ -1030,6 +1506,9 @@ export const SPELLS: Spell[] = [
         duration: "1 minute",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility", "defense"],
+        },
     },
     {
         name: "Find Familiar",
@@ -1042,6 +1521,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["summon", "utility"],
+        },
     },
     {
         name: "Fog Cloud",
@@ -1054,6 +1536,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control", "utility"],
+            upcastNote: "Radius +20 ft per slot level above 1st.",
+        },
     },
     {
         name: "Frost Fingers",
@@ -1066,6 +1552,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "constitution",
+            damage: [
+                { dice: "2d8", damageType: "Cold", upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Gift of Alacrity",
@@ -1078,6 +1571,12 @@ export const SPELLS: Spell[] = [
         duration: "8 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["buff"],
+            effects: [
+                { label: "Initiative bonus", dice: "1d8" },
+            ],
+        },
     },
     {
         name: "Goodberry",
@@ -1090,6 +1589,12 @@ export const SPELLS: Spell[] = [
         duration: "24 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["healing", "utility"],
+            healing: [
+                { label: "Per berry", dice: "1" },
+            ],
+        },
     },
     {
         name: "Grease",
@@ -1102,6 +1607,10 @@ export const SPELLS: Spell[] = [
         duration: "1 minute",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["control"],
+            save: "dexterity",
+        },
     },
     {
         name: "Guiding Bolt",
@@ -1114,6 +1623,13 @@ export const SPELLS: Spell[] = [
         duration: "1 round",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "debuff"],
+            attack: "ranged",
+            damage: [
+                { dice: "4d6", damageType: "Radiant", upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Hail of Thorns",
@@ -1126,6 +1642,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "dexterity",
+            damage: [
+                { dice: "1d10", damageType: "Piercing", upcastDice: "1d10" },
+            ],
+        },
     },
     {
         name: "Healing Word",
@@ -1138,6 +1661,12 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["healing"],
+            healing: [
+                { dice: "2d4", addModifier: true, upcastDice: "2d4" },
+            ],
+        },
     },
     {
         name: "Hellish Rebuke",
@@ -1150,6 +1679,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "dexterity",
+            damage: [
+                { dice: "2d10", damageType: "Fire", upcastDice: "1d10" },
+            ],
+        },
     },
     {
         name: "Heroism",
@@ -1162,6 +1698,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["buff", "defense"],
+            effects: [
+                { label: "Temp HP (each turn)", dice: "0", addModifier: true },
+            ],
+            upcastNote: "+1 target per slot level above 1st.",
+        },
     },
     {
         name: "Hex",
@@ -1174,6 +1717,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "debuff"],
+            damage: [
+                { label: "Per hit", dice: "1d6", damageType: "Necrotic" },
+            ],
+            upcastNote: "Concentration lasts up to 4 hours (level 2), 8 hours (level 3-4), or 24 hours (level 5+).",
+        },
     },
     {
         name: "Hunter's Mark",
@@ -1186,6 +1736,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "buff"],
+            damage: [
+                { label: "Per hit", dice: "1d6", damageType: "Force" },
+            ],
+            upcastNote: "Concentration lasts up to 8 hours (level 3-4) or 24 hours (level 5+).",
+        },
     },
     {
         name: "Ice Knife",
@@ -1198,6 +1755,15 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            attack: "ranged",
+            save: "dexterity",
+            damage: [
+                { label: "On hit", dice: "1d10", damageType: "Piercing" },
+                { label: "Explosion", dice: "2d6", damageType: "Cold", upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Identify",
@@ -1210,6 +1776,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Illusory Script",
@@ -1222,6 +1791,9 @@ export const SPELLS: Spell[] = [
         duration: "10 days",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Inflict Wounds",
@@ -1234,6 +1806,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "constitution",
+            damage: [
+                { dice: "2d10", damageType: "Necrotic", upcastDice: "1d10" },
+            ],
+        },
     },
     {
         name: "Jim's Magic Missile",
@@ -1246,6 +1825,16 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            attack: "ranged",
+            damage: [
+                { label: "Per dart", dice: "2d4", damageType: "Force", count: 3, upcastCount: 1 },
+                { label: "Critical hit", dice: "5d4", damageType: "Force" },
+                { label: "Nat 1 (self, per dart)", dice: "1", damageType: "Force" },
+            ],
+            upcastNote: "The royalty component increases by 1 gp per slot level above 1st.",
+        },
     },
     {
         name: "Jump",
@@ -1258,6 +1847,10 @@ export const SPELLS: Spell[] = [
         duration: "1 minute",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility", "buff"],
+            upcastNote: "+1 target per slot level above 1st.",
+        },
     },
     {
         name: "Longstrider",
@@ -1270,6 +1863,10 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["buff", "utility"],
+            upcastNote: "+1 target per slot level above 1st.",
+        },
     },
     {
         name: "Mage Armor",
@@ -1282,6 +1879,9 @@ export const SPELLS: Spell[] = [
         duration: "8 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense"],
+        },
     },
     {
         name: "Magic Missile",
@@ -1294,6 +1894,12 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            damage: [
+                { label: "Per dart", dice: "1d4+1", damageType: "Force", count: 3, upcastCount: 1 },
+            ],
+        },
     },
     {
         name: "Magnify Gravity",
@@ -1306,6 +1912,13 @@ export const SPELLS: Spell[] = [
         duration: "1 round",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "debuff"],
+            save: "constitution",
+            damage: [
+                { dice: "2d8", damageType: "Force", upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Protection from Evil and Good",
@@ -1318,6 +1931,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["defense"],
+        },
     },
     {
         name: "Purify Food and Drink",
@@ -1330,6 +1946,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Ray of Sickness",
@@ -1342,6 +1961,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "debuff"],
+            attack: "ranged",
+            damage: [
+                { dice: "2d8", damageType: "Poison", upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Sanctuary",
@@ -1354,6 +1980,10 @@ export const SPELLS: Spell[] = [
         duration: "1 minute",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense"],
+            save: "wisdom",
+        },
     },
     {
         name: "Searing Smite",
@@ -1366,6 +1996,14 @@ export const SPELLS: Spell[] = [
         duration: "1 minute",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "constitution",
+            damage: [
+                { label: "On hit", dice: "1d6", damageType: "Fire", upcastDice: "1d6" },
+                { label: "Start of turn", dice: "1d6", damageType: "Fire", upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Shield",
@@ -1378,6 +2016,9 @@ export const SPELLS: Spell[] = [
         duration: "1 round",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense"],
+        },
     },
     {
         name: "Shield of Faith",
@@ -1390,6 +2031,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["defense"],
+        },
     },
     {
         name: "Silent Image",
@@ -1402,6 +2046,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Silvery Barbs",
@@ -1414,6 +2061,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["debuff", "buff"],
+        },
     },
     {
         name: "Sleep",
@@ -1426,6 +2076,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "wisdom",
+        },
     },
     {
         name: "Snare",
@@ -1438,6 +2092,10 @@ export const SPELLS: Spell[] = [
         duration: "8 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["control"],
+            save: "dexterity",
+        },
     },
     {
         name: "Speak with Animals",
@@ -1450,6 +2108,9 @@ export const SPELLS: Spell[] = [
         duration: "10 minutes",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Spellfire Flare",
@@ -1462,6 +2123,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            attack: "ranged",
+            damage: [
+                { dice: "2d10", damageType: "Radiant", upcastCount: 1 },
+            ],
+        },
     },
     {
         name: "Tasha's Caustic Brew",
@@ -1474,6 +2142,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage"],
+            save: "dexterity",
+            damage: [
+                { label: "Start of turn", dice: "2d4", damageType: "Acid", upcastDice: "2d4" },
+            ],
+        },
     },
     {
         name: "Tasha's Hideous Laughter",
@@ -1486,6 +2161,11 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "wisdom",
+            upcastNote: "+1 target per slot level above 1st.",
+        },
     },
     {
         name: "Tenser's Floating Disk",
@@ -1498,6 +2178,9 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Thunderous Smite",
@@ -1510,6 +2193,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "strength",
+            damage: [
+                { dice: "2d6", damageType: "Thunder", upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Thunderwave",
@@ -1522,6 +2212,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "constitution",
+            damage: [
+                { dice: "2d8", damageType: "Thunder", upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Unseen Servant",
@@ -1534,6 +2231,9 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["utility", "summon"],
+        },
     },
     {
         name: "Wardaway",
@@ -1546,6 +2246,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "constitution",
+            damage: [
+                { dice: "2d4", damageType: "Force", upcastDice: "2d4" },
+            ],
+        },
     },
     {
         name: "Witch Bolt",
@@ -1558,6 +2265,14 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage"],
+            attack: "ranged",
+            damage: [
+                { label: "Initial", dice: "2d12", damageType: "Lightning", upcastDice: "1d12" },
+                { label: "Later turns", dice: "1d12", damageType: "Lightning" },
+            ],
+        },
     },
     {
         name: "Wrathful Smite",
@@ -1570,6 +2285,13 @@ export const SPELLS: Spell[] = [
         duration: "1 minute",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "wisdom",
+            damage: [
+                { dice: "1d6", damageType: "Necrotic", upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Zephyr Strike",
@@ -1582,6 +2304,12 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["buff", "damage"],
+            damage: [
+                { label: "Empowered attack", dice: "1d8", damageType: "Force" },
+            ],
+        },
     },
     {
         name: "Aganazzar's Scorcher",
@@ -1594,6 +2322,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "dexterity",
+            damage: [
+                { dice: "3d8", damageType: "Fire", upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Aid",
@@ -1606,6 +2341,10 @@ export const SPELLS: Spell[] = [
         duration: "8 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["buff", "healing"],
+            upcastNote: "Hit Points increase by an additional 5 per slot level above 2nd.",
+        },
     },
     {
         name: "Air Bubble",
@@ -1618,6 +2357,10 @@ export const SPELLS: Spell[] = [
         duration: "24 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+            upcastNote: "+2 globes per slot level above 2nd.",
+        },
     },
     {
         name: "Alter Self",
@@ -1630,6 +2373,12 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["utility", "buff"],
+            damage: [
+                { label: "Natural Weapons", dice: "1d6", damageType: "Bludgeoning/Piercing/Slashing", addModifier: true },
+            ],
+        },
     },
     {
         name: "Animal Messenger",
@@ -1642,6 +2391,11 @@ export const SPELLS: Spell[] = [
         duration: "24 hours",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+            save: "charisma",
+            upcastNote: "Duration +48 hours per slot level above 2nd.",
+        },
     },
     {
         name: "Arcane Lock",
@@ -1654,6 +2408,9 @@ export const SPELLS: Spell[] = [
         duration: "Until dispelled",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Arcane Vigor",
@@ -1666,6 +2423,10 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["healing"],
+            upcastNote: "You can roll one additional Hit Point Die per slot level above 2nd.",
+        },
     },
     {
         name: "Augury",
@@ -1678,6 +2439,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Barkskin",
@@ -1690,6 +2454,9 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense"],
+        },
     },
     {
         name: "Beast Sense",
@@ -1702,6 +2469,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: true,
         concentration: true,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Blindness/Deafness",
@@ -1714,6 +2484,11 @@ export const SPELLS: Spell[] = [
         duration: "1 minute",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["control"],
+            save: "constitution",
+            upcastNote: "+1 target per slot level above 2nd.",
+        },
     },
     {
         name: "Blur",
@@ -1726,6 +2501,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["defense"],
+        },
     },
     {
         name: "Borrowed Knowledge",
@@ -1738,6 +2516,9 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility", "buff"],
+        },
     },
     {
         name: "Calm Emotions",
@@ -1750,6 +2531,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control", "utility"],
+            save: "charisma",
+        },
     },
     {
         name: "Cloud of Daggers",
@@ -1762,6 +2547,12 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            damage: [
+                { dice: "4d4", damageType: "Slashing", upcastDice: "2d4" },
+            ],
+        },
     },
     {
         name: "Continual Flame",
@@ -1774,6 +2565,9 @@ export const SPELLS: Spell[] = [
         duration: "Until dispelled",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Cordon of Arrows",
@@ -1786,6 +2580,14 @@ export const SPELLS: Spell[] = [
         duration: "8 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "dexterity",
+            damage: [
+                { dice: "2d4", damageType: "Piercing" },
+            ],
+            upcastNote: "+2 pieces of ammunition per slot level above 2nd.",
+        },
     },
     {
         name: "Crown of Madness",
@@ -1798,6 +2600,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "wisdom",
+        },
     },
     {
         name: "Darkness",
@@ -1810,6 +2616,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control", "utility"],
+        },
     },
     {
         name: "Darkvision",
@@ -1822,6 +2631,9 @@ export const SPELLS: Spell[] = [
         duration: "8 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility", "buff"],
+        },
     },
     {
         name: "Death Armor",
@@ -1834,6 +2646,12 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense", "damage"],
+            damage: [
+                { label: "Retaliation", dice: "2d4", damageType: "Necrotic" },
+            ],
+        },
     },
     {
         name: "Deryan's Helpful Homunculi",
@@ -1850,6 +2668,9 @@ export const SPELLS: Spell[] = [
         duration: "8 hours",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["utility", "summon"],
+        },
     },
     {
         name: "Detect Thoughts",
@@ -1862,6 +2683,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["utility"],
+            save: "wisdom",
+        },
     },
     {
         name: "Dragon's Breath",
@@ -1874,6 +2699,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "buff"],
+            save: "dexterity",
+            damage: [
+                { dice: "3d6", damageType: "Acid/Cold/Fire/Lightning/Poison", upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Dust Devil",
@@ -1886,6 +2718,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "strength",
+            damage: [
+                { dice: "1d8", damageType: "Bludgeoning", upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Earthbind",
@@ -1898,6 +2737,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "strength",
+        },
     },
     {
         name: "Elminster's Elusion",
@@ -1910,6 +2753,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["defense"],
+        },
     },
     {
         name: "Enhance Ability",
@@ -1922,6 +2768,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["buff"],
+            upcastNote: "+1 target per slot level above 2nd.",
+        },
     },
     {
         name: "Enlarge/Reduce",
@@ -1934,6 +2784,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["buff", "debuff"],
+            save: "constitution",
+            damage: [
+                { label: "Enlarge bonus", dice: "1d4" },
+            ],
+        },
     },
     {
         name: "Enthrall",
@@ -1946,6 +2803,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["debuff", "utility"],
+            save: "wisdom",
+        },
     },
     {
         name: "Find Steed",
@@ -1958,6 +2819,10 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["summon", "utility"],
+            upcastNote: "The steed's stat block uses the slot's level.",
+        },
     },
     {
         name: "Find Traps",
@@ -1970,6 +2835,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Flame Blade",
@@ -1982,6 +2850,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage"],
+            attack: "melee",
+            damage: [
+                { dice: "3d6", damageType: "Fire", addModifier: true, upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Flaming Sphere",
@@ -1994,6 +2869,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "dexterity",
+            damage: [
+                { dice: "2d6", damageType: "Fire", upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Fortune's Favor",
@@ -2006,6 +2888,10 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["buff", "defense"],
+            upcastNote: "+1 target per slot level above 2nd.",
+        },
     },
     {
         name: "Gentle Repose",
@@ -2018,6 +2904,9 @@ export const SPELLS: Spell[] = [
         duration: "10 days",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Gift of Gab",
@@ -2030,6 +2919,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Gust of Wind",
@@ -2042,6 +2934,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "strength",
+        },
     },
     {
         name: "Healing Spirit",
@@ -2054,6 +2950,12 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["healing"],
+            healing: [
+                { label: "Per heal", dice: "1d6", upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Heat Metal",
@@ -2066,6 +2968,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "debuff"],
+            save: "constitution",
+            damage: [
+                { dice: "2d8", damageType: "Fire", upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Hold Person",
@@ -2078,6 +2987,11 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "wisdom",
+            upcastNote: "+1 target per slot level above 2nd.",
+        },
     },
     {
         name: "Homunculus Servant",
@@ -2090,6 +3004,10 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["summon"],
+            upcastNote: "The homunculus's stat block uses the slot's level.",
+        },
     },
     {
         name: "Immovable Object",
@@ -2102,6 +3020,10 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+            upcastNote: "4th-5th: DC +5, holds 8,000 lb, lasts 24 hours; 6th+: DC +10, holds 20,000 lb, permanent until dispelled.",
+        },
     },
     {
         name: "Invisibility",
@@ -2114,6 +3036,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["buff", "utility"],
+            upcastNote: "+1 target per slot level above 2nd.",
+        },
     },
     {
         name: "Jim's Glowing Coin",
@@ -2126,6 +3052,10 @@ export const SPELLS: Spell[] = [
         duration: "1 minute",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["debuff"],
+            save: "wisdom",
+        },
     },
     {
         name: "Kinetic Jaunt",
@@ -2138,6 +3068,12 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["buff"],
+            damage: [
+                { label: "Shunted (self)", dice: "1d8", damageType: "Force" },
+            ],
+        },
     },
     {
         name: "Knock",
@@ -2150,6 +3086,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Lesser Restoration",
@@ -2162,6 +3101,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Levitate",
@@ -2174,6 +3116,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["utility", "control"],
+            save: "constitution",
+        },
     },
     {
         name: "Locate Animals or Plants",
@@ -2186,6 +3132,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Locate Object",
@@ -2198,6 +3147,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Magic Mouth",
@@ -2210,6 +3162,9 @@ export const SPELLS: Spell[] = [
         duration: "Until dispelled",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Magic Weapon",
@@ -2222,6 +3177,10 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["buff"],
+            upcastNote: "Bonus becomes +2 with a 3rd-5th level slot and +3 with a 6th+ level slot.",
+        },
     },
     {
         name: "Maximilian's Earthen Grasp",
@@ -2234,6 +3193,14 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "strength",
+            damage: [
+                { label: "Initial", dice: "2d6", damageType: "Bludgeoning" },
+                { label: "Crush", dice: "2d6", damageType: "Bludgeoning" },
+            ],
+        },
     },
     {
         name: "Melf's Acid Arrow",
@@ -2246,6 +3213,14 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            attack: "ranged",
+            damage: [
+                { label: "Initial", dice: "4d4", damageType: "Acid", upcastDice: "1d4" },
+                { label: "End of next turn", dice: "2d4", damageType: "Acid", upcastDice: "1d4" },
+            ],
+        },
     },
     {
         name: "Mind Spike",
@@ -2258,6 +3233,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage"],
+            save: "wisdom",
+            damage: [
+                { dice: "3d8", damageType: "Psychic", upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Mirror Image",
@@ -2270,6 +3252,12 @@ export const SPELLS: Spell[] = [
         duration: "1 minute",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense"],
+            effects: [
+                { label: "Duplicate check", dice: "1d6", count: 3 },
+            ],
+        },
     },
     {
         name: "Misty Step",
@@ -2282,6 +3270,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Moonbeam",
@@ -2294,6 +3285,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage"],
+            save: "constitution",
+            damage: [
+                { dice: "2d10", damageType: "Radiant", upcastDice: "1d10" },
+            ],
+        },
     },
     {
         name: "Nathair's Mischief",
@@ -2306,6 +3304,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "wisdom",
+            effects: [
+                { label: "Mischievous Surge", dice: "1d4" },
+            ],
+        },
     },
     {
         name: "Nystul's Magic Aura",
@@ -2318,6 +3323,9 @@ export const SPELLS: Spell[] = [
         duration: "24 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Pass without Trace",
@@ -2330,6 +3338,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["buff", "utility"],
+        },
     },
     {
         name: "Phantasmal Force",
@@ -2342,6 +3353,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control", "damage"],
+            save: "intelligence",
+            damage: [
+                { label: "Phantasm", dice: "2d8", damageType: "Psychic" },
+            ],
+        },
     },
     {
         name: "Prayer of Healing",
@@ -2354,6 +3372,12 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["healing"],
+            healing: [
+                { dice: "2d8", upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Protection from Poison",
@@ -2366,6 +3390,9 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense"],
+        },
     },
     {
         name: "Pyrotechnics",
@@ -2378,6 +3405,10 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["control", "utility"],
+            save: "constitution",
+        },
     },
     {
         name: "Ray of Enfeeblement",
@@ -2390,6 +3421,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["debuff"],
+            save: "constitution",
+            effects: [
+                { label: "Penalty die", dice: "1d8" },
+            ],
+        },
     },
     {
         name: "Rime's Binding Ice",
@@ -2402,6 +3440,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "constitution",
+            damage: [
+                { dice: "3d8", damageType: "Cold", upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Rope Trick",
@@ -2414,6 +3459,9 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Scorching Ray",
@@ -2426,6 +3474,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            attack: "ranged",
+            damage: [
+                { dice: "2d6", damageType: "Fire", count: 3, upcastCount: 1 },
+            ],
+        },
     },
     {
         name: "See Invisibility",
@@ -2438,6 +3493,9 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Shadow Blade",
@@ -2450,6 +3508,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage"],
+            damage: [
+                { dice: "2d8", damageType: "Psychic" },
+            ],
+            upcastNote: "Damage becomes 3d8 with a 3rd-4th level slot, 4d8 with 5th-6th, and 5d8 with 7th+.",
+        },
     },
     {
         name: "Shatter",
@@ -2462,6 +3527,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "constitution",
+            damage: [
+                { dice: "3d8", damageType: "Thunder", upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Shining Smite",
@@ -2474,6 +3546,12 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "debuff"],
+            damage: [
+                { dice: "2d6", damageType: "Radiant", upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Silence",
@@ -2486,6 +3564,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: true,
         concentration: true,
+        mechanics: {
+            roles: ["control", "utility"],
+        },
     },
     {
         name: "Skywrite",
@@ -2498,6 +3579,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: true,
         concentration: true,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Snilloc's Snowball Swarm",
@@ -2510,6 +3594,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "dexterity",
+            damage: [
+                { dice: "3d6", damageType: "Cold", upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Spider Climb",
@@ -2522,6 +3613,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["buff", "utility"],
+            upcastNote: "+1 target per slot level above 2nd.",
+        },
     },
     {
         name: "Spike Growth",
@@ -2534,6 +3629,12 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control", "damage"],
+            damage: [
+                { label: "Per 5 feet", dice: "2d4", damageType: "Piercing" },
+            ],
+        },
     },
     {
         name: "Spiritual Weapon",
@@ -2546,6 +3647,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage"],
+            attack: "melee",
+            damage: [
+                { dice: "1d8", damageType: "Force", addModifier: true, upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Spray of Cards",
@@ -2558,6 +3666,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "dexterity",
+            damage: [
+                { dice: "2d10", damageType: "Force", upcastDice: "1d10" },
+            ],
+        },
     },
     {
         name: "Suggestion",
@@ -2570,6 +3685,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 8 hours",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "wisdom",
+        },
     },
     {
         name: "Summon Beast",
@@ -2582,6 +3701,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["summon"],
+            upcastNote: "The spirit's stat block uses the slot's level.",
+        },
     },
     {
         name: "Tasha's Mind Whip",
@@ -2594,6 +3717,14 @@ export const SPELLS: Spell[] = [
         duration: "1 round",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "intelligence",
+            damage: [
+                { dice: "3d6", damageType: "Psychic" },
+            ],
+            upcastNote: "+1 target per slot level above 2nd.",
+        },
     },
     {
         name: "Vortex Warp",
@@ -2606,6 +3737,11 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["control", "utility"],
+            save: "constitution",
+            upcastNote: "Range +30 feet per slot level above 2nd.",
+        },
     },
     {
         name: "Warding Bond",
@@ -2622,6 +3758,9 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense"],
+        },
     },
     {
         name: "Warding Wind",
@@ -2634,6 +3773,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["defense", "control"],
+        },
     },
     {
         name: "Warp Sense",
@@ -2646,6 +3788,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Web",
@@ -2658,6 +3803,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control", "damage"],
+            save: "dexterity",
+            damage: [
+                { label: "Burning webs", dice: "2d4", damageType: "Fire" },
+            ],
+        },
     },
     {
         name: "Wither and Bloom",
@@ -2670,6 +3822,14 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "healing"],
+            save: "constitution",
+            damage: [
+                { dice: "2d6", damageType: "Necrotic", upcastDice: "1d6" },
+            ],
+            upcastNote: "One creature can spend 1 extra Hit Die (plus your modifier) per slot level above 2nd.",
+        },
     },
     {
         name: "Wristpocket",
@@ -2682,6 +3842,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: true,
         concentration: true,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Zone of Truth",
@@ -2694,6 +3857,10 @@ export const SPELLS: Spell[] = [
         duration: "10 minutes",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility", "control"],
+            save: "charisma",
+        },
     },
     {
         name: "Animate Dead",
@@ -2706,6 +3873,10 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["summon"],
+            upcastNote: "+2 Undead animated or controlled per slot level above 3rd.",
+        },
     },
     {
         name: "Antagonize",
@@ -2718,6 +3889,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control", "debuff"],
+            save: "wisdom",
+            damage: [
+                { dice: "4d4", damageType: "Psychic", upcastDice: "1d4" },
+            ],
+        },
     },
     {
         name: "Ashardalon's Stride",
@@ -2730,6 +3908,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["buff", "damage"],
+            damage: [
+                { dice: "1d6", damageType: "Fire", upcastDice: "1d6" },
+            ],
+            upcastNote: "+5 feet of speed per slot level above 3rd.",
+        },
     },
     {
         name: "Aura of Vitality",
@@ -2742,6 +3927,12 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["healing"],
+            healing: [
+                { label: "Each turn", dice: "2d6" },
+            ],
+        },
     },
     {
         name: "Beacon of Hope",
@@ -2754,6 +3945,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["buff", "healing"],
+        },
     },
     {
         name: "Bestow Curse",
@@ -2766,6 +3960,14 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["debuff", "damage"],
+            save: "wisdom",
+            damage: [
+                { label: "Extra damage", dice: "1d8", damageType: "Necrotic" },
+            ],
+            upcastNote: "Level 4: 10 minutes; level 5-6: 8 hours, no Concentration; level 7-8: 24 hours; level 9: until dispelled.",
+        },
     },
     {
         name: "Blinding Smite",
@@ -2778,6 +3980,13 @@ export const SPELLS: Spell[] = [
         duration: "1 minute",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "constitution",
+            damage: [
+                { dice: "3d8", damageType: "Radiant", upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Blink",
@@ -2790,6 +3999,12 @@ export const SPELLS: Spell[] = [
         duration: "1 minute",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense"],
+            effects: [
+                { label: "Blink roll", dice: "1d6" },
+            ],
+        },
     },
     {
         name: "Cacophonic Shield",
@@ -2802,6 +4017,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "defense"],
+            save: "constitution",
+            damage: [
+                { dice: "3d6", damageType: "Thunder", upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Call Lightning",
@@ -2814,6 +4036,14 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage"],
+            save: "dexterity",
+            damage: [
+                { dice: "3d10", damageType: "Lightning", upcastDice: "1d10" },
+                { label: "In a storm", dice: "1d10", damageType: "Lightning" },
+            ],
+        },
     },
     {
         name: "Catnap",
@@ -2826,6 +4056,10 @@ export const SPELLS: Spell[] = [
         duration: "10 minutes",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+            upcastNote: "+1 target per slot level above 3rd.",
+        },
     },
     {
         name: "Clairvoyance",
@@ -2838,6 +4072,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Conjure Animals",
@@ -2850,6 +4087,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "summon"],
+            save: "dexterity",
+            damage: [
+                { dice: "3d10", damageType: "Slashing", upcastDice: "1d10" },
+            ],
+        },
     },
     {
         name: "Conjure Barrage",
@@ -2862,6 +4106,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "dexterity",
+            damage: [
+                { dice: "5d8", damageType: "Force", upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Conjure Constructs",
@@ -2874,6 +4125,16 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "summon", "defense"],
+            save: "dexterity",
+            damage: [
+                { dice: "3d6", damageType: "Force", upcastDice: "1d6" },
+            ],
+            effects: [
+                { label: "Temp HP", dice: "1d6", addModifier: true, upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Counterspell",
@@ -2886,6 +4147,10 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense"],
+            save: "constitution",
+        },
     },
     {
         name: "Create Food and Water",
@@ -2898,6 +4163,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Crusader's Mantle",
@@ -2910,6 +4178,12 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["buff", "damage"],
+            damage: [
+                { label: "Extra damage", dice: "1d4", damageType: "Radiant" },
+            ],
+        },
     },
     {
         name: "Daylight",
@@ -2922,6 +4196,9 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Dispel Magic",
@@ -2934,6 +4211,10 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense", "utility"],
+            upcastNote: "Automatically ends spells of a level up to the slot level used.",
+        },
     },
     {
         name: "Elemental Weapon",
@@ -2946,6 +4227,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["buff", "damage"],
+            damage: [
+                { label: "Extra damage", dice: "1d4", damageType: "Acid/Cold/Fire/Lightning/Thunder" },
+            ],
+            upcastNote: "Level 5-6 slot: +2 bonus and 2d4 damage; level 7+ slot: +3 bonus and 3d4 damage.",
+        },
     },
     {
         name: "Enemies Abound",
@@ -2958,6 +4246,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "intelligence",
+        },
     },
     {
         name: "Erupting Earth",
@@ -2970,6 +4262,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "dexterity",
+            damage: [
+                { dice: "3d12", damageType: "Bludgeoning", upcastDice: "1d12" },
+            ],
+        },
     },
     {
         name: "Fast Friends",
@@ -2982,6 +4281,11 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "wisdom",
+            upcastNote: "+1 target per slot level above 3rd.",
+        },
     },
     {
         name: "Fear",
@@ -2994,6 +4298,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "wisdom",
+        },
     },
     {
         name: "Feign Death",
@@ -3006,6 +4314,9 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["utility", "defense"],
+        },
     },
     {
         name: "Fireball",
@@ -3018,6 +4329,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "dexterity",
+            damage: [
+                { dice: "8d6", damageType: "Fire", upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Flame Arrows",
@@ -3030,6 +4348,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["buff", "damage"],
+            damage: [
+                { label: "Extra damage", dice: "1d6", damageType: "Fire" },
+            ],
+            upcastNote: "+2 pieces of ammunition per slot level above 3rd.",
+        },
     },
     {
         name: "Fly",
@@ -3042,6 +4367,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["buff"],
+            upcastNote: "+1 target per slot level above 3rd.",
+        },
     },
     {
         name: "Gaseous Form",
@@ -3054,6 +4383,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["utility", "defense"],
+            upcastNote: "+1 target per slot level above 3rd.",
+        },
     },
     {
         name: "Glyph of Warding",
@@ -3066,6 +4399,14 @@ export const SPELLS: Spell[] = [
         duration: "Until dispelled or triggered",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "utility"],
+            save: "dexterity",
+            damage: [
+                { label: "Explosive rune", dice: "5d8", damageType: "Acid/Cold/Fire/Lightning/Thunder", upcastDice: "1d8" },
+            ],
+            upcastNote: "A spell glyph can store a spell of up to the slot level used.",
+        },
     },
     {
         name: "Haste",
@@ -3078,6 +4419,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["buff", "defense"],
+        },
     },
     {
         name: "Hunger of Hadar",
@@ -3090,6 +4434,15 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "dexterity",
+            damage: [
+                { label: "Start of turn", dice: "2d6", damageType: "Cold", upcastDice: "1d6" },
+                { label: "End of turn (fail)", dice: "2d6", damageType: "Acid", upcastDice: "1d6" },
+            ],
+            upcastNote: "Only one of the two (your choice) gains the extra 1d6 per slot level.",
+        },
     },
     {
         name: "Hypnotic Pattern",
@@ -3102,6 +4455,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "wisdom",
+        },
     },
     {
         name: "Incite Greed",
@@ -3114,6 +4471,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "wisdom",
+        },
     },
     {
         name: "Intellect Fortress",
@@ -3126,6 +4487,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["defense", "buff"],
+            upcastNote: "+1 target per slot level above 3rd.",
+        },
     },
     {
         name: "Laeral's Silver Lance",
@@ -3138,6 +4503,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "strength",
+            damage: [
+                { dice: "3d10", damageType: "Force", upcastDice: "1d10" },
+            ],
+        },
     },
     {
         name: "Leomund's Tiny Hut",
@@ -3150,6 +4522,9 @@ export const SPELLS: Spell[] = [
         duration: "8 hours",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["utility", "defense"],
+        },
     },
     {
         name: "Life Transference",
@@ -3162,6 +4537,12 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["healing"],
+            damage: [
+                { label: "Self (heal twice this)", dice: "4d8", damageType: "Necrotic", upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Lightning Arrow",
@@ -3174,6 +4555,14 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "dexterity",
+            damage: [
+                { label: "Target", dice: "4d8", damageType: "Lightning", upcastDice: "1d8" },
+                { label: "Within 10 ft", dice: "2d8", damageType: "Lightning", upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Lightning Bolt",
@@ -3186,6 +4575,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "dexterity",
+            damage: [
+                { dice: "8d6", damageType: "Lightning", upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Magic Circle",
@@ -3198,6 +4594,11 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense", "control"],
+            save: "charisma",
+            upcastNote: "+1 hour duration per slot level above 3rd.",
+        },
     },
     {
         name: "Major Image",
@@ -3210,6 +4611,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["utility"],
+            upcastNote: "With a level 4+ slot, lasts until dispelled without Concentration.",
+        },
     },
     {
         name: "Mass Healing Word",
@@ -3222,6 +4627,12 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["healing"],
+            healing: [
+                { label: "Per creature", dice: "2d4", addModifier: true, upcastDice: "1d4" },
+            ],
+        },
     },
     {
         name: "Meld into Stone",
@@ -3234,6 +4645,13 @@ export const SPELLS: Spell[] = [
         duration: "8 hours",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["utility", "defense"],
+            damage: [
+                { label: "Expelled (partial)", dice: "6d6", damageType: "Force" },
+                { label: "Expelled (destroyed)", dice: "50", damageType: "Force" },
+            ],
+        },
     },
     {
         name: "Melf's Minute Meteors",
@@ -3246,6 +4664,14 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage"],
+            save: "dexterity",
+            damage: [
+                { label: "Per meteor", dice: "2d6", damageType: "Fire" },
+            ],
+            upcastNote: "+2 meteors per slot level above 3rd.",
+        },
     },
     {
         name: "Motivational Speech",
@@ -3258,6 +4684,12 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense", "buff"],
+            effects: [
+                { label: "Temp HP", dice: "5", upcastDice: "5" },
+            ],
+        },
     },
     {
         name: "Nondetection",
@@ -3270,6 +4702,9 @@ export const SPELLS: Spell[] = [
         duration: "8 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Phantom Steed",
@@ -3282,6 +4717,9 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Plant Growth",
@@ -3294,6 +4732,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["control", "utility"],
+        },
     },
     {
         name: "Protection from Energy",
@@ -3306,6 +4747,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["defense"],
+        },
     },
     {
         name: "Pulse Wave",
@@ -3318,6 +4762,14 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "constitution",
+            damage: [
+                { dice: "6d6", damageType: "Force", upcastDice: "1d6" },
+            ],
+            upcastNote: "+5 feet push/pull distance per slot level above 3rd.",
+        },
     },
     {
         name: "Remove Curse",
@@ -3330,6 +4782,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Revivify",
@@ -3342,6 +4797,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["healing"],
+        },
     },
     {
         name: "Sending",
@@ -3354,6 +4812,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Sleet Storm",
@@ -3366,6 +4827,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "dexterity",
+        },
     },
     {
         name: "Slow",
@@ -3378,6 +4843,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control", "debuff"],
+            save: "wisdom",
+        },
     },
     {
         name: "Speak with Dead",
@@ -3390,6 +4859,9 @@ export const SPELLS: Spell[] = [
         duration: "10 minutes",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Speak with Plants",
@@ -3402,6 +4874,9 @@ export const SPELLS: Spell[] = [
         duration: "10 minutes",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility", "control"],
+        },
     },
     {
         name: "Spirit Guardians",
@@ -3414,6 +4889,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "wisdom",
+            damage: [
+                { dice: "3d8", damageType: "Radiant/Necrotic", upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Spirit Shroud",
@@ -3426,6 +4908,12 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "buff", "debuff"],
+            damage: [
+                { label: "Extra damage", dice: "1d8", damageType: "Radiant/Necrotic/Cold", upcastDice: "1d8", upcastEvery: 2 },
+            ],
+        },
     },
     {
         name: "Stinking Cloud",
@@ -3438,6 +4926,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "constitution",
+        },
     },
     {
         name: "Summon Fey",
@@ -3450,6 +4942,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["summon"],
+            upcastNote: "The stat block uses the slot level as the spell's level.",
+        },
     },
     {
         name: "Summon Lesser Demons",
@@ -3462,6 +4958,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["summon"],
+            effects: [
+                { label: "Demons summoned", dice: "1d6" },
+            ],
+            upcastNote: "Level 6-7 slot: twice as many demons; level 8-9 slot: three times as many.",
+        },
     },
     {
         name: "Summon Shadowspawn",
@@ -3474,6 +4977,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["summon"],
+            upcastNote: "The stat block uses the slot level as the spell's level.",
+        },
     },
     {
         name: "Summon Undead",
@@ -3486,6 +4993,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["summon"],
+            upcastNote: "The stat block uses the slot level as the spell's level.",
+        },
     },
     {
         name: "Syluné's Viper",
@@ -3498,6 +5009,16 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense", "damage", "control"],
+            attack: "ranged",
+            damage: [
+                { label: "Venomous Bite", dice: "1d6", damageType: "Force", upcastDice: "1d6" },
+            ],
+            effects: [
+                { label: "Temp HP", dice: "15", upcastDice: "5" },
+            ],
+        },
     },
     {
         name: "Thunder Step",
@@ -3510,6 +5031,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "utility"],
+            save: "constitution",
+            damage: [
+                { dice: "3d10", damageType: "Thunder", upcastDice: "1d10" },
+            ],
+        },
     },
     {
         name: "Tidal Wave",
@@ -3522,6 +5050,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "dexterity",
+            damage: [
+                { dice: "4d8", damageType: "Bludgeoning" },
+            ],
+        },
     },
     {
         name: "Tiny Servant",
@@ -3534,6 +5069,10 @@ export const SPELLS: Spell[] = [
         duration: "8 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["summon", "utility"],
+            upcastNote: "+2 objects animated per slot level above 3rd.",
+        },
     },
     {
         name: "Tongues",
@@ -3546,6 +5085,9 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Vampiric Touch",
@@ -3558,6 +5100,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "healing"],
+            attack: "melee",
+            damage: [
+                { dice: "3d6", damageType: "Necrotic", upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Wall of Sand",
@@ -3570,6 +5119,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+        },
     },
     {
         name: "Wall of Water",
@@ -3582,6 +5134,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control", "defense"],
+        },
     },
     {
         name: "Water Breathing",
@@ -3594,6 +5149,9 @@ export const SPELLS: Spell[] = [
         duration: "24 hours",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Water Walk",
@@ -3606,6 +5164,9 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Wind Wall",
@@ -3618,6 +5179,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["defense", "control", "damage"],
+            save: "strength",
+            damage: [
+                { dice: "4d8", damageType: "Bludgeoning" },
+            ],
+        },
     },
     {
         name: "Arcane Eye",
@@ -3630,6 +5198,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Aura of Life",
@@ -3642,6 +5213,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["defense", "healing"],
+        },
     },
     {
         name: "Aura of Purity",
@@ -3654,6 +5228,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["defense"],
+        },
     },
     {
         name: "Backlash",
@@ -3666,6 +5243,16 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense", "damage"],
+            save: "constitution",
+            damage: [
+                { dice: "4d6", damageType: "Force", upcastDice: "1d6" },
+            ],
+            effects: [
+                { label: "Damage reduction", dice: "4d6", addModifier: true, upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Banishment",
@@ -3678,6 +5265,11 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "charisma",
+            upcastNote: "+1 target per slot level above 4th.",
+        },
     },
     {
         name: "Blight",
@@ -3690,6 +5282,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "constitution",
+            damage: [
+                { dice: "8d8", damageType: "Necrotic", upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Charm Monster",
@@ -3702,6 +5301,11 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["control", "utility"],
+            save: "wisdom",
+            upcastNote: "+1 target per slot level above 4th.",
+        },
     },
     {
         name: "Compulsion",
@@ -3714,6 +5318,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "wisdom",
+        },
     },
     {
         name: "Confusion",
@@ -3726,6 +5334,14 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "wisdom",
+            effects: [
+                { label: "Behavior", dice: "1d10" },
+            ],
+            upcastNote: "+5 feet radius per slot level above 4th.",
+        },
     },
     {
         name: "Conjure Minor Elementals",
@@ -3738,6 +5354,12 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "buff", "control"],
+            damage: [
+                { label: "Extra damage", dice: "2d8", damageType: "Acid/Cold/Fire/Lightning", upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Conjure Woodland Beings",
@@ -3750,6 +5372,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage"],
+            save: "wisdom",
+            damage: [
+                { dice: "5d8", damageType: "Force", upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Control Water",
@@ -3762,6 +5391,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control", "utility", "damage"],
+            save: "strength",
+            damage: [
+                { label: "Whirlpool", dice: "2d8", damageType: "Bludgeoning" },
+            ],
+        },
     },
     {
         name: "Death Ward",
@@ -3774,6 +5410,9 @@ export const SPELLS: Spell[] = [
         duration: "8 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense"],
+        },
     },
     {
         name: "Dimension Door",
@@ -3786,6 +5425,12 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+            damage: [
+                { label: "Failed teleport", dice: "4d6", damageType: "Force" },
+            ],
+        },
     },
     {
         name: "Divination",
@@ -3798,6 +5443,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Dominate Beast",
@@ -3810,6 +5458,11 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "wisdom",
+            upcastNote: "Concentration up to 10 minutes (level 5), 1 hour (level 6), or 8 hours (level 7+).",
+        },
     },
     {
         name: "Doomtide",
@@ -3822,6 +5475,16 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "debuff"],
+            save: "wisdom",
+            damage: [
+                { dice: "5d6", damageType: "Psychic" },
+            ],
+            effects: [
+                { label: "Save penalty", dice: "1d6" },
+            ],
+        },
     },
     {
         name: "Elemental Bane",
@@ -3834,6 +5497,14 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["debuff", "damage"],
+            save: "constitution",
+            damage: [
+                { label: "Extra damage", dice: "2d6", damageType: "Acid/Cold/Fire/Lightning/Thunder" },
+            ],
+            upcastNote: "+1 target per slot level above 4th.",
+        },
     },
     {
         name: "Evard's Black Tentacles",
@@ -3846,6 +5517,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control", "damage"],
+            save: "strength",
+            damage: [
+                { dice: "3d6", damageType: "Bludgeoning" },
+            ],
+        },
     },
     {
         name: "Fabricate",
@@ -3858,6 +5536,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Find Greater Steed",
@@ -3870,6 +5551,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["summon", "utility"],
+        },
     },
     {
         name: "Fire Shield",
@@ -3882,6 +5566,12 @@ export const SPELLS: Spell[] = [
         duration: "10 minutes",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense", "damage"],
+            damage: [
+                { label: "Retaliation", dice: "2d8", damageType: "Fire/Cold" },
+            ],
+        },
     },
     {
         name: "Fount of Moonlight",
@@ -3894,6 +5584,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "defense", "control"],
+            save: "constitution",
+            damage: [
+                { label: "Extra melee damage", dice: "2d6", damageType: "Radiant" },
+            ],
+        },
     },
     {
         name: "Freedom of Movement",
@@ -3906,6 +5603,10 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["buff", "defense"],
+            upcastNote: "+1 target per slot level above 4th.",
+        },
     },
     {
         name: "Gate Seal",
@@ -3918,6 +5619,10 @@ export const SPELLS: Spell[] = [
         duration: "24 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+            upcastNote: "With a level 6+ slot, lasts until dispelled.",
+        },
     },
     {
         name: "Giant Insect",
@@ -3930,6 +5635,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["summon"],
+            upcastNote: "The stat block uses the slot level as the spell's level.",
+        },
     },
     {
         name: "Grasping Vine",
@@ -3942,6 +5651,14 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            attack: "melee",
+            damage: [
+                { dice: "4d8", damageType: "Bludgeoning" },
+            ],
+            upcastNote: "The vine can grapple 1 more creature per slot level above 4th.",
+        },
     },
     {
         name: "Gravity Sinkhole",
@@ -3954,6 +5671,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "constitution",
+            damage: [
+                { dice: "5d10", damageType: "Force", upcastDice: "1d10" },
+            ],
+        },
     },
     {
         name: "Greater Invisibility",
@@ -3966,6 +5690,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["buff"],
+        },
     },
     {
         name: "Guardian of Faith",
@@ -3978,6 +5705,13 @@ export const SPELLS: Spell[] = [
         duration: "8 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "defense"],
+            save: "dexterity",
+            damage: [
+                { dice: "20", damageType: "Radiant" },
+            ],
+        },
     },
     {
         name: "Guardian of Nature",
@@ -3990,6 +5724,15 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["buff", "defense", "control"],
+            damage: [
+                { label: "Primal Beast hit", dice: "1d6", damageType: "Force" },
+            ],
+            effects: [
+                { label: "Temp HP", dice: "10" },
+            ],
+        },
     },
     {
         name: "Hallucinatory Terrain",
@@ -4002,6 +5745,9 @@ export const SPELLS: Spell[] = [
         duration: "24 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Ice Storm",
@@ -4014,6 +5760,14 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "dexterity",
+            damage: [
+                { dice: "2d10", damageType: "Bludgeoning", upcastDice: "1d10" },
+                { dice: "4d6", damageType: "Cold" },
+            ],
+        },
     },
     {
         name: "Leomund's Secret Chest",
@@ -4030,6 +5784,9 @@ export const SPELLS: Spell[] = [
         duration: "Until dispelled",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Locate Creature",
@@ -4042,6 +5799,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Mordenkainen's Faithful Hound",
@@ -4054,6 +5814,13 @@ export const SPELLS: Spell[] = [
         duration: "8 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["summon", "damage", "utility"],
+            save: "dexterity",
+            damage: [
+                { label: "Bite", dice: "4d8", damageType: "Force" },
+            ],
+        },
     },
     {
         name: "Mordenkainen's Private Sanctum",
@@ -4066,6 +5833,10 @@ export const SPELLS: Spell[] = [
         duration: "24 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+            upcastNote: "Cube size can increase by 100 feet per slot level above 4th.",
+        },
     },
     {
         name: "Otiluke's Resilient Sphere",
@@ -4078,6 +5849,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control", "defense"],
+            save: "dexterity",
+        },
     },
     {
         name: "Phantasmal Killer",
@@ -4090,6 +5865,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "debuff"],
+            save: "wisdom",
+            damage: [
+                { dice: "4d10", damageType: "Psychic", upcastDice: "1d10" },
+            ],
+        },
     },
     {
         name: "Polymorph",
@@ -4102,6 +5884,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control", "buff"],
+            save: "wisdom",
+        },
     },
     {
         name: "Raulothim's Psychic Lance",
@@ -4114,6 +5900,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "intelligence",
+            damage: [
+                { dice: "7d6", damageType: "Psychic", upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Shadow of Moil",
@@ -4126,6 +5919,12 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["defense", "damage"],
+            damage: [
+                { label: "Retaliation", dice: "2d8", damageType: "Necrotic" },
+            ],
+        },
     },
     {
         name: "Sickening Radiance",
@@ -4138,6 +5937,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "debuff"],
+            save: "constitution",
+            damage: [
+                { dice: "4d10", damageType: "Radiant" },
+            ],
+        },
     },
     {
         name: "Spellfire Storm",
@@ -4150,6 +5956,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "constitution",
+            damage: [
+                { dice: "4d10", damageType: "Radiant", upcastDice: "1d10" },
+            ],
+        },
     },
     {
         name: "Spirit of Death",
@@ -4162,6 +5975,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["summon"],
+            upcastNote: "Use the slot level for the spell's level in the reaper spirit stat block.",
+        },
     },
     {
         name: "Staggering Smite",
@@ -4174,6 +5991,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "wisdom",
+            damage: [
+                { dice: "4d6", damageType: "Psychic", upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Stone Shape",
@@ -4186,6 +6010,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Stoneskin",
@@ -4198,6 +6025,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["defense"],
+        },
     },
     {
         name: "Storm Sphere",
@@ -4210,6 +6040,15 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            attack: "ranged",
+            save: "strength",
+            damage: [
+                { label: "Sphere", dice: "2d6", damageType: "Bludgeoning", upcastDice: "1d6" },
+                { label: "Lightning bolt", dice: "4d6", damageType: "Lightning", upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Summon Aberration",
@@ -4222,6 +6061,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["summon"],
+            upcastNote: "Use the slot level for the spell's level in the stat block.",
+        },
     },
     {
         name: "Summon Construct",
@@ -4234,6 +6077,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["summon"],
+            upcastNote: "Use the slot level for the spell's level in the stat block.",
+        },
     },
     {
         name: "Summon Elemental",
@@ -4246,6 +6093,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["summon"],
+            upcastNote: "Use the slot level for the spell's level in the stat block.",
+        },
     },
     {
         name: "Summon Greater Demon",
@@ -4258,6 +6109,14 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["summon"],
+            save: "charisma",
+            effects: [
+                { label: "Lingers (rounds)", dice: "1d6" },
+            ],
+            upcastNote: "Demon's maximum challenge rating increases by 1 per slot level above 4th.",
+        },
     },
     {
         name: "Vitriolic Sphere",
@@ -4270,6 +6129,14 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "dexterity",
+            damage: [
+                { label: "Initial", dice: "10d4", damageType: "Acid", upcastDice: "2d4" },
+                { label: "End of next turn", dice: "5d4", damageType: "Acid" },
+            ],
+        },
     },
     {
         name: "Wall of Fire",
@@ -4282,6 +6149,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "dexterity",
+            damage: [
+                { dice: "5d8", damageType: "Fire", upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Watery Sphere",
@@ -4294,6 +6168,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "strength",
+        },
     },
     {
         name: "Alustriel's Mooncloak",
@@ -4306,6 +6184,12 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["defense", "healing"],
+            healing: [
+                { label: "Respite", dice: "4d10", addModifier: true },
+            ],
+        },
     },
     {
         name: "Animate Objects",
@@ -4318,6 +6202,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["summon"],
+            upcastNote: "Slam damage increases by 1d4 (Medium or smaller), 1d6 (Large), or 1d12 (Huge) per slot level above 5th.",
+        },
     },
     {
         name: "Antilife Shell",
@@ -4330,6 +6218,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["defense", "control"],
+        },
     },
     {
         name: "Awaken",
@@ -4342,6 +6233,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Banishing Smite",
@@ -4354,6 +6248,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "charisma",
+            damage: [
+                { dice: "5d10", damageType: "Force" },
+            ],
+        },
     },
     {
         name: "Bigby's Hand",
@@ -4366,6 +6267,15 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control", "defense"],
+            attack: "melee",
+            save: "strength",
+            damage: [
+                { label: "Clenched Fist", dice: "5d8", damageType: "Force", upcastDice: "2d8" },
+                { label: "Grasping Hand crush", dice: "4d6", damageType: "Bludgeoning", addModifier: true, upcastDice: "2d6" },
+            ],
+        },
     },
     {
         name: "Circle of Power",
@@ -4378,6 +6288,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["defense", "buff"],
+        },
     },
     {
         name: "Cloudkill",
@@ -4390,6 +6303,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "constitution",
+            damage: [
+                { dice: "5d8", damageType: "Poison", upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Commune",
@@ -4402,6 +6322,9 @@ export const SPELLS: Spell[] = [
         duration: "1 minute",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Commune with Nature",
@@ -4414,6 +6337,9 @@ export const SPELLS: Spell[] = [
         duration: "1 minute",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Cone of Cold",
@@ -4426,6 +6352,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "constitution",
+            damage: [
+                { dice: "8d8", damageType: "Cold", upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Conjure Elemental",
@@ -4438,6 +6371,14 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control", "summon"],
+            save: "dexterity",
+            damage: [
+                { label: "Initial", dice: "8d8", damageType: "Lightning/Thunder/Fire/Cold", upcastDice: "1d8" },
+                { label: "Restrained, each turn", dice: "4d8", damageType: "Lightning/Thunder/Fire/Cold", upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Conjure Volley",
@@ -4450,6 +6391,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "dexterity",
+            damage: [
+                { dice: "8d8", damageType: "Force" },
+            ],
+        },
     },
     {
         name: "Contact Other Plane",
@@ -4462,6 +6410,12 @@ export const SPELLS: Spell[] = [
         duration: "1 minute",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+            damage: [
+                { label: "Self, on failed save", dice: "6d6", damageType: "Psychic" },
+            ],
+        },
     },
     {
         name: "Contagion",
@@ -4474,6 +6428,13 @@ export const SPELLS: Spell[] = [
         duration: "7 days",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "debuff"],
+            save: "constitution",
+            damage: [
+                { dice: "11d8", damageType: "Necrotic" },
+            ],
+        },
     },
     {
         name: "Control Winds",
@@ -4486,6 +6447,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control", "debuff", "utility"],
+            save: "strength",
+        },
     },
     {
         name: "Create Spelljamming Helm",
@@ -4498,6 +6463,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Creation",
@@ -4510,6 +6478,10 @@ export const SPELLS: Spell[] = [
         duration: "Special",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+            upcastNote: "The Cube increases by 5 feet per slot level above 5th.",
+        },
     },
     {
         name: "Danse Macabre",
@@ -4522,6 +6494,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["summon"],
+            upcastNote: "+2 corpses per slot level above 5th.",
+        },
     },
     {
         name: "Dawn",
@@ -4534,6 +6510,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage"],
+            save: "constitution",
+            damage: [
+                { dice: "4d10", damageType: "Radiant" },
+            ],
+        },
     },
     {
         name: "Destructive Wave",
@@ -4546,6 +6529,14 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "constitution",
+            damage: [
+                { dice: "5d6", damageType: "Thunder" },
+                { dice: "5d6", damageType: "Radiant/Necrotic" },
+            ],
+        },
     },
     {
         name: "Dispel Evil and Good",
@@ -4558,6 +6549,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["defense", "control"],
+            save: "charisma",
+        },
     },
     {
         name: "Dominate Person",
@@ -4570,6 +6565,11 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "wisdom",
+            upcastNote: "Concentration lasts up to 10 minutes (6th), 1 hour (7th), or 8 hours (8th+).",
+        },
     },
     {
         name: "Dream",
@@ -4582,6 +6582,13 @@ export const SPELLS: Spell[] = [
         duration: "8 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility", "damage"],
+            save: "wisdom",
+            damage: [
+                { label: "Nightmare", dice: "3d6", damageType: "Psychic" },
+            ],
+        },
     },
     {
         name: "Enervation",
@@ -4594,6 +6601,14 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "healing"],
+            save: "dexterity",
+            damage: [
+                { label: "Failed save / each turn", dice: "4d8", damageType: "Necrotic", upcastDice: "1d8" },
+                { label: "Successful save", dice: "2d8", damageType: "Necrotic", upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Far Step",
@@ -4606,6 +6621,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Flame Strike",
@@ -4618,6 +6636,14 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "dexterity",
+            damage: [
+                { dice: "5d6", damageType: "Fire", upcastDice: "1d6" },
+                { dice: "5d6", damageType: "Radiant", upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Geas",
@@ -4630,6 +6656,14 @@ export const SPELLS: Spell[] = [
         duration: "30 days",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["control", "damage"],
+            save: "wisdom",
+            damage: [
+                { label: "Defying command", dice: "5d10", damageType: "Psychic" },
+            ],
+            upcastNote: "Duration becomes 365 days with a 7th- or 8th-level slot, and until dispelled with a 9th-level slot.",
+        },
     },
     {
         name: "Greater Restoration",
@@ -4642,6 +6676,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["healing", "utility"],
+        },
     },
     {
         name: "Hallow",
@@ -4654,6 +6691,9 @@ export const SPELLS: Spell[] = [
         duration: "Until dispelled",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense", "control", "debuff"],
+        },
     },
     {
         name: "Hold Monster",
@@ -4666,6 +6706,11 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "wisdom",
+            upcastNote: "+1 target per slot level above 5th.",
+        },
     },
     {
         name: "Holy Weapon",
@@ -4678,6 +6723,14 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["buff", "damage", "control"],
+            save: "constitution",
+            damage: [
+                { label: "Weapon hit", dice: "2d8", damageType: "Radiant" },
+                { label: "Radiance burst", dice: "4d8", damageType: "Radiant" },
+            ],
+        },
     },
     {
         name: "Immolation",
@@ -4690,6 +6743,14 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage"],
+            save: "dexterity",
+            damage: [
+                { label: "Initial", dice: "8d6", damageType: "Fire" },
+                { label: "End of turn", dice: "4d6", damageType: "Fire" },
+            ],
+        },
     },
     {
         name: "Infernal Calling",
@@ -4702,6 +6763,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["summon"],
+            effects: [
+                { label: "Uncontrolled (minutes)", dice: "3d6" },
+            ],
+            upcastNote: "Devil's maximum challenge rating increases by 1 per slot level above 5th.",
+        },
     },
     {
         name: "Insect Plague",
@@ -4714,6 +6782,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "constitution",
+            damage: [
+                { dice: "4d10", damageType: "Piercing", upcastDice: "1d10" },
+            ],
+        },
     },
     {
         name: "Jallarzi's Storm of Radiance",
@@ -4726,6 +6801,14 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "constitution",
+            damage: [
+                { dice: "2d10", damageType: "Radiant", upcastDice: "1d10" },
+                { dice: "2d10", damageType: "Thunder", upcastDice: "1d10" },
+            ],
+        },
     },
     {
         name: "Legend Lore",
@@ -4742,6 +6825,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Maelstrom",
@@ -4754,6 +6840,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "strength",
+            damage: [
+                { dice: "6d6", damageType: "Bludgeoning" },
+            ],
+        },
     },
     {
         name: "Mass Cure Wounds",
@@ -4766,6 +6859,12 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["healing"],
+            healing: [
+                { dice: "5d8", addModifier: true, upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Mislead",
@@ -4778,6 +6877,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["buff", "utility"],
+        },
     },
     {
         name: "Modify Memory",
@@ -4790,6 +6892,11 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control", "utility"],
+            save: "wisdom",
+            upcastNote: "Can alter memories up to 7 days (6th), 30 days (7th), 365 days (8th), or any time (9th) ago.",
+        },
     },
     {
         name: "Negative Energy Flood",
@@ -4802,6 +6909,16 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "defense"],
+            save: "constitution",
+            damage: [
+                { dice: "5d12", damageType: "Necrotic" },
+            ],
+            effects: [
+                { label: "Undead Temp HP (half)", dice: "5d12" },
+            ],
+        },
     },
     {
         name: "Passwall",
@@ -4814,6 +6931,9 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Planar Binding",
@@ -4826,6 +6946,11 @@ export const SPELLS: Spell[] = [
         duration: "24 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["summon", "control"],
+            save: "charisma",
+            upcastNote: "Duration increases to 10 days (6th), 30 days (7th), 180 days (8th), or 366 days (9th).",
+        },
     },
     {
         name: "Raise Dead",
@@ -4838,6 +6963,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["healing"],
+        },
     },
     {
         name: "Rary's Telepathic Bond",
@@ -4850,6 +6978,9 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Reincarnate",
@@ -4862,6 +6993,12 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["healing", "utility"],
+            effects: [
+                { label: "Species", dice: "1d10" },
+            ],
+        },
     },
     {
         name: "Scrying",
@@ -4874,6 +7011,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["utility"],
+            save: "wisdom",
+        },
     },
     {
         name: "Seeming",
@@ -4886,6 +7027,10 @@ export const SPELLS: Spell[] = [
         duration: "8 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+            save: "charisma",
+        },
     },
     {
         name: "Skill Empowerment",
@@ -4898,6 +7043,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["buff"],
+        },
     },
     {
         name: "Songal's Elemental Suffusion",
@@ -4910,6 +7058,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "defense", "buff"],
+            save: "dexterity",
+            damage: [
+                { label: "Elemental Pulse", dice: "2d6", damageType: "Acid/Cold/Fire/Lightning/Thunder" },
+            ],
+        },
     },
     {
         name: "Steel Wind Strike",
@@ -4922,6 +7077,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            attack: "melee",
+            damage: [
+                { label: "Per target", dice: "6d10", damageType: "Force", count: 5 },
+            ],
+        },
     },
     {
         name: "Summon Celestial",
@@ -4934,6 +7096,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["summon"],
+            upcastNote: "Use the slot level for the spell's level in the stat block.",
+        },
     },
     {
         name: "Summon Dragon",
@@ -4946,6 +7112,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["summon"],
+            upcastNote: "Use the slot level for the spell's level in the stat block.",
+        },
     },
     {
         name: "Swift Quiver",
@@ -4958,6 +7128,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["buff"],
+        },
     },
     {
         name: "Synaptic Static",
@@ -4970,6 +7143,16 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "debuff"],
+            save: "intelligence",
+            damage: [
+                { dice: "8d6", damageType: "Psychic" },
+            ],
+            effects: [
+                { label: "Penalty die", dice: "1d6" },
+            ],
+        },
     },
     {
         name: "Telekinesis",
@@ -4982,6 +7165,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control", "utility"],
+            save: "strength",
+        },
     },
     {
         name: "Teleportation Circle",
@@ -4994,6 +7181,9 @@ export const SPELLS: Spell[] = [
         duration: "1 round",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Temporal Shunt",
@@ -5006,6 +7196,11 @@ export const SPELLS: Spell[] = [
         duration: "1 round",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense", "control"],
+            save: "wisdom",
+            upcastNote: "+1 target per slot level above 5th; all targets within 30 feet of each other.",
+        },
     },
     {
         name: "Transmute Rock",
@@ -5018,6 +7213,13 @@ export const SPELLS: Spell[] = [
         duration: "Until dispelled",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["control", "damage"],
+            save: "strength",
+            damage: [
+                { label: "Falling mud", dice: "4d8", damageType: "Bludgeoning" },
+            ],
+        },
     },
     {
         name: "Tree Stride",
@@ -5030,6 +7232,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Wall of Force",
@@ -5042,6 +7247,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control", "defense"],
+        },
     },
     {
         name: "Wall of Light",
@@ -5054,6 +7262,15 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            attack: "ranged",
+            save: "constitution",
+            damage: [
+                { label: "Wall / end of turn", dice: "4d8", damageType: "Radiant", upcastDice: "1d8" },
+                { label: "Beam", dice: "4d8", damageType: "Radiant", upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Wall of Stone",
@@ -5066,6 +7283,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control", "defense", "utility"],
+            save: "dexterity",
+        },
     },
     {
         name: "Wrath of Nature",
@@ -5078,6 +7299,15 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control", "damage"],
+            attack: "ranged",
+            save: "dexterity",
+            damage: [
+                { label: "Trees", dice: "4d6", damageType: "Slashing" },
+                { label: "Rocks", dice: "3d8", damageType: "Bludgeoning" },
+            ],
+        },
     },
     {
         name: "Yolande's Regal Presence",
@@ -5090,6 +7320,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "wisdom",
+            damage: [
+                { dice: "4d6", damageType: "Psychic" },
+            ],
+        },
     },
     {
         name: "Arcane Gate",
@@ -5102,6 +7339,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Blade Barrier",
@@ -5114,6 +7354,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "dexterity",
+            damage: [
+                { dice: "6d10", damageType: "Force" },
+            ],
+        },
     },
     {
         name: "Bones of the Earth",
@@ -5126,6 +7373,14 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["control", "damage"],
+            save: "dexterity",
+            damage: [
+                { label: "Pinned", dice: "6d6", damageType: "Bludgeoning" },
+            ],
+            upcastNote: "+2 pillars per slot level above 6th.",
+        },
     },
     {
         name: "Chain Lightning",
@@ -5138,6 +7393,14 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "dexterity",
+            damage: [
+                { dice: "10d8", damageType: "Lightning" },
+            ],
+            upcastNote: "+1 bolt (target) per slot level above 6th.",
+        },
     },
     {
         name: "Circle of Death",
@@ -5150,6 +7413,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "constitution",
+            damage: [
+                { dice: "8d8", damageType: "Necrotic", upcastDice: "2d8" },
+            ],
+        },
     },
     {
         name: "Conjure Fey",
@@ -5162,6 +7432,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["summon", "damage", "control"],
+            attack: "melee",
+            damage: [
+                { dice: "3d12", damageType: "Psychic", addModifier: true, upcastDice: "1d12" },
+            ],
+        },
     },
     {
         name: "Contingency",
@@ -5174,6 +7451,9 @@ export const SPELLS: Spell[] = [
         duration: "10 days",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Create Homunculus",
@@ -5190,6 +7470,12 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["summon"],
+            damage: [
+                { label: "Self", dice: "2d4", damageType: "Piercing" },
+            ],
+        },
     },
     {
         name: "Create Undead",
@@ -5202,6 +7488,10 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["summon"],
+            upcastNote: "7th: 4 Ghouls; 8th: 5 Ghouls or 2 Ghasts/Wights; 9th: 6 Ghouls, 3 Ghasts/Wights, or 2 Mummies.",
+        },
     },
     {
         name: "Dirge",
@@ -5214,6 +7504,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "debuff", "control"],
+            save: "constitution",
+            damage: [
+                { dice: "3d10", damageType: "Necrotic" },
+            ],
+        },
     },
     {
         name: "Disintegrate",
@@ -5226,6 +7523,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "dexterity",
+            damage: [
+                { dice: "10d6+40", damageType: "Force", upcastDice: "3d6" },
+            ],
+        },
     },
     {
         name: "Drawmij's Instant Summons",
@@ -5238,6 +7542,9 @@ export const SPELLS: Spell[] = [
         duration: "Until dispelled",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Druid Grove",
@@ -5254,6 +7561,9 @@ export const SPELLS: Spell[] = [
         duration: "24 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense", "control", "summon"],
+        },
     },
     {
         name: "Elminster's Effulgent Spheres",
@@ -5266,6 +7576,14 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "defense"],
+            attack: "ranged",
+            damage: [
+                { label: "Energy Blast", dice: "3d6", damageType: "Acid/Cold/Fire/Lightning/Thunder" },
+            ],
+            upcastNote: "+1 sphere per slot level above 6th.",
+        },
     },
     {
         name: "Eyebite",
@@ -5278,6 +7596,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "wisdom",
+        },
     },
     {
         name: "Find the Path",
@@ -5290,6 +7612,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 day",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Fizban's Platinum Shield",
@@ -5302,6 +7627,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["defense"],
+        },
     },
     {
         name: "Flesh to Stone",
@@ -5314,6 +7642,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "constitution",
+        },
     },
     {
         name: "Forbiddance",
@@ -5326,6 +7658,12 @@ export const SPELLS: Spell[] = [
         duration: "1 day",
         ritual: true,
         concentration: false,
+        mechanics: {
+            roles: ["defense", "damage"],
+            damage: [
+                { label: "Enter/end turn", dice: "5d10", damageType: "Radiant/Necrotic" },
+            ],
+        },
     },
     {
         name: "Globe of Invulnerability",
@@ -5338,6 +7676,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["defense"],
+            upcastNote: "Blocks spells of 1 level higher per slot level above 6th.",
+        },
     },
     {
         name: "Gravity Fissure",
@@ -5350,6 +7692,14 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "constitution",
+            damage: [
+                { label: "In the line", dice: "8d8", damageType: "Force", upcastDice: "1d8" },
+                { label: "Near the line", dice: "8d8", damageType: "Force", upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Guards and Wards",
@@ -5362,6 +7712,9 @@ export const SPELLS: Spell[] = [
         duration: "24 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense", "utility"],
+        },
     },
     {
         name: "Harm",
@@ -5374,6 +7727,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "debuff"],
+            save: "constitution",
+            damage: [
+                { dice: "14d6", damageType: "Necrotic" },
+            ],
+        },
     },
     {
         name: "Heal",
@@ -5386,6 +7746,12 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["healing"],
+            healing: [
+                { dice: "70", upcastDice: "10" },
+            ],
+        },
     },
     {
         name: "Heroes' Feast",
@@ -5398,6 +7764,12 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense", "buff"],
+            effects: [
+                { label: "HP max increase", dice: "2d10" },
+            ],
+        },
     },
     {
         name: "Investiture of Flame",
@@ -5410,6 +7782,14 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "defense"],
+            save: "dexterity",
+            damage: [
+                { label: "Aura", dice: "1d10", damageType: "Fire" },
+                { label: "Line of fire", dice: "4d8", damageType: "Fire" },
+            ],
+        },
     },
     {
         name: "Investiture of Ice",
@@ -5422,6 +7802,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "defense", "control"],
+            save: "constitution",
+            damage: [
+                { label: "Cone", dice: "4d6", damageType: "Cold" },
+            ],
+        },
     },
     {
         name: "Investiture of Stone",
@@ -5434,6 +7821,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["defense", "control"],
+            save: "dexterity",
+        },
     },
     {
         name: "Investiture of Wind",
@@ -5446,6 +7837,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "defense", "buff"],
+            save: "constitution",
+            damage: [
+                { label: "Wind cube", dice: "2d10", damageType: "Bludgeoning" },
+            ],
+        },
     },
     {
         name: "Magic Jar",
@@ -5458,6 +7856,10 @@ export const SPELLS: Spell[] = [
         duration: "Until dispelled",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["control", "utility"],
+            save: "charisma",
+        },
     },
     {
         name: "Mass Suggestion",
@@ -5470,6 +7872,11 @@ export const SPELLS: Spell[] = [
         duration: "24 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["control"],
+            save: "wisdom",
+            upcastNote: "Duration becomes 10 days (7th), 30 days (8th), or 366 days (9th).",
+        },
     },
     {
         name: "Mental Prison",
@@ -5482,6 +7889,14 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "intelligence",
+            damage: [
+                { label: "Initial", dice: "5d10", damageType: "Psychic" },
+                { label: "Leaving the illusion", dice: "10d10", damageType: "Psychic" },
+            ],
+        },
     },
     {
         name: "Move Earth",
@@ -5494,6 +7909,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 2 hours",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Otiluke's Freezing Sphere",
@@ -5506,6 +7924,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "constitution",
+            damage: [
+                { dice: "10d6", damageType: "Cold", upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Otto's Irresistible Dance",
@@ -5518,6 +7943,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control", "debuff"],
+            save: "wisdom",
+        },
     },
     {
         name: "Planar Ally",
@@ -5530,6 +7959,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["summon", "utility"],
+        },
     },
     {
         name: "Primordial Ward",
@@ -5542,6 +7974,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["defense"],
+        },
     },
     {
         name: "Programmed Illusion",
@@ -5554,6 +7989,9 @@ export const SPELLS: Spell[] = [
         duration: "Until dispelled",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Scatter",
@@ -5566,6 +8004,10 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["control", "utility"],
+            save: "wisdom",
+        },
     },
     {
         name: "Soul Cage",
@@ -5578,6 +8020,12 @@ export const SPELLS: Spell[] = [
         duration: "8 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility", "healing", "buff"],
+            healing: [
+                { label: "Steal Life", dice: "2d8" },
+            ],
+        },
     },
     {
         name: "Summon Fiend",
@@ -5590,6 +8038,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["summon"],
+            upcastNote: "Use the slot's level for the spell's level in the stat block.",
+        },
     },
     {
         name: "Sunbeam",
@@ -5602,6 +8054,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "constitution",
+            damage: [
+                { dice: "6d8", damageType: "Radiant" },
+            ],
+        },
     },
     {
         name: "Tasha's Bubbling Cauldron",
@@ -5614,6 +8073,9 @@ export const SPELLS: Spell[] = [
         duration: "10 minutes",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Tasha's Otherworldly Guise",
@@ -5626,6 +8088,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["buff", "defense"],
+        },
     },
     {
         name: "Tenser's Transformation",
@@ -5638,6 +8103,15 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["buff", "defense", "damage"],
+            damage: [
+                { label: "On weapon hit", dice: "2d12", damageType: "Force" },
+            ],
+            effects: [
+                { label: "Temp HP", dice: "50" },
+            ],
+        },
     },
     {
         name: "Transport via Plants",
@@ -5650,6 +8124,9 @@ export const SPELLS: Spell[] = [
         duration: "10 minutes",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "True Seeing",
@@ -5662,6 +8139,9 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility", "buff"],
+        },
     },
     {
         name: "Wall of Ice",
@@ -5674,6 +8154,14 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "dexterity",
+            damage: [
+                { label: "Wall appears", dice: "10d6", damageType: "Cold", upcastDice: "2d6" },
+                { label: "Frigid air", dice: "5d6", damageType: "Cold", upcastDice: "1d6" },
+            ],
+        },
     },
     {
         name: "Wall of Thorns",
@@ -5686,6 +8174,14 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "dexterity",
+            damage: [
+                { label: "Wall appears", dice: "7d8", damageType: "Piercing", upcastDice: "1d8" },
+                { label: "Moving through", dice: "7d8", damageType: "Slashing", upcastDice: "1d8" },
+            ],
+        },
     },
     {
         name: "Wind Walk",
@@ -5698,6 +8194,9 @@ export const SPELLS: Spell[] = [
         duration: "8 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility", "defense"],
+        },
     },
     {
         name: "Word of Recall",
@@ -5710,6 +8209,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Conjure Celestial",
@@ -5722,6 +8224,16 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "healing"],
+            save: "dexterity",
+            damage: [
+                { label: "Searing Light", dice: "6d12", damageType: "Radiant", upcastDice: "1d12" },
+            ],
+            healing: [
+                { label: "Healing Light", dice: "4d12", addModifier: true, upcastDice: "1d12" },
+            ],
+        },
     },
     {
         name: "Create Magen",
@@ -5738,6 +8250,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["summon"],
+        },
     },
     {
         name: "Crown of Stars",
@@ -5750,6 +8265,14 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            attack: "ranged",
+            damage: [
+                { label: "Per mote", dice: "4d12", damageType: "Radiant" },
+            ],
+            upcastNote: "+2 motes per slot level above 7th.",
+        },
     },
     {
         name: "Delayed Blast Fireball",
@@ -5762,6 +8285,14 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage"],
+            save: "dexterity",
+            damage: [
+                { label: "Base", dice: "12d6", damageType: "Fire", upcastDice: "1d6" },
+                { label: "Per turn waited", dice: "1d6", damageType: "Fire" },
+            ],
+        },
     },
     {
         name: "Divine Word",
@@ -5774,6 +8305,10 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["control"],
+            save: "charisma",
+        },
     },
     {
         name: "Draconic Transformation",
@@ -5786,6 +8321,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "buff", "utility"],
+            save: "dexterity",
+            damage: [
+                { label: "Breath Weapon", dice: "6d8", damageType: "Force" },
+            ],
+        },
     },
     {
         name: "Dream of the Blue Veil",
@@ -5798,6 +8340,9 @@ export const SPELLS: Spell[] = [
         duration: "6 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Etherealness",
@@ -5810,6 +8355,10 @@ export const SPELLS: Spell[] = [
         duration: "8 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility", "defense"],
+            upcastNote: "+3 willing creatures per slot level above 7th.",
+        },
     },
     {
         name: "Finger of Death",
@@ -5822,6 +8371,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "constitution",
+            damage: [
+                { dice: "7d8+30", damageType: "Necrotic" },
+            ],
+        },
     },
     {
         name: "Fire Storm",
@@ -5834,6 +8390,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "dexterity",
+            damage: [
+                { dice: "7d10", damageType: "Fire" },
+            ],
+        },
     },
     {
         name: "Forcecage",
@@ -5846,6 +8409,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "charisma",
+        },
     },
     {
         name: "Mirage Arcane",
@@ -5858,6 +8425,9 @@ export const SPELLS: Spell[] = [
         duration: "10 days",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility", "control"],
+        },
     },
     {
         name: "Mordenkainen's Magnificent Mansion",
@@ -5870,6 +8440,9 @@ export const SPELLS: Spell[] = [
         duration: "24 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Mordenkainen's Sword",
@@ -5882,6 +8455,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage"],
+            attack: "melee",
+            damage: [
+                { dice: "4d12", damageType: "Force", addModifier: true },
+            ],
+        },
     },
     {
         name: "Plane Shift",
@@ -5894,6 +8474,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Power Word Fortify",
@@ -5906,6 +8489,12 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense"],
+            effects: [
+                { label: "Temp HP (divided)", dice: "120" },
+            ],
+        },
     },
     {
         name: "Power Word Pain",
@@ -5918,6 +8507,10 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["debuff", "control"],
+            save: "constitution",
+        },
     },
     {
         name: "Prismatic Spray",
@@ -5930,6 +8523,20 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "dexterity",
+            damage: [
+                { label: "Red (1)", dice: "12d6", damageType: "Fire" },
+                { label: "Orange (2)", dice: "12d6", damageType: "Acid" },
+                { label: "Yellow (3)", dice: "12d6", damageType: "Lightning" },
+                { label: "Green (4)", dice: "12d6", damageType: "Poison" },
+                { label: "Blue (5)", dice: "12d6", damageType: "Cold" },
+            ],
+            effects: [
+                { label: "Ray color", dice: "1d8" },
+            ],
+        },
     },
     {
         name: "Project Image",
@@ -5942,6 +8549,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 day",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Regenerate",
@@ -5954,6 +8564,12 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["healing"],
+            healing: [
+                { dice: "4d8+15" },
+            ],
+        },
     },
     {
         name: "Resurrection",
@@ -5966,6 +8582,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["healing"],
+        },
     },
     {
         name: "Reverse Gravity",
@@ -5978,6 +8597,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "dexterity",
+        },
     },
     {
         name: "Sequester",
@@ -5990,6 +8613,9 @@ export const SPELLS: Spell[] = [
         duration: "Until dispelled",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility", "defense"],
+        },
     },
     {
         name: "Simbul's Synostodweomer",
@@ -6002,6 +8628,9 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["healing"],
+        },
     },
     {
         name: "Simulacrum",
@@ -6014,6 +8643,9 @@ export const SPELLS: Spell[] = [
         duration: "Until dispelled",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["summon", "utility"],
+        },
     },
     {
         name: "Symbol",
@@ -6026,6 +8658,13 @@ export const SPELLS: Spell[] = [
         duration: "Until dispelled or triggered",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["control", "damage", "debuff"],
+            save: "constitution",
+            damage: [
+                { label: "Death", dice: "10d10", damageType: "Necrotic" },
+            ],
+        },
     },
     {
         name: "Teleport",
@@ -6038,6 +8677,17 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+            damage: [
+                { label: "Mishap", dice: "3d10", damageType: "Force" },
+            ],
+            effects: [
+                { label: "Outcome (d100)", dice: "1d100" },
+                { label: "Off Target miles", dice: "2d12" },
+                { label: "Off Target direction", dice: "1d8" },
+            ],
+        },
     },
     {
         name: "Temple of the Gods",
@@ -6050,6 +8700,13 @@ export const SPELLS: Spell[] = [
         duration: "24 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense", "debuff", "utility"],
+            save: "charisma",
+            effects: [
+                { label: "Penalty die", dice: "1d4" },
+            ],
+        },
     },
     {
         name: "Tether Essence",
@@ -6062,6 +8719,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["utility", "debuff"],
+            save: "constitution",
+        },
     },
     {
         name: "Whirlwind",
@@ -6074,6 +8735,16 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "dexterity",
+            damage: [
+                { dice: "10d6", damageType: "Bludgeoning" },
+            ],
+            effects: [
+                { label: "Hurl distance x10 ft", dice: "3d6" },
+            ],
+        },
     },
     {
         name: "Abi-Dalzim's Horrid Wilting",
@@ -6086,6 +8757,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "constitution",
+            damage: [
+                { dice: "12d8", damageType: "Necrotic" },
+            ],
+        },
     },
     {
         name: "Animal Shapes",
@@ -6098,6 +8776,9 @@ export const SPELLS: Spell[] = [
         duration: "24 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["buff", "utility", "defense"],
+        },
     },
     {
         name: "Antimagic Field",
@@ -6110,6 +8791,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["defense", "utility"],
+        },
     },
     {
         name: "Antipathy/Sympathy",
@@ -6122,6 +8806,10 @@ export const SPELLS: Spell[] = [
         duration: "10 days",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["control"],
+            save: "wisdom",
+        },
     },
     {
         name: "Befuddlement",
@@ -6134,6 +8822,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "intelligence",
+            damage: [
+                { dice: "10d12", damageType: "Psychic" },
+            ],
+        },
     },
     {
         name: "Clone",
@@ -6150,6 +8845,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility", "healing"],
+        },
     },
     {
         name: "Control Weather",
@@ -6162,6 +8860,12 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 8 hours",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["utility"],
+            effects: [
+                { label: "Delay x10 minutes", dice: "1d4" },
+            ],
+        },
     },
     {
         name: "Dark Star",
@@ -6174,6 +8878,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "constitution",
+            damage: [
+                { dice: "8d10", damageType: "Force" },
+            ],
+        },
     },
     {
         name: "Demiplane",
@@ -6186,6 +8897,9 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Dominate Monster",
@@ -6198,6 +8912,11 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+            save: "wisdom",
+            upcastNote: "Concentration lasts up to 8 hours with a 9th-level slot.",
+        },
     },
     {
         name: "Earthquake",
@@ -6210,6 +8929,18 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control", "damage"],
+            save: "dexterity",
+            damage: [
+                { label: "Collapse", dice: "12d6", damageType: "Bludgeoning" },
+                { label: "Structures", dice: "50", damageType: "Bludgeoning" },
+            ],
+            effects: [
+                { label: "Fissures", dice: "1d6" },
+                { label: "Fissure depth x10 ft", dice: "1d10" },
+            ],
+        },
     },
     {
         name: "Glibness",
@@ -6222,6 +8953,9 @@ export const SPELLS: Spell[] = [
         duration: "1 hour",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility", "buff"],
+        },
     },
     {
         name: "Holy Aura",
@@ -6234,6 +8968,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["defense", "buff", "control"],
+            save: "constitution",
+        },
     },
     {
         name: "Holy Star of Mystra",
@@ -6246,6 +8984,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "defense"],
+            attack: "ranged",
+            damage: [
+                { dice: "4d10", damageType: "Force/Radiant", addModifier: true },
+            ],
+        },
     },
     {
         name: "Illusory Dragon",
@@ -6258,6 +9003,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "wisdom",
+            damage: [
+                { label: "Breath (Int save)", dice: "7d6", damageType: "Acid/Cold/Fire/Lightning/Necrotic/Poison" },
+            ],
+        },
     },
     {
         name: "Incendiary Cloud",
@@ -6270,6 +9022,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage"],
+            save: "dexterity",
+            damage: [
+                { dice: "10d8", damageType: "Fire" },
+            ],
+        },
     },
     {
         name: "Maddening Darkness",
@@ -6282,6 +9041,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage"],
+            save: "wisdom",
+            damage: [
+                { dice: "8d8", damageType: "Psychic" },
+            ],
+        },
     },
     {
         name: "Maze",
@@ -6294,6 +9060,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control"],
+        },
     },
     {
         name: "Mighty Fortress",
@@ -6306,6 +9075,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility", "defense"],
+        },
     },
     {
         name: "Mind Blank",
@@ -6318,6 +9090,9 @@ export const SPELLS: Spell[] = [
         duration: "24 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense"],
+        },
     },
     {
         name: "Power Word Stun",
@@ -6330,6 +9105,10 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["control"],
+            save: "constitution",
+        },
     },
     {
         name: "Reality Break",
@@ -6342,6 +9121,19 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "wisdom",
+            damage: [
+                { label: "1-2 Far Realm", dice: "6d12", damageType: "Psychic" },
+                { label: "3-5 Rending Rift", dice: "8d12", damageType: "Force" },
+                { label: "6-8 Wormhole", dice: "10d12", damageType: "Force" },
+                { label: "9-10 Dark Void", dice: "10d12", damageType: "Cold" },
+            ],
+            effects: [
+                { label: "Effect (d10)", dice: "1d10" },
+            ],
+        },
     },
     {
         name: "Sunburst",
@@ -6354,6 +9146,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "constitution",
+            damage: [
+                { dice: "12d6", damageType: "Radiant" },
+            ],
+        },
     },
     {
         name: "Telepathy",
@@ -6366,6 +9165,9 @@ export const SPELLS: Spell[] = [
         duration: "24 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Tsunami",
@@ -6378,6 +9180,14 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 6 rounds",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "strength",
+            damage: [
+                { label: "Wall appears", dice: "6d10", damageType: "Bludgeoning" },
+                { label: "Moving wall", dice: "5d10", damageType: "Bludgeoning" },
+            ],
+        },
     },
     {
         name: "Astral Projection",
@@ -6394,6 +9204,9 @@ export const SPELLS: Spell[] = [
         duration: "Until dispelled",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility"],
+        },
     },
     {
         name: "Blade of Disaster",
@@ -6406,6 +9219,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage"],
+            attack: "melee",
+            damage: [
+                { dice: "10d6", damageType: "Force", count: 2 },
+            ],
+        },
     },
     {
         name: "Foresight",
@@ -6418,6 +9238,9 @@ export const SPELLS: Spell[] = [
         duration: "8 hours",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["buff", "defense"],
+        },
     },
     {
         name: "Gate",
@@ -6430,6 +9253,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["utility", "summon"],
+        },
     },
     {
         name: "Imprisonment",
@@ -6442,6 +9268,10 @@ export const SPELLS: Spell[] = [
         duration: "Until dispelled",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["control"],
+            save: "wisdom",
+        },
     },
     {
         name: "Invulnerability",
@@ -6454,6 +9284,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 10 minutes",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["defense"],
+        },
     },
     {
         name: "Mass Heal",
@@ -6466,6 +9299,12 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["healing"],
+            healing: [
+                { label: "Pool (divided)", dice: "700" },
+            ],
+        },
     },
     {
         name: "Mass Polymorph",
@@ -6478,6 +9317,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control", "buff"],
+            save: "wisdom",
+        },
     },
     {
         name: "Meteor Swarm",
@@ -6490,6 +9333,14 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            save: "dexterity",
+            damage: [
+                { dice: "20d6", damageType: "Fire" },
+                { dice: "20d6", damageType: "Bludgeoning" },
+            ],
+        },
     },
     {
         name: "Power Word Heal",
@@ -6502,6 +9353,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["healing"],
+        },
     },
     {
         name: "Power Word Kill",
@@ -6514,6 +9368,12 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage"],
+            damage: [
+                { label: "Over 100 HP", dice: "12d12", damageType: "Psychic" },
+            ],
+        },
     },
     {
         name: "Prismatic Wall",
@@ -6526,6 +9386,17 @@ export const SPELLS: Spell[] = [
         duration: "10 minutes",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["defense", "damage", "control"],
+            save: "constitution",
+            damage: [
+                { label: "Red layer", dice: "12d6", damageType: "Fire" },
+                { label: "Orange layer", dice: "12d6", damageType: "Acid" },
+                { label: "Yellow layer", dice: "12d6", damageType: "Lightning" },
+                { label: "Green layer", dice: "12d6", damageType: "Poison" },
+                { label: "Blue layer", dice: "12d6", damageType: "Cold" },
+            ],
+        },
     },
     {
         name: "Psychic Scream",
@@ -6538,6 +9409,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "intelligence",
+            damage: [
+                { dice: "14d6", damageType: "Psychic" },
+            ],
+        },
     },
     {
         name: "Ravenous Void",
@@ -6550,6 +9428,13 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "strength",
+            damage: [
+                { dice: "5d10", damageType: "Force" },
+            ],
+        },
     },
     {
         name: "Shapechange",
@@ -6562,6 +9447,9 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["buff", "utility", "defense"],
+        },
     },
     {
         name: "Storm of Vengeance",
@@ -6574,6 +9462,17 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "constitution",
+            damage: [
+                { label: "Turn 1", dice: "2d6", damageType: "Thunder" },
+                { label: "Turn 2", dice: "4d6", damageType: "Acid" },
+                { label: "Turn 3 (6 bolts)", dice: "10d6", damageType: "Lightning" },
+                { label: "Turn 4", dice: "2d6", damageType: "Bludgeoning" },
+                { label: "Turns 5-10", dice: "1d6", damageType: "Cold" },
+            ],
+        },
     },
     {
         name: "Time Ravage",
@@ -6590,6 +9489,13 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["damage", "debuff"],
+            save: "constitution",
+            damage: [
+                { dice: "10d12", damageType: "Necrotic" },
+            ],
+        },
     },
     {
         name: "Time Stop",
@@ -6602,6 +9508,12 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility", "buff"],
+            effects: [
+                { label: "Turns", dice: "1d4+1" },
+            ],
+        },
     },
     {
         name: "True Polymorph",
@@ -6614,6 +9526,10 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 hour",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["control", "utility", "buff"],
+            save: "wisdom",
+        },
     },
     {
         name: "True Resurrection",
@@ -6626,6 +9542,9 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["healing"],
+        },
     },
     {
         name: "Weird",
@@ -6638,6 +9557,14 @@ export const SPELLS: Spell[] = [
         duration: "Concentration, up to 1 minute",
         ritual: false,
         concentration: true,
+        mechanics: {
+            roles: ["damage", "control"],
+            save: "wisdom",
+            damage: [
+                { label: "Initial", dice: "10d10", damageType: "Psychic" },
+                { label: "Failed repeat save", dice: "5d10", damageType: "Psychic" },
+            ],
+        },
     },
     {
         name: "Wish",
@@ -6650,5 +9577,14 @@ export const SPELLS: Spell[] = [
         duration: "Instantaneous",
         ritual: false,
         concentration: false,
+        mechanics: {
+            roles: ["utility", "healing", "defense"],
+            damage: [
+                { label: "Stress per spell level", dice: "1d10", damageType: "Necrotic" },
+            ],
+            effects: [
+                { label: "Strength 3 (days)", dice: "2d4" },
+            ],
+        },
     },
 ];

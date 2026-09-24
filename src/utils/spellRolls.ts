@@ -1,0 +1,246 @@
+import { useEffect, useState } from "react";
+import { Spell, SpellDiceRoll, SpellMechanics, SpellRole } from "@/interfaces/Spell";
+import { SpellSlots } from "@/interfaces/SpellSlots";
+import { CharacterDetails } from "@/interfaces/CharacterDetails";
+import {
+    DiceRollResult,
+    ParsedDice,
+    addParsedDice,
+    findDiceNotation,
+    formatParsedDice,
+    parseDiceExpression,
+    rollParsedDice,
+} from "@/utils/dice";
+
+/** Human-readable role names, in the order the sheet shows them. */
+export const SPELL_ROLE_LABELS: Record<SpellRole, string> = {
+    damage: "Damage",
+    healing: "Healing",
+    buff: "Buff",
+    debuff: "Debuff",
+    control: "Control",
+    defense: "Defense",
+    summon: "Summon",
+    utility: "Utility",
+};
+
+/** Cantrip upgrade tier from total character level: 1 (levels 1-4), 2 (5-10), 3 (11-16), 4 (17+). */
+export function cantripTier(characterLevel: number): number {
+    if (characterLevel >= 17) return 4;
+    if (characterLevel >= 11) return 3;
+    if (characterLevel >= 5) return 2;
+    return 1;
+}
+
+/** Context a roll is scaled for: the slot level it's cast with (ignored for cantrips) and the caster's total character level. */
+export type SpellScaleContext = { spellLevel: number; castLevel: number; characterLevel: number };
+
+/** One roll after upcasting / cantrip scaling, ready to display and roll. */
+export type ScaledSpellRoll = {
+    source: SpellDiceRoll;
+    kind: "damage" | "healing" | "effect";
+    dice: ParsedDice;
+    /** Separate instances (darts, rays, beams) - 1 for a normal roll. */
+    instances: number;
+    /** "8d6", "3 × (1d4 + 1)", "2d8 + mod" style display string, WITHOUT the spellcasting modifier's numeric value substituted in. */
+    display: string;
+    /** True when the base dice were modified by upcasting or cantrip scaling (so the UI can highlight the change). */
+    scaled: boolean;
+};
+
+/** Applies upcast (`castLevel` above the spell's level) and cantrip-tier scaling to one of a spell's dice rolls. Returns null when there's nothing to roll at this level (e.g. Booming Blade's on-hit rider before level 5). */
+export function scaleSpellRoll(
+    roll: SpellDiceRoll,
+    kind: ScaledSpellRoll["kind"],
+    { spellLevel, castLevel, characterLevel }: SpellScaleContext
+): ScaledSpellRoll | null {
+    let dice = parseDiceExpression(roll.dice);
+    let instances = roll.count ?? 1;
+    let scaled = false;
+
+    if (spellLevel === 0) {
+        const extraTiers = cantripTier(characterLevel) - 1;
+        if (extraTiers > 0 && roll.cantripDice) {
+            dice = addParsedDice(dice, parseDiceExpression(roll.cantripDice), extraTiers);
+            scaled = true;
+        }
+        if (extraTiers > 0 && roll.cantripCount) {
+            instances += roll.cantripCount * extraTiers;
+            scaled = true;
+        }
+    } else {
+        const levelsAbove = Math.max(0, castLevel - spellLevel);
+        const steps = Math.floor(levelsAbove / (roll.upcastEvery ?? 1));
+        if (steps > 0 && roll.upcastDice) {
+            dice = addParsedDice(dice, parseDiceExpression(roll.upcastDice), steps);
+            scaled = true;
+        }
+        if (levelsAbove > 0 && roll.upcastCount) {
+            instances += roll.upcastCount * levelsAbove;
+            scaled = true;
+        }
+    }
+
+    const hasDice = dice.groups.length > 0 || dice.flat !== 0;
+    if (!hasDice && !roll.addModifier) return null;
+
+    let formula = formatParsedDice(dice);
+    if (roll.addModifier) formula = formula ? `${formula} + mod` : "mod";
+    const display = instances > 1 ? `${instances} × (${formula})` : formula;
+
+    return { source: roll, kind, dice, instances, display, scaled };
+}
+
+/** Every roll a spell offers at the given cast/character level, in damage → healing → effect order. */
+export function getScaledSpellRolls(mechanics: SpellMechanics | undefined, context: SpellScaleContext): ScaledSpellRoll[] {
+    if (!mechanics) return [];
+    const result: ScaledSpellRoll[] = [];
+    const push = (rolls: SpellDiceRoll[] | undefined, kind: ScaledSpellRoll["kind"]) => {
+        for (const roll of rolls ?? []) {
+            const scaled = scaleSpellRoll(roll, kind, context);
+            if (scaled) result.push(scaled);
+        }
+    };
+    push(mechanics.damage, "damage");
+    push(mechanics.healing, "healing");
+    push(mechanics.effects, "effect");
+    return result;
+}
+
+/** Default button label for a scaled roll: its own label, else "Damage"/"Healing"/"Roll". */
+export function scaledRollLabel(roll: ScaledSpellRoll): string {
+    if (roll.source.label) return roll.source.label;
+    return roll.kind === "damage" ? "Damage" : roll.kind === "healing" ? "Healing" : "Roll";
+}
+
+/**
+ * Display string for a scaled roll with the spellcasting modifier's actual
+ * value folded in ("2d8 + 3", "3 × (1d4 + 1)", "4" for Heroism's flat
+ * modifier) - or left as "+ mod" when there's no character to take it from
+ * (`abilityModifier === null`, e.g. the compendium search page).
+ */
+export function formatScaledRoll(roll: ScaledSpellRoll, abilityModifier: number | null): string {
+    if (!roll.source.addModifier || abilityModifier === null) return roll.display;
+    const formula = formatParsedDice(addParsedDice(roll.dice, { groups: [], flat: abilityModifier })) || "0";
+    return roll.instances > 1 ? `${roll.instances} × (${formula})` : formula;
+}
+
+/** Rolls a scaled spell roll, adding `abilityModifier` per instance when the roll calls for the spellcasting modifier. */
+export function rollScaledSpellRoll(roll: ScaledSpellRoll, abilityModifier: number): DiceRollResult {
+    const modifier = roll.source.addModifier ? abilityModifier : 0;
+    return rollParsedDice(roll.dice, formatScaledRoll(roll, abilityModifier), modifier, roll.instances);
+}
+
+/** Whether changing the slot level changes anything about this spell (dice, instance count, or a written upcast note). */
+export function spellCanUpcast(spell: Spell, mechanics: SpellMechanics | undefined): boolean {
+    if (spell.level === 0) return false;
+    if (mechanics) {
+        if (mechanics.upcastNote) return true;
+        const rolls = [...(mechanics.damage ?? []), ...(mechanics.healing ?? []), ...(mechanics.effects ?? [])];
+        return rolls.some((roll) => roll.upcastDice || roll.upcastCount);
+    }
+    return /Using a Higher-Level Spell Slot|At Higher Levels/i.test(spell.description);
+}
+
+/**
+ * Last-resort mechanics for a spell the compendium doesn't know (custom or
+ * imported spells with no `mechanics` block): just the first dice notation
+ * in the description, as the sheet used to do, with an honest "utility"
+ * role since nothing else is known about it.
+ */
+export function fallbackMechanics(spell: Spell): SpellMechanics {
+    const dice = findDiceNotation(spell.description);
+    return { roles: ["utility"], ...(dice ? { effects: [{ label: "Dice in text", dice }] } : {}) };
+}
+
+// ---------------------------------------------------------------------------
+// Compendium lookup
+// ---------------------------------------------------------------------------
+
+let compendiumPromise: Promise<Map<string, SpellMechanics>> | null = null;
+
+function loadCompendiumMechanics(): Promise<Map<string, SpellMechanics>> {
+    if (!compendiumPromise) {
+        compendiumPromise = import("@/data/spells/Spells").then(({ SPELLS }) => {
+            const map = new Map<string, SpellMechanics>();
+            for (const spell of SPELLS) if (spell.mechanics) map.set(spell.name.toLowerCase(), spell.mechanics);
+            return map;
+        });
+    }
+    return compendiumPromise;
+}
+
+/**
+ * Returns a resolver for a spell's mechanics. A character's `spellsKnown`
+ * are frozen copies taken when the character was built, so they may predate
+ * `mechanics` (or carry an older version of it) - the compendium entry of
+ * the same name always wins, then the spell's own copy, then
+ * `fallbackMechanics`. The ~0.5 MB spell list is loaded lazily in its own
+ * chunk (same one data/index.ts uses) so the sheet doesn't block on it;
+ * until it arrives spells render with their own copy.
+ */
+export function useSpellMechanicsLookup(): (spell: Spell) => SpellMechanics {
+    const [compendium, setCompendium] = useState<Map<string, SpellMechanics> | null>(null);
+
+    useEffect(() => {
+        let cancelled = false;
+        loadCompendiumMechanics()
+            .then((map) => {
+                if (!cancelled) setCompendium(map);
+            })
+            .catch(() => undefined);
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    return (spell: Spell) => compendium?.get(spell.name.toLowerCase()) ?? spell.mechanics ?? fallbackMechanics(spell);
+}
+
+// ---------------------------------------------------------------------------
+// Spell slot tracking
+// ---------------------------------------------------------------------------
+
+/** Which slot pool a cast draws from. */
+export type SlotPool = "spell" | "pact";
+
+/** Slots still available per level: the max from the class tables minus what's recorded as expended. */
+export function remainingSlots(max: SpellSlots | null, expended: Record<number, number> | undefined): Record<number, number> {
+    const result: Record<number, number> = {};
+    if (!max) return result;
+    for (const [level, count] of Object.entries(max)) {
+        const total = count ?? 0;
+        if (total <= 0) continue;
+        result[Number(level)] = Math.max(0, total - (expended?.[Number(level)] ?? 0));
+    }
+    return result;
+}
+
+/** `details` patch that expends (delta = 1) or restores (delta = -1) one slot of `level` in `pool`, clamped to 0..max. */
+export function adjustExpendedSlots(
+    details: CharacterDetails | undefined,
+    pool: SlotPool,
+    level: number,
+    delta: number,
+    max: SpellSlots | null
+): Partial<CharacterDetails> {
+    const key = pool === "pact" ? "expendedPactSlots" : "expendedSpellSlots";
+    const current = { ...(details?.[key] ?? {}) };
+    const cap = max?.[level] ?? 0;
+    current[level] = Math.min(cap, Math.max(0, (current[level] ?? 0) + delta));
+    if (current[level] === 0) delete current[level];
+    return { [key]: current };
+}
+
+/** Slot levels a spell of `spellLevel` could be cast with right now (at least one slot left), across both pools, ascending. */
+export function castableLevels(
+    spellLevel: number,
+    spellSlots: Record<number, number>,
+    pactSlots: Record<number, number>
+): number[] {
+    const levels = new Set<number>();
+    for (const [level, count] of [...Object.entries(spellSlots), ...Object.entries(pactSlots)]) {
+        if (Number(level) >= spellLevel && count > 0) levels.add(Number(level));
+    }
+    return [...levels].sort((a, b) => a - b);
+}

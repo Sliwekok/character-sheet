@@ -51,6 +51,17 @@ export interface CharacterDetails {
    * concentration checks.
    */
   concentratingOn?: string;
+  /**
+   * Spell slots used since the last Long Rest, keyed by slot level (e.g.
+   * `{ 1: 2, 3: 1 }` = two 1st-level and one 3rd-level slot spent). Only
+   * the EXPENDED count is stored - the maximum always comes from the class
+   * tables (utils/spellcasting.ts's `getSpellSlots`), so levelling up never
+   * leaves stale totals behind. Toggled by the clickable slot pips and each
+   * spell's "Cast" button on the Spells tab; cleared by "Long rest".
+   */
+  expendedSpellSlots?: Record<number, number>;
+  /** Same as `expendedSpellSlots`, for the Warlock's separate Pact Magic pool (`getPactMagicSlots`). Cleared by both "Short rest" and "Long rest". */
+  expendedPactSlots?: Record<number, number>;
   /** Freeform notes appended below the auto-generated proficiencies/languages list on the core sheet. */
   otherProficienciesNotes?: string;
   /** Freeform notes for the core sheet's "Features & Traits" box, alongside feats. */

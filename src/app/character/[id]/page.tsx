@@ -34,6 +34,8 @@ import { getPactMagicSlots, getSpellSlots } from "@/utils/spellcasting";
 import { levelLabel } from "@/components/character/wizard/SpellsStep";
 import { WeaponEntry } from "@/components/character/WeaponEntry";
 import { SpellEntry } from "@/components/character/SpellEntry";
+import { SpellSlotsPanel } from "@/components/character/SpellSlotsPanel";
+import { SlotPool, adjustExpendedSlots, castableLevels, remainingSlots, useSpellMechanicsLookup } from "@/utils/spellRolls";
 import { StatusPanel } from "@/components/character/StatusPanel";
 import { SkillsPanel } from "@/components/character/SkillsPanel";
 import { AbilityScoresPanel } from "@/components/character/AbilityScoresPanel";
@@ -136,21 +138,6 @@ function ArmorEntry({
       </div>
       {armor.magicDescription && <p className="mt-1 whitespace-pre-line text-xs">{armor.magicDescription}</p>}
     </div>
-  );
-}
-
-function formatSlots(slots: Record<number, number> | null, label: string) {
-  if (!slots) return null;
-  const entries = Object.entries(slots).filter(([, count]) => (count ?? 0) > 0);
-  if (entries.length === 0) return null;
-  return (
-    <p>
-      <span className="font-semibold text-fontcolor">{label}:</span>{" "}
-      {entries
-        .sort(([a], [b]) => Number(a) - Number(b))
-        .map(([level, count]) => `${count}× ${levelLabel(Number(level))}`)
-        .join(", ")}
-    </p>
   );
 }
 
@@ -308,6 +295,11 @@ export default function CharacterDetailsPage() {
     };
   }, [character]);
 
+  // Resolves each spell's structured roll data (roles, attack/save, dice,
+  // upcasting) from the compendium by name - stored `spellsKnown` copies
+  // may predate it. Must stay above the early returns below (it's a hook).
+  const resolveSpellMechanics = useSpellMechanicsLookup();
+
   if (character === undefined) {
     return <CharacterLoading />;
   }
@@ -340,6 +332,17 @@ export default function CharacterDetailsPage() {
     .map((entry) => `${entry.class.name}${entry.subclass ? ` (${entry.subclass.name})` : ""} ${entry.level}`)
     .join(", ");
   const spellGroups = groupSpellsByLevel(character.spellsKnown);
+  const characterLevel = getCharacterLevel(character);
+  const remainingSpellSlots = remainingSlots(spellSlots, character.details?.expendedSpellSlots);
+  const remainingPactSlots = remainingSlots(pactMagicSlots, character.details?.expendedPactSlots);
+  const slotLevelsOwned = [...Object.keys(remainingSlots(spellSlots, undefined)), ...Object.keys(remainingSlots(pactMagicSlots, undefined))].map(Number);
+  const maxSlotLevel = slotLevelsOwned.length > 0 ? Math.max(...slotLevelsOwned) : 0;
+  const hasAnySlots = maxSlotLevel > 0;
+  const hasPactSlots = Object.keys(remainingSlots(pactMagicSlots, undefined)).length > 0;
+  const anySlotSpent =
+    Object.values(character.details?.expendedSpellSlots ?? {}).some((count) => count > 0) ||
+    Object.values(character.details?.expendedPactSlots ?? {}).some((count) => count > 0);
+  const anyPactSlotSpent = Object.values(character.details?.expendedPactSlots ?? {}).some((count) => count > 0);
   const totalSpellCount = character.spellsKnown.length + (character.grantedSpells?.length ?? 0);
   const magicItemCount = character.magicItems?.length ?? 0;
   const gearItemCount = character.inventory?.reduce((total, entry) => total + entry.quantity, 0) ?? 0;
@@ -429,6 +432,49 @@ export default function CharacterDetailsPage() {
       if (!current) return current;
       const concentratingOn = current.details?.concentratingOn === spellName ? undefined : spellName;
       return saveCharacter({ ...current, details: { ...current.details, concentratingOn } });
+    });
+  }
+
+  /**
+   * Spends (`delta = 1`) or restores (`delta = -1`) one slot of `level` in
+   * the given pool and persists it - the clickable pips on the Spells tab
+   * (see SpellSlotsPanel). Only the expended count is stored, clamped to
+   * the class-table maximum (see utils/spellRolls.ts's
+   * `adjustExpendedSlots`).
+   */
+  function handleAdjustSlot(pool: SlotPool, level: number, delta: number) {
+    setCharacter((current) => {
+      if (!current) return current;
+      const max = pool === "pact" ? getPactMagicSlots(current) : getSpellSlots(current);
+      const patch = adjustExpendedSlots(current.details, pool, level, delta, max);
+      return saveCharacter({ ...current, details: { ...current.details, ...patch } });
+    });
+  }
+
+  /**
+   * A spell's "Cast" button (see SpellEntry): spends one slot of
+   * `slotLevel`. Pact Magic slots are used first when they match that
+   * level, since they come back on a Short rest while regular slots need
+   * a Long rest.
+   */
+  function handleCastSpell(slotLevel: number) {
+    const pool: SlotPool = (remainingPactSlots[slotLevel] ?? 0) > 0 ? "pact" : "spell";
+    handleAdjustSlot(pool, slotLevel, 1);
+  }
+
+  /** "Long rest" in the sheet header: every spent spell slot (both pools) comes back. */
+  function handleLongRest() {
+    setCharacter((current) => {
+      if (!current) return current;
+      return saveCharacter({ ...current, details: { ...current.details, expendedSpellSlots: {}, expendedPactSlots: {} } });
+    });
+  }
+
+  /** "Short rest" in the sheet header (only shown for Pact Magic casters): Pact Magic slots come back, regular slots don't. */
+  function handleShortRest() {
+    setCharacter((current) => {
+      if (!current) return current;
+      return saveCharacter({ ...current, details: { ...current.details, expendedPactSlots: {} } });
     });
   }
 
@@ -646,7 +692,29 @@ export default function CharacterDetailsPage() {
                   <Tooltip title="Proficiency" lines={getProficiencyBonusBreakdown(character)} />
                 </span>
               </div>
-              <Badge variant="outline">{character.alignment}</Badge>
+              <div className="flex flex-wrap items-center gap-2">
+                {hasPactSlots && (
+                  <span className="flex items-center gap-1">
+                    <Button size="sm" variant="secondary" onClick={handleShortRest} disabled={!anyPactSlotSpent}>
+                      Short rest
+                    </Button>
+                    <Tooltip title="Short rest">
+                      <p>Restores all spent Pact Magic slots. Regular spell slots only come back on a Long rest.</p>
+                    </Tooltip>
+                  </span>
+                )}
+                {hasAnySlots && (
+                  <span className="flex items-center gap-1">
+                    <Button size="sm" variant="secondary" onClick={handleLongRest} disabled={!anySlotSpent}>
+                      Long rest
+                    </Button>
+                    <Tooltip title="Long rest">
+                      <p>Restores every spent spell slot (and Pact Magic slot) to full.</p>
+                    </Tooltip>
+                  </span>
+                )}
+                <Badge variant="outline">{character.alignment}</Badge>
+              </div>
             </CardContent>
           </Card>
 
@@ -726,10 +794,15 @@ export default function CharacterDetailsPage() {
                       </p>
                     )}
 
-                    {(spellSlots || pactMagicSlots) && (
-                      <div className="flex flex-col gap-1 border-b border-border pb-3">
-                        {formatSlots(spellSlots, "Spell slots")}
-                        {formatSlots(pactMagicSlots, "Pact Magic slots")}
+                    {hasAnySlots && (
+                      <div className="border-b border-border pb-3">
+                        <SpellSlotsPanel
+                          spellSlots={spellSlots}
+                          pactMagicSlots={pactMagicSlots}
+                          expendedSpellSlots={character.details?.expendedSpellSlots}
+                          expendedPactSlots={character.details?.expendedPactSlots}
+                          onAdjust={handleAdjustSlot}
+                        />
                       </div>
                     )}
 
@@ -752,7 +825,12 @@ export default function CharacterDetailsPage() {
                               <SpellEntry
                                 key={spell.name}
                                 spell={spell}
+                                mechanics={resolveSpellMechanics(spell)}
                                 spellcasting={spellcasting}
+                                characterLevel={characterLevel}
+                                maxSlotLevel={maxSlotLevel}
+                                castableSlotLevels={castableLevels(spell.level, remainingSpellSlots, remainingPactSlots)}
+                                onCast={hasAnySlots ? handleCastSpell : undefined}
                                 concentratingOn={character.details?.concentratingOn}
                                 onToggleConcentration={handleToggleConcentration}
                                 onRoll={recordRoll}
@@ -779,7 +857,12 @@ export default function CharacterDetailsPage() {
                             <SpellEntry
                               key={spell.name}
                               spell={spell}
+                              mechanics={resolveSpellMechanics(spell)}
                               spellcasting={spellcasting}
+                              characterLevel={characterLevel}
+                              maxSlotLevel={maxSlotLevel}
+                              castableSlotLevels={castableLevels(spell.level, remainingSpellSlots, remainingPactSlots)}
+                              onCast={hasAnySlots ? handleCastSpell : undefined}
                               concentratingOn={character.details?.concentratingOn}
                               onToggleConcentration={handleToggleConcentration}
                               onRoll={recordRoll}
