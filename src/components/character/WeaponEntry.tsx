@@ -97,8 +97,21 @@ export function WeaponEntry({
   }
 
   function rollDamage() {
-    const result = rollDiceFormula(damage.diceFormula, damage.flatBonus);
-    const label = `Damage (${damage.damageType})`;
+    const weaponRoll = rollDiceFormula(damage.diceFormula, damage.flatBonus);
+    // rollDiceFormula only handles one "NdM" group, so Sneak Attack's d6s are
+    // rolled separately and merged into a single result.
+    let result = weaponRoll;
+    if (damage.sneakAttackDice > 0) {
+      const sneakRoll = rollDiceFormula(`${damage.sneakAttackDice}d6`);
+      result = {
+        formula: `${weaponRoll.formula} + ${sneakRoll.formula}`,
+        rolls: [...weaponRoll.rolls, ...sneakRoll.rolls],
+        diceTotal: weaponRoll.diceTotal + sneakRoll.diceTotal,
+        modifier: weaponRoll.modifier,
+        total: weaponRoll.total + sneakRoll.diceTotal,
+      };
+    }
+    const label = `Damage (${damage.damageType})${damage.sneakAttackDice > 0 ? " + Sneak Attack" : ""}`;
     setRolled({ label, result });
     onRoll?.(`${weapon.name} — ${label}`, result);
   }
@@ -209,7 +222,7 @@ export function WeaponEntry({
       )}
 
       {isMasteryActive && masteryEffect && masteryEffect.rollKind !== "none" && (
-          <Button size="sm" variant="accent" onClick={rollMasteryAttack}>
+          <Button size="sm" variant="accent" onClick={rollMasteryAttack} className="m-2">
             {masteryEffect.rollLabel}
           </Button>
       )}
@@ -237,6 +250,7 @@ export function WeaponEntry({
 
         <span className="flex items-center gap-1 text-xs text-fontcolor-secondary flex-1/2">
           Damage {damage.diceFormula}
+          {damage.sneakAttackDice > 0 ? ` + ${damage.sneakAttackDice}d6` : ""}
           {damage.flatBonus ? ` ${formatModifier(damage.flatBonus)}` : ""}
           <Tooltip title="Damage" lines={damage.lines} />
         </span>
