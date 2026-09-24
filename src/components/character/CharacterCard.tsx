@@ -66,7 +66,7 @@ export function CharacterCard({ character }: { character: CharacterSummary }) {
               Level {level} &middot; {className}
             </p>
           </div>
-          <Badge variant="outline">{alignment}</Badge>
+          <Badge variant="outline" className="text-center">{alignment}</Badge>
         </CardHeader>
         <CardContent className="flex flex-1 flex-col gap-4">
           <div className="flex gap-3">
