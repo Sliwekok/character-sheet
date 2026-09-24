@@ -36,7 +36,6 @@ function formatRolledAt(rolledAt: number): string {
 export function RollHistoryWidget({ history, onClear }: { history: RollHistoryEntry[]; onClear: () => void }) {
   const [open, setOpen] = useState(false);
   let historyReversed = [...history].reverse();
-  console.log(history, historyReversed);
 
   if (historyReversed.length === 0) return null;
 
