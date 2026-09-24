@@ -1,22 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { Container, SectionHeading } from "@/components/ui";
-import { CharacterCard, type CharacterSummary } from "@/components/character/CharacterCard";
-import { loadCharacters } from "@/utils/storage";
+import { CharacterCard } from "@/components/character/CharacterCard";
+import { CharacterCardSkeleton } from "@/components/character/CharacterCardSkeleton";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { useStoredCharacters } from "@/components/auth/useStoredCharacter";
 import { toCharacterSummary } from "@/utils/characterSummary";
 
 export default function HomePage() {
-  // Storage is browser-only (see utils/storage.ts), so characters load in an
-  // effect rather than during render - this avoids a server/client
-  // hydration mismatch, same reasoning as the landing page's sketch shuffle.
-  const [characters, setCharacters] = useState<CharacterSummary[] | null>(null);
-
-  useEffect(() => {
-    const stored = loadCharacters();
-    setCharacters(stored.map(toCharacterSummary));
-  }, []);
+  // Local first: characters come straight from localStorage (browser-only,
+  // so read in an effect inside the hook - no hydration mismatch). Only
+  // when this device has none and a signed-in player's characters are
+  // still downloading does the list show skeleton cards instead - see
+  // useStoredCharacters. Later changes (another device's edits arriving via
+  // sync) update the list live.
+  const { characters, loading } = useStoredCharacters();
+  const { status } = useAuth();
+  const summaries = useMemo(() => characters?.map(toCharacterSummary) ?? [], [characters]);
 
   return (
     <>
@@ -27,10 +29,24 @@ export default function HomePage() {
           subtitle="Every sheet you've built, at a glance. Select one to keep editing, or start a new one."
         />
 
+        {status === "anonymous" && !loading && (
+          <p className="mt-4 text-sm text-fontcolor-secondary">
+            Your characters are saved in this browser.{" "}
+            <Link href="/login?next=/home" className="text-foreground underline-offset-4 hover:underline">
+              Sign in
+            </Link>{" "}
+            or{" "}
+            <Link href="/register?next=/home" className="text-foreground underline-offset-4 hover:underline">
+              create an account
+            </Link>{" "}
+            to back them up and use them on other devices.
+          </p>
+        )}
+
         <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {characters?.map((character) => (
-            <CharacterCard key={character.id} character={character} />
-          ))}
+          {loading
+            ? Array.from({ length: 3 }).map((_, i) => <CharacterCardSkeleton key={i} />)
+            : summaries.map((character) => <CharacterCard key={character.id} character={character} />)}
 
           <Link
             href="/newCharacter"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -20,7 +20,10 @@ import {
 } from "@/components/ui";
 import { StoredCharacter } from "@/interfaces/StoredCharacter";
 import { getCharacterLevel } from "@/interfaces/Characters";
-import { deleteCharacter, loadCharacter, saveCharacter } from "@/utils/storage";
+import { deleteCharacter, saveCharacter } from "@/utils/storage";
+import { useStoredCharacter } from "@/components/auth/useStoredCharacter";
+import { useAuth } from "@/components/auth/AuthProvider";
+import CharacterLoading from "./loading";
 import { getChosenWeaponMasteryIndexes, getWeaponMasteryCount, toggleWeaponMasteryChoice } from "@/utils/weaponMastery";
 import { downloadCharacterAsJson } from "@/utils/characterImportExport";
 import { getArmorClassBreakdown } from "@/utils/calculateArmorClass";
@@ -282,16 +285,16 @@ export default function CharacterDetailsPage() {
 
   // `null` once loaded means "no such character" - kept distinct from the
   // initial `undefined` "still loading" state so the not-found message
-  // doesn't flash before storage has even been read (storage is
-  // browser-only, see utils/storage.ts, hence the effect instead of reading
-  // during render - same reasoning as /home).
-  const [character, setCharacter] = useState<StoredCharacter | null | undefined>(undefined);
+  // doesn't flash before storage has even been read. Local first: read
+  // straight from localStorage; only if it isn't on this device and the
+  // player is signed in is it fetched from the server (skeleton meanwhile) -
+  // see useStoredCharacter. Edits below still go through
+  // `setCharacter(current => saveCharacter(...))`, which saves locally and
+  // queues the upload.
+  const [character, setCharacter] = useStoredCharacter(id);
+  const { status: authStatus } = useAuth();
 
   const [showShop, setShowShop] = useState(false);
-
-  useEffect(() => {
-    setCharacter(loadCharacter(id) ?? null);
-  }, [id]);
 
   const derived = useMemo(() => {
     if (!character) return null;
@@ -306,7 +309,7 @@ export default function CharacterDetailsPage() {
   }, [character]);
 
   if (character === undefined) {
-    return <Container children="lg" size="lg" className="pb-24" />;
+    return <CharacterLoading />;
   }
 
   if (character === null) {
@@ -315,7 +318,17 @@ export default function CharacterDetailsPage() {
         <Card>
           <CardContent className="flex flex-col items-start gap-3 text-sm text-fontcolor-secondary">
             <p>No character found with that id - it may have been deleted.</p>
-            <Button href="/home">Back to characters</Button>
+            {authStatus === "anonymous" && (
+              <p>If you saved it on another device, sign in to load it from your account.</p>
+            )}
+            <div className="flex flex-wrap gap-3">
+              <Button href="/home">Back to characters</Button>
+              {authStatus === "anonymous" && (
+                <Button href={`/login?next=${encodeURIComponent(`/character/${id}`)}`} variant="secondary">
+                  Sign in
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       </Container>

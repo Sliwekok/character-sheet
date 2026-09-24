@@ -137,7 +137,7 @@ export function SpellEntry({
             )}
 
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
-                {spellcasting && (
+                {spellcasting && detectedDice && (
                     <>
                         <span className="flex items-center gap-1 text-xs text-fontcolor-secondary">
                           Attack {formatModifier(spellcasting.spellAttackBonus)} · Save DC{" "}
@@ -148,21 +148,19 @@ export function SpellEntry({
                             Roll spell attack
                         </Button>
 
-                        {detectedDice && (
-                            <span className="flex items-center gap-1">
-                            <Button size="sm" variant="secondary" onClick={rollEffect}>
-                              Roll {detectedDice}
-                            </Button>
-                            <Tooltip title={`Rolling ${detectedDice}`}>
-                              <p>
-                                Taken from the first dice notation found in this
-                                spell&apos;s description. Check the text for extra modifiers
-                                it might call for - some healing spells, for example, add
-                                your spellcasting ability modifier on top.
-                              </p>
-                            </Tooltip>
-                          </span>
-                        )}
+                        <span className="flex items-center gap-1">
+                        <Button size="sm" variant="secondary" onClick={rollEffect}>
+                          Roll {detectedDice}
+                        </Button>
+                        <Tooltip title={`Rolling ${detectedDice}`}>
+                          <p>
+                            Taken from the first dice notation found in this
+                            spell&apos;s description. Check the text for extra modifiers
+                            it might call for - some healing spells, for example, add
+                            your spellcasting ability modifier on top.
+                          </p>
+                        </Tooltip>
+                      </span>
                     </>
                 )}
 

@@ -12,7 +12,9 @@
 | Lint       | `next lint` with `eslint-config-react-app`                          |
 | Routing lib| `react-router` / `react-router-dom` are listed as dependencies but the app itself is 100% App Router (`src/app`) — no evidence of react-router being used anywhere under `src/`. Likely a leftover from scaffolding or an earlier prototype. |
 
-There is no test runner, state-management library, form library, or backend
+**Backend:** optional accounts + cloud sync of characters via Next.js route handlers and MongoDB - see [backend.md](backend.md).
+
+There is no test runner, state-management library, or form library
 configured. `package.json` has no `test` script.
 
 ## Path alias
