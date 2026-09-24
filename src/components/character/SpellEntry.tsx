@@ -15,6 +15,7 @@ import {
     rollScaledSpellRoll,
     scaledRollLabel,
     spellCanUpcast,
+    describeUpcast,
 } from "@/utils/spellRolls";
 import { cn } from "@/utils/cn";
 
@@ -230,6 +231,9 @@ export function SpellEntry({
                             );
                         })}
                     </div>
+                    {describeUpcast(mechanics).length > 0 && (
+                        <span className="text-fontcolor-secondary">({describeUpcast(mechanics).join("; ")})</span>
+                    )}
                     {mechanics.upcastNote && castLevel > spell.level && (
                         <span className="basis-full text-fontcolor-secondary">Upcast: {mechanics.upcastNote}</span>
                     )}

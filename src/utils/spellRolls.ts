@@ -70,6 +70,13 @@ export function scaleSpellRoll(
         }
     } else {
         const levelsAbove = Math.max(0, castLevel - spellLevel);
+        const tier = [...(roll.upcastTiers ?? [])]
+            .sort((a, b) => b.minLevel - a.minLevel)
+            .find((candidate) => castLevel >= candidate.minLevel);
+        if (tier) {
+            dice = parseDiceExpression(tier.dice);
+            scaled = true;
+        }
         const steps = Math.floor(levelsAbove / (roll.upcastEvery ?? 1));
         if (steps > 0 && roll.upcastDice) {
             dice = addParsedDice(dice, parseDiceExpression(roll.upcastDice), steps);
@@ -131,26 +138,57 @@ export function rollScaledSpellRoll(roll: ScaledSpellRoll, abilityModifier: numb
     return rollParsedDice(roll.dice, formatScaledRoll(roll, abilityModifier), modifier, roll.instances);
 }
 
+/** Short "how does it scale" hint for the upcast selector, e.g. "+1d6 per slot level" / "+1 dart per slot level" / "3d8 at 3rd+". */
+export function describeUpcast(mechanics: SpellMechanics | undefined): string[] {
+    if (!mechanics) return [];
+    const hints: string[] = [];
+    for (const roll of [...(mechanics.damage ?? []), ...(mechanics.healing ?? []), ...(mechanics.effects ?? [])]) {
+        const what = roll.label ? ` ${roll.label.toLowerCase()}` : "";
+        if (roll.upcastDice) hints.push(`+${roll.upcastDice}${what} per ${roll.upcastEvery === 2 ? "2 slot levels" : "slot level"}`);
+        if (roll.upcastCount) hints.push(`+${roll.upcastCount}${what || " roll"} per slot level`);
+        if (roll.upcastTiers?.length) hints.push(roll.upcastTiers.map((tier) => `${tier.dice} at ${tier.minLevel}+`).join(", "));
+    }
+    return hints;
+}
+
 /** Whether changing the slot level changes anything about this spell (dice, instance count, or a written upcast note). */
 export function spellCanUpcast(spell: Spell, mechanics: SpellMechanics | undefined): boolean {
     if (spell.level === 0) return false;
     if (mechanics) {
         if (mechanics.upcastNote) return true;
         const rolls = [...(mechanics.damage ?? []), ...(mechanics.healing ?? []), ...(mechanics.effects ?? [])];
-        return rolls.some((roll) => roll.upcastDice || roll.upcastCount);
+        return rolls.some((roll) => roll.upcastDice || roll.upcastCount || roll.upcastTiers?.length);
     }
     return /Using a Higher-Level Spell Slot|At Higher Levels/i.test(spell.description);
 }
 
 /**
  * Last-resort mechanics for a spell the compendium doesn't know (custom or
- * imported spells with no `mechanics` block): just the first dice notation
- * in the description, as the sheet used to do, with an honest "utility"
- * role since nothing else is known about it.
+ * imported spells with no `mechanics` block, or a name that doesn't match):
+ * the first dice notation in the main text, plus - so upcasting still does
+ * something - the first "increases by NdM for each (spell) slot level
+ * above" in the higher-level text. Role is an honest "damage" when the dice
+ * are followed by "damage", else "utility".
  */
 export function fallbackMechanics(spell: Spell): SpellMechanics {
-    const dice = findDiceNotation(spell.description);
-    return { roles: ["utility"], ...(dice ? { effects: [{ label: "Dice in text", dice }] } : {}) };
+    const [main, higher = ""] = spell.description.split(/\n\n(?:Using a Higher-Level Spell Slot|At Higher Levels|Cantrip Upgrade)\.\s*/i);
+    const dice = findDiceNotation(main);
+    if (!dice) return { roles: ["utility"] };
+    const upcast = higher.match(/(\d+d\d+)\s+for\s+(?:each|every)\s+(two\s+)?(?:spell\s+)?slot\s+levels?\s+above/i);
+    const cantrip = spell.level === 0 ? spell.description.match(/increases by (\d+d\d+) when you reach/i) : null;
+    const isDamage = new RegExp(`${dice.replace(/[+]/g, "\\s*\\+\\s*")}\\s+(?:\\w+\\s+)?damage`, "i").test(main);
+    const roll = {
+        label: isDamage ? undefined : "Dice in text",
+        dice,
+        ...(upcast && spell.level > 0 ? { upcastDice: upcast[1], ...(upcast[2] ? { upcastEvery: 2 } : {}) } : {}),
+        ...(cantrip ? { cantripDice: cantrip[1] } : {}),
+    };
+    return isDamage ? { roles: ["damage"], damage: [roll] } : { roles: ["utility"], effects: [roll] };
+}
+
+/** Lookup key tolerant of case, curly apostrophes and extra whitespace ("Hunter’s Mark" = "hunter's mark"). */
+export function spellNameKey(name: string): string {
+    return name.toLowerCase().replace(/[\u2018\u2019`]/g, "'").replace(/\s+/g, " ").trim();
 }
 
 // ---------------------------------------------------------------------------
@@ -163,7 +201,7 @@ function loadCompendiumMechanics(): Promise<Map<string, SpellMechanics>> {
     if (!compendiumPromise) {
         compendiumPromise = import("@/data/spells/Spells").then(({ SPELLS }) => {
             const map = new Map<string, SpellMechanics>();
-            for (const spell of SPELLS) if (spell.mechanics) map.set(spell.name.toLowerCase(), spell.mechanics);
+            for (const spell of SPELLS) if (spell.mechanics) map.set(spellNameKey(spell.name), spell.mechanics);
             return map;
         });
     }
@@ -194,7 +232,7 @@ export function useSpellMechanicsLookup(): (spell: Spell) => SpellMechanics {
         };
     }, []);
 
-    return (spell: Spell) => compendium?.get(spell.name.toLowerCase()) ?? spell.mechanics ?? fallbackMechanics(spell);
+    return (spell: Spell) => compendium?.get(spellNameKey(spell.name)) ?? spell.mechanics ?? fallbackMechanics(spell);
 }
 
 // ---------------------------------------------------------------------------

@@ -3511,7 +3511,7 @@ export const SPELLS: Spell[] = [
         mechanics: {
             roles: ["damage"],
             damage: [
-                { dice: "2d8", damageType: "Psychic" },
+                { dice: "2d8", damageType: "Psychic", upcastTiers: [{ minLevel: 3, dice: "3d8" }, { minLevel: 5, dice: "4d8" }, { minLevel: 7, dice: "5d8" }] },
             ],
             upcastNote: "Damage becomes 3d8 with a 3rd-4th level slot, 4d8 with 5th-6th, and 5d8 with 7th+.",
         },
@@ -4230,7 +4230,7 @@ export const SPELLS: Spell[] = [
         mechanics: {
             roles: ["buff", "damage"],
             damage: [
-                { label: "Extra damage", dice: "1d4", damageType: "Acid/Cold/Fire/Lightning/Thunder" },
+                { label: "Extra damage", dice: "1d4", damageType: "Acid/Cold/Fire/Lightning/Thunder", upcastTiers: [{ minLevel: 5, dice: "2d4" }, { minLevel: 7, dice: "3d4" }] },
             ],
             upcastNote: "Level 5-6 slot: +2 bonus and 2d4 damage; level 7+ slot: +3 bonus and 3d4 damage.",
         },

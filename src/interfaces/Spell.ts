@@ -30,6 +30,13 @@ export interface SpellDiceRoll {
   upcastDice?: string;
   /** Only for "for every two slot levels above ..." wording. Defaults to 1. */
   upcastEvery?: number;
+  /**
+   * Step-wise upcasting where the text REPLACES the dice at certain slot
+   * levels instead of adding per level (Shadow Blade: 3d8 at 3rd-4th, 4d8 at
+   * 5th-6th, 5d8 at 7th+). The highest tier whose `minLevel` is <= the cast
+   * level wins; below every tier `dice` is used as-is.
+   */
+  upcastTiers?: { minLevel: number; dice: string }[];
   /** Extra instances per slot level above the spell's own level (Magic Missile: +1 dart). */
   upcastCount?: number;
   /** Cantrips: dice added at each upgrade tier (character levels 5, 11, 17). */
