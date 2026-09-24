@@ -4,7 +4,59 @@ import { GrantedSpell } from "@/interfaces/CharacterClass";
 import { Edition } from "@/interfaces/Edition";
 import { TextWithSpellMentions } from "@/components/character/SpellMention";
 
-export type FeatureLike = { name: string; level: number; description: string; grantedSpells?: GrantedSpell[] };
+export type FeatureLike = {
+  name: string;
+  level: number;
+  description: string;
+  grantedSpells?: GrantedSpell[];
+  /** Level threshold -> number of d6s (see `ClassFeature.sneakAttackDice`). When present, a progression table is shown beside the description. */
+  sneakAttackDice?: Record<number, number>;
+};
+
+/**
+ * Turns a `sneakAttackDice` threshold map ({ 1: 1, 3: 2, ... }) into level
+ * ranges ("1–2" -> 1d6, "3–4" -> 2d6, ... "19–20" -> 10d6) and highlights
+ * the row covering `classLevel`, if given. The compendium search page has no
+ * character, so it omits `classLevel` and just gets the plain table.
+ */
+function SneakAttackTable({ dice, classLevel }: { dice: Record<number, number>; classLevel?: number }) {
+  const thresholds = Object.keys(dice)
+    .map(Number)
+    .sort((a, b) => a - b);
+  const rows = thresholds.map((from, index) => {
+    const to = (thresholds[index + 1] ?? 21) - 1;
+    return { from, to, value: `${dice[from]}d6`, current: classLevel !== undefined && classLevel >= from && classLevel <= to };
+  });
+
+  return (
+    <table className="w-full shrink-0 border-collapse text-xs tabular-nums sm:w-40">
+      <thead>
+        <tr className="text-[11px] uppercase tracking-wide text-fontcolor-secondary">
+          <th className="px-2 py-1 text-left font-semibold">Level</th>
+          <th className="px-2 py-1 text-right font-semibold">Damage</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row) => (
+          <tr
+            key={row.from}
+            aria-current={row.current ? "true" : undefined}
+            className={cn(
+              "border-t border-border-strong/40",
+              row.current && "bg-foreground/25 font-semibold text-foreground outline outline-1 outline-foreground-hover/60"
+            )}
+          >
+            <td className="px-2 py-0.5">
+              {row.from === row.to ? row.from : `${row.from}–${row.to}`}
+              {row.current && <span className="ml-1 text-[10px] uppercase tracking-wide"></span>}
+            </td>
+            <td className="px-2 py-0.5 text-right">{row.value}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
 
 /**
  * Short badge label for one of a feature's `grantedSpells` entries - see
@@ -57,11 +109,14 @@ export function FeatureEntry({
   reached,
   edition,
   alwaysExpanded = false,
+  classLevel,
 }: {
   feature: FeatureLike;
   reached: boolean;
   edition: Edition;
   alwaysExpanded?: boolean;
+  /** The character's level in this feature's class - used to highlight the current row of a progression table (e.g. Sneak Attack). */
+  classLevel?: number;
 }) {
   const grantedSpells = feature.grantedSpells ?? [];
   const spellNames = grantedSpells
@@ -82,14 +137,21 @@ export function FeatureEntry({
     </>
   );
 
-  const description = (
-    <div className="basis-full leading-4 mt-1 whitespace-pre-line text-xs">
-      <TextWithSpellMentions
-          text={feature.description}
-          spellNames={spellNames}
-          edition={edition}
-      />
+  const descriptionText = (
+    <TextWithSpellMentions
+        text={feature.description}
+        spellNames={spellNames}
+        edition={edition}
+    />
+  );
+
+  const description = feature.sneakAttackDice ? (
+    <div className="basis-full mt-1 flex flex-col gap-3 sm:flex-row sm:items-start">
+      <div className="flex-1 leading-4 whitespace-pre-line text-xs">{descriptionText}</div>
+      <SneakAttackTable dice={feature.sneakAttackDice} classLevel={classLevel} />
     </div>
+  ) : (
+    <div className="basis-full leading-4 mt-1 whitespace-pre-line text-xs">{descriptionText}</div>
   );
 
   return (

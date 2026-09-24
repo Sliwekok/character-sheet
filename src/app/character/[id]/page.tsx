@@ -924,6 +924,7 @@ export default function CharacterDetailsPage() {
                                   feature={feature}
                                   reached={feature.level <= entry.level}
                                   edition={character.edition}
+                                  classLevel={entry.level}
                                 />
                               ))}
                             </div>
