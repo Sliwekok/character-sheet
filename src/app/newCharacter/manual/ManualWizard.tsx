@@ -17,7 +17,8 @@ import { isValidBackgroundAllocation, sumAbilityScores } from "@/utils/abilitySc
 import { areAsiSlotsComplete, getAsiSlots, sumAsiAllocations } from "@/utils/abilityScoreImprovements";
 import { getEffectiveCasterProgression } from "@/utils/spellcasting";
 import { areFeatureChoicesComplete, getAutoGrantedSpellNames, resolveSpellsByName } from "@/utils/grantedSpells";
-import { loadCharacter, saveCharacter } from "@/utils/storage";
+import { saveCharacter } from "@/utils/storage";
+import { useStoredCharacter } from "@/components/auth/useStoredCharacter";
 import { StepProgress } from "@/components/character/wizard/StepProgress";
 import { EditionStep } from "@/components/character/wizard/EditionStep";
 import { RaceStep } from "@/components/character/wizard/RaceStep";
@@ -137,15 +138,18 @@ export default function ManualWizard() {
   const [stepIndex, setStepIndex] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
 
-  // Load the character being edited, if any, once on mount.
+  // Load the character being edited, if any - from localStorage, or (when
+  // it isn't on this device and the player is signed in) from the server,
+  // see useStoredCharacter. Applied to the draft only once, so a background
+  // sync of the same character can't wipe edits in progress here.
+  const [existingCharacter] = useStoredCharacter(editId);
+  const loadedEditId = useRef<string | null>(null);
   useEffect(() => {
-    if (!editId) return;
-    const existing = loadCharacter(editId);
-    if (existing) {
-      setDraft(draftFromCharacter(existing));
-      setIsEditing(true);
-    }
-  }, [editId]);
+    if (!editId || !existingCharacter || loadedEditId.current === editId) return;
+    loadedEditId.current = editId;
+    setDraft(draftFromCharacter(existingCharacter));
+    setIsEditing(true);
+  }, [editId, existingCharacter]);
 
   function updateDraft(patch: Partial<CharacterDraft>) {
     setDraft((current) => ({ ...current, ...patch }));

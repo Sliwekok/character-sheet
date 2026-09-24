@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Cinzel, Geist, Geist_Mono } from "next/font/google";
 import NavGate from "./layout/NavGate";
+import { AuthProvider } from "@/components/auth/AuthProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -35,8 +36,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${cinzel.variable} antialiased min-h-screen`}
         suppressHydrationWarning
       >
-        <NavGate />
-        {children}
+        <AuthProvider>
+          <NavGate />
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

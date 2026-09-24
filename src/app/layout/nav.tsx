@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Combobox, Container, Logo, TextInput } from "@/components/ui";
 import { cn } from "@/utils/cn";
 import { buildSearchIndexAsync, SearchIndexEntry } from "@/utils/searchIndex";
+import { AccountMenu } from "@/components/auth/AccountMenu";
 
 const NAV_LINKS = [
   { href: "/home", label: "Home" },
@@ -112,6 +113,10 @@ export default function Nav() {
             })}
           </div>
 
+          {/* account (sign in / avatar menu) - shown at every width, next to the mobile toggle on small screens */}
+          <div className="flex items-center gap-3 md:ml-8">
+          <AccountMenu />
+
           {/* mobile toggle */}
           <button
             type="button"
@@ -137,6 +142,7 @@ export default function Nav() {
               </svg>
             )}
           </button>
+          </div>
         </div>
       </Container>
 

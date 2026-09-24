@@ -37,9 +37,9 @@ rulesets into a single `getRuleset(edition)` lookup. `src/utils` holds the deriv
 math (AC, HP, spell slots, weapon mastery) plus the character-generator logic
 (`characterDraft.ts`, `randomCharacter.ts`, `storage.ts`). `/newCharacter` now offers a
 full manual wizard and two random-generation modes (see generator.md); saved
-characters persist in the browser's `localStorage` (there is still no backend/database
-— that's a deliberate scope choice, not a gap) and `/home` lists them, falling back to
-two placeholder mock cards only when nothing has been saved yet.
+characters persist in the browser's `localStorage` first and, for signed-in users,
+sync to MongoDB in the background (accounts are optional - see backend.md); `/home`
+lists them.
 
 ## Running it locally
 
