@@ -62,6 +62,13 @@ export interface CharacterDetails {
   expendedSpellSlots?: Record<number, number>;
   /** Same as `expendedSpellSlots`, for the Warlock's separate Pact Magic pool (`getPactMagicSlots`). Cleared by both "Short rest" and "Long rest". */
   expendedPactSlots?: Record<number, number>;
+  /**
+   * Hit Dice spent, keyed by die size (e.g. `{ 10: 2 }` = two d10s spent).
+   * Only the EXPENDED count is stored - totals come from class levels (see
+   * utils/hitDice.ts's `getHitDicePools`). Spent via the "Short rest"
+   * dialog; recovered by "Long rest" (half in 2014, all in 2024).
+   */
+  expendedHitDice?: Record<number, number>;
   /** Freeform notes appended below the auto-generated proficiencies/languages list on the core sheet. */
   otherProficienciesNotes?: string;
   /** Freeform notes for the core sheet's "Features & Traits" box, alongside feats. */

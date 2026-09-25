@@ -44,6 +44,10 @@ import { FeatEntry } from "@/components/character/FeatEntry";
 import { PdfExportPanel } from "@/components/character/PdfExportPanel";
 import { RollHistoryEntry, RollHistoryWidget } from "@/components/character/RollHistoryWidget";
 import { Shop } from "@/components/character/Shop";
+import { HitPointsEditor } from "@/components/character/HitPointsEditor";
+import { ShortRestDialog } from "@/components/character/ShortRestDialog";
+import { applyCurrentHp, formatHitDicePools, getHitDicePools, getSheetMaxHp, hitDiceAfterLongRest, spendHitDice } from "@/utils/hitDice";
+import { calculateAbilityModifiers } from "@/utils/abilityModifiers";
 import { decodeFeatureChoiceSelection, featureChoiceKey, featureChoiceMaxSelections } from "@/utils/grantedSpells";
 import { Spell } from "@/interfaces/Spell";
 import { CharacterDetails } from "@/interfaces/CharacterDetails";
@@ -283,6 +287,9 @@ export default function CharacterDetailsPage() {
 
   const [showShop, setShowShop] = useState(false);
 
+  // The "Short rest" dialog (how many Hit Dice to spend) - see ShortRestDialog.
+  const [showShortRest, setShowShortRest] = useState(false);
+
   const derived = useMemo(() => {
     if (!character) return null;
     return {
@@ -339,10 +346,7 @@ export default function CharacterDetailsPage() {
   const maxSlotLevel = slotLevelsOwned.length > 0 ? Math.max(...slotLevelsOwned) : 0;
   const hasAnySlots = maxSlotLevel > 0;
   const hasPactSlots = Object.keys(remainingSlots(pactMagicSlots, undefined)).length > 0;
-  const anySlotSpent =
-    Object.values(character.details?.expendedSpellSlots ?? {}).some((count) => count > 0) ||
-    Object.values(character.details?.expendedPactSlots ?? {}).some((count) => count > 0);
-  const anyPactSlotSpent = Object.values(character.details?.expendedPactSlots ?? {}).some((count) => count > 0);
+  const hitDicePools = getHitDicePools(character);
   const totalSpellCount = character.spellsKnown.length + (character.grantedSpells?.length ?? 0);
   const magicItemCount = character.magicItems?.length ?? 0;
   const gearItemCount = character.inventory?.reduce((total, entry) => total + entry.quantity, 0) ?? 0;
@@ -379,29 +383,6 @@ export default function CharacterDetailsPage() {
       if (!current) return current;
       const chosenWeaponMasteryIndexes = toggleWeaponMasteryChoice(current, weaponIndex);
       return saveCharacter({ ...current, chosenWeaponMasteryIndexes });
-    });
-  }
-
-  /**
-   * Removes one weapon (mundane or magic) from `character.weapons` and
-   * persists it immediately - the "Remove" control on each weapon in the
-   * Actions tab (see WeaponEntry's `onRemove`). Also drops `weaponIndex`
-   * from `chosenWeaponMasteryIndexes` and shifts every later index down by
-   * one to match the now-shorter array - `getChosenWeaponMasteryIndexes`
-   * (utils/weaponMastery.ts) only checks that the weapon CURRENTLY at a
-   * stored index still has a `mastery` property, not that it's the same
-   * weapon that was originally chosen, so leaving stale/shifted indexes in
-   * place could silently reassign a mastery slot to whichever weapon slides
-   * into the removed one's old position.
-   */
-  function handleRemoveWeapon(weaponIndex: number) {
-    setCharacter((current) => {
-      if (!current) return current;
-      const weapons = current.weapons.filter((_, index) => index !== weaponIndex);
-      const chosenWeaponMasteryIndexes = (current.chosenWeaponMasteryIndexes ?? [])
-        .filter((index) => index !== weaponIndex)
-        .map((index) => (index > weaponIndex ? index - 1 : index));
-      return saveCharacter({ ...current, weapons, chosenWeaponMasteryIndexes });
     });
   }
 
@@ -462,19 +443,64 @@ export default function CharacterDetailsPage() {
     handleAdjustSlot(pool, slotLevel, 1);
   }
 
-  /** "Long rest" in the sheet header: every spent spell slot (both pools) comes back. */
-  function handleLongRest() {
+  /**
+   * Sets current HP from the header's inline editor (see HitPointsEditor) -
+   * clamped to 0..max, and clears death saves when coming back from 0 (see
+   * utils/hitDice.ts's `applyCurrentHp`).
+   */
+  function handleSetCurrentHp(nextHp: number) {
     setCharacter((current) => {
       if (!current) return current;
-      return saveCharacter({ ...current, details: { ...current.details, expendedSpellSlots: {}, expendedPactSlots: {} } });
+      return saveCharacter({ ...current, ...applyCurrentHp(current, nextHp) });
     });
   }
 
-  /** "Short rest" in the sheet header (only shown for Pact Magic casters): Pact Magic slots come back, regular slots don't. */
-  function handleShortRest() {
+  /**
+   * "Long rest" in the sheet header: HP back to max, every spent spell slot
+   * (both pools) comes back, and spent Hit Dice are recovered (half of the
+   * total in 2014, all of them in 2024 - see `hitDiceAfterLongRest`).
+   */
+  function handleLongRest() {
     setCharacter((current) => {
       if (!current) return current;
-      return saveCharacter({ ...current, details: { ...current.details, expendedPactSlots: {} } });
+      const hpPatch = applyCurrentHp(current, getSheetMaxHp(current));
+      return saveCharacter({
+        ...current,
+        ...hpPatch,
+        details: {
+          ...hpPatch.details,
+          expendedSpellSlots: {},
+          expendedPactSlots: {},
+          expendedHitDice: hitDiceAfterLongRest(current),
+        },
+      });
+    });
+  }
+
+  /**
+   * Confirming the Short rest dialog: rolls the chosen Hit Dice (each heals
+   * its roll + Con modifier, logged to the roll history), then restores
+   * Pact Magic slots. Regular spell slots only come back on a Long rest.
+   * The dice are rolled here, against the character as rendered, so the
+   * result logged and the HP saved are the same roll.
+   */
+  function handleShortRest(spend: Record<number, number>) {
+    setShowShortRest(false);
+    if (!character) return;
+    const spent = spendHitDice(character, spend);
+    if (spent) recordRoll("Short rest - Hit Dice", spent.roll);
+    setCharacter((current) => {
+      if (!current) return current;
+      const hpPatch = spent ? applyCurrentHp(current, current.currentHP + spent.healed) : { currentHP: current.currentHP, details: current.details };
+      return saveCharacter({
+        ...current,
+        ...hpPatch,
+        details: {
+          ...hpPatch.details,
+          expendedPactSlots: {},
+          ...(spent ? { expendedHitDice: spent.expendedHitDice } : {}),
+        },
+      });
     });
   }
 
@@ -626,6 +652,7 @@ export default function CharacterDetailsPage() {
     <>
       {showDeleteConfirm && (
         <Alert
+          modal
           variant="confirm"
           title="Delete this character?"
           onDismiss={() => setShowDeleteConfirm(false)}
@@ -643,6 +670,18 @@ export default function CharacterDetailsPage() {
           This will permanently remove <span className="font-semibold text-fontcolor">{character.name}</span> - this
           can&apos;t be undone.
         </Alert>
+      )}
+
+      {showShortRest && (
+        <ShortRestDialog
+          pools={hitDicePools}
+          conModifier={calculateAbilityModifiers(character.abilityScores).constitution}
+          currentHp={character.currentHP}
+          maxHp={hp.total}
+          hasPactSlots={hasPactSlots}
+          onConfirm={handleShortRest}
+          onCancel={() => setShowShortRest(false)}
+        />
       )}
 
       {showShop && (
@@ -674,14 +713,19 @@ export default function CharacterDetailsPage() {
                   <Tooltip title="Armor Class" lines={ac.lines} />
                 </span>
                 <span className="flex items-center gap-1">
-                  <Badge variant="muted">
-                    {/* `hp.total` (the tooltip's own sum), not the stored `character.maxHP` -
-                        they agree for anything saved since per-level HP history/the minimum-1-per-level
-                        fix, but this keeps a character saved before either existed from showing a
-                        badge that disagrees with its own tooltip breakdown. */}
-                    HP {character.currentHP}/{hp.total}
-                  </Badge>
+                  {/* `hp.total` (the tooltip's own sum), not the stored `character.maxHP` -
+                      they agree for anything saved since per-level HP history/the minimum-1-per-level
+                      fix, but this keeps a character saved before either existed from showing a
+                      badge that disagrees with its own tooltip breakdown. Double-click to edit. */}
+                  <HitPointsEditor currentHp={character.currentHP} maxHp={hp.total} onChange={handleSetCurrentHp} />
                   <Tooltip title="Max HP" lines={hp.lines} />
+                </span>
+                <span className="flex items-center gap-1">
+                  <Badge variant="muted">Hit Dice {formatHitDicePools(hitDicePools)}</Badge>
+                  <Tooltip
+                    title="Hit Dice"
+                    lines={hitDicePools.map((pool) => ({ label: `d${pool.hitDie}`, value: `${pool.remaining}/${pool.total} left` }))}
+                  />
                 </span>
                 <span className="flex items-center gap-1">
                   <Badge variant="muted">Initiative {formatModifier(character.initiative)}</Badge>
@@ -693,26 +737,28 @@ export default function CharacterDetailsPage() {
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                {hasPactSlots && (
-                  <span className="flex items-center gap-1">
-                    <Button size="sm" variant="secondary" onClick={handleShortRest} disabled={!anyPactSlotSpent}>
-                      Short rest
-                    </Button>
-                    <Tooltip title="Short rest">
-                      <p>Restores all spent Pact Magic slots. Regular spell slots only come back on a Long rest.</p>
-                    </Tooltip>
-                  </span>
-                )}
-                {hasAnySlots && (
-                  <span className="flex items-center gap-1">
-                    <Button size="sm" variant="secondary" onClick={handleLongRest} disabled={!anySlotSpent}>
-                      Long rest
-                    </Button>
-                    <Tooltip title="Long rest">
-                      <p>Restores every spent spell slot (and Pact Magic slot) to full.</p>
-                    </Tooltip>
-                  </span>
-                )}
+                <span className="flex items-center gap-1">
+                  <Button size="sm" variant="secondary" onClick={() => setShowShortRest(true)}>
+                    Short rest
+                  </Button>
+                  <Tooltip title="Short rest">
+                    <p>
+                      Choose how many Hit Dice to spend - each heals its roll plus your Constitution modifier. Also
+                      restores all spent Pact Magic slots; regular spell slots only come back on a Long rest.
+                    </p>
+                  </Tooltip>
+                </span>
+                <span className="flex items-center gap-1">
+                  <Button size="sm" variant="secondary" onClick={handleLongRest}>
+                    Long rest
+                  </Button>
+                  <Tooltip title="Long rest">
+                    <p>
+                      Restores HP to max and every spent spell slot (and Pact Magic slot) to full, and recovers spent Hit
+                      Dice ({character.edition === "2024" ? "all of them" : "up to half your total"}).
+                    </p>
+                  </Tooltip>
+                </span>
                 <Badge variant="outline">{character.alignment}</Badge>
               </div>
             </CardContent>
@@ -926,7 +972,7 @@ export default function CharacterDetailsPage() {
                               </span>
                                   <Badge variant="outline">{item.category}</Badge>
                                   <Badge variant="outline">{item.type}</Badge>
-                                  <Badge variant="muted">{item.rarity}</Badge>
+                                  {item.rarity && <Badge variant="muted">{item.rarity}</Badge>}
                                   {item.requiresAttunement && <Badge variant="muted">Attunement</Badge>}
                                   {item.properties && item.properties.map((property) => (
                                       <Badge variant="muted">{property}</Badge>
