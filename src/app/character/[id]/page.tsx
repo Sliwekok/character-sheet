@@ -62,6 +62,7 @@ import {calculateProficiencyBonus, getProficiencyBonusBreakdown} from "@/utils/c
 import { DiceRollResult } from "@/utils/dice";
 import { generateId } from "@/utils/id";
 import { getMagicItemCount } from "@/utils/magicItemCount";
+import { SPELL_ACTION_FILTERS, SpellActionFilter, matchesSpellActionFilter } from "@/utils/spellActionType";
 
 /** Most roll history entries anyone actually wants to scroll back through - oldest entries fall off past this so the list (and the id it's stored under, if this ever gets persisted) can't grow unbounded over a long session. */
 const MAX_ROLL_HISTORY = 50;
@@ -71,6 +72,9 @@ type SheetTab = "actions" | "spells" | "inventory" | "features" | "background";
 
 /** localStorage key for the Features & Traits tab's "Show locked features" toggle - a per-browser viewing preference, not character data. */
 const SHOW_LOCKED_FEATURES_KEY = "characterSheet.showLockedFeatures";
+
+/** localStorage key for the Spells tab's casting-time filter (All / Action / Bonus action / Reaction) - a per-browser viewing preference, not character data. */
+const SPELL_ACTION_FILTER_KEY = "characterSheet.spellActionFilter";
 
 /** Groups spells by level (0 = cantrip) and sorts each group alphabetically - used to render `spellsKnown` as a proper spellbook rather than one flat list. */
 function groupSpellsByLevel(spells: Spell[]): [number, Spell[]][] {
@@ -323,6 +327,27 @@ export default function CharacterDetailsPage() {
     }
   }
 
+  // Spells tab: show only spells cast with an action / bonus action /
+  // reaction (see utils/spellActionType.ts), or all of them. Remembered per
+  // browser like the locked-features toggle; read after mount.
+  const [spellActionFilter, setSpellActionFilter] = useState<SpellActionFilter>("all");
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(SPELL_ACTION_FILTER_KEY);
+      if (SPELL_ACTION_FILTERS.some((option) => option.key === stored)) setSpellActionFilter(stored as SpellActionFilter);
+    } catch {
+      // Storage unavailable - keep "all".
+    }
+  }, []);
+  function changeSpellActionFilter(next: SpellActionFilter) {
+    setSpellActionFilter(next);
+    try {
+      window.localStorage.setItem(SPELL_ACTION_FILTER_KEY, next);
+    } catch {
+      // Ignore - the filter still works for this visit.
+    }
+  }
+
   // Which class/subclass feature groups are collapsed, keyed
   // `${classIndex}:class` / `${classIndex}:subclass` - all expanded by
   // default; see FeatureGroup.
@@ -402,7 +427,21 @@ export default function CharacterDetailsPage() {
   const classSummary = character.classes
     .map((entry) => `${entry.class.name}${entry.subclass ? ` (${entry.subclass.name})` : ""} ${entry.level}`)
     .join(", ");
-  const spellGroups = groupSpellsByLevel(character.spellsKnown);
+  const spellGroups = groupSpellsByLevel(
+    character.spellsKnown.filter((spell) => matchesSpellActionFilter(spell.castingTime, spellActionFilter))
+  );
+  const visibleGrantedSpells = (character.grantedSpells ?? []).filter((spell) =>
+    matchesSpellActionFilter(spell.castingTime, spellActionFilter)
+  );
+  const allSpells = [...character.spellsKnown, ...(character.grantedSpells ?? [])];
+  const spellActionFilterCounts = Object.fromEntries(
+    SPELL_ACTION_FILTERS.map((option) => [
+      option.key,
+      allSpells.filter((spell) => matchesSpellActionFilter(spell.castingTime, option.key)).length,
+    ])
+  ) as Record<SpellActionFilter, number>;
+  const activeSpellActionLabel =
+    spellActionFilter === "bonus" ? "a bonus action" : spellActionFilter === "reaction" ? "a reaction" : "an action";
   const characterLevel = getCharacterLevel(character);
   const remainingSpellSlots = remainingSlots(spellSlots, character.details?.expendedSpellSlots);
   const remainingPactSlots = remainingSlots(pactMagicSlots, character.details?.expendedPactSlots);
@@ -923,7 +962,28 @@ export default function CharacterDetailsPage() {
                       </div>
                     )}
 
-                    {spellGroups.length === 0 ? (
+                    {allSpells.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter spells by casting time">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-foreground">Casting time</span>
+                        {SPELL_ACTION_FILTERS.map((option) => (
+                          <Button
+                            key={option.key}
+                            variant={spellActionFilter === option.key ? "primary" : "secondary"}
+                            size="sm"
+                            onClick={() => changeSpellActionFilter(option.key)}
+                            aria-pressed={spellActionFilter === option.key}
+                          >
+                            {option.label} ({spellActionFilterCounts[option.key]})
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+
+                    {spellActionFilter !== "all" && allSpells.length > 0 && spellGroups.length === 0 ? (
+                      visibleGrantedSpells.length === 0 && (
+                        <p>No spells cast as {activeSpellActionLabel}.</p>
+                      )
+                    ) : spellGroups.length === 0 ? (
                       <p>
                         {character.classes.some(
                           (entry) => entry.class.casterProgression !== "none" || entry.subclass?.casterProgressionOverride
@@ -958,11 +1018,11 @@ export default function CharacterDetailsPage() {
                       ))
                     )}
 
-                    {character.grantedSpells && character.grantedSpells.length > 0 && (
+                    {visibleGrantedSpells.length > 0 && (
                       <div className="flex flex-col gap-2 border-t border-border pt-3">
                         <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-foreground">
                           Granted spells (free)
-                          <Badge variant="muted">{character.grantedSpells.length}</Badge>
+                          <Badge variant="muted">{visibleGrantedSpells.length}</Badge>
                         </p>
                         <p className="text-xs">
                           Always known and castable without expending a spell slot, on top of the spells above - see
@@ -970,7 +1030,7 @@ export default function CharacterDetailsPage() {
                           free-cast limit.
                         </p>
                         <div className="flex flex-col gap-2">
-                          {character.grantedSpells.map((spell) => (
+                          {visibleGrantedSpells.map((spell) => (
                             <SpellEntry
                               key={spell.name}
                               spell={spell}
