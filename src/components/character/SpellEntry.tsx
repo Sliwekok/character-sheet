@@ -7,6 +7,7 @@ import { SpellcastingInfo } from "@/utils/attackCalculations";
 import { levelLabel } from "@/components/character/wizard/SpellsStep";
 import { DiceRollResult, describeDiceRoll, rollD20 } from "@/utils/dice";
 import {
+    SPELL_ROLE_BADGE_CLASSES,
     SPELL_ROLE_LABELS,
     ScaledSpellRoll,
     fallbackMechanics,
@@ -161,7 +162,11 @@ export function SpellEntry({
             <Badge variant="outline">{spell.school}</Badge>
 
             {mechanics.roles.map((role, index) => (
-                <Badge key={role} variant={index === 0 ? "solid" : "muted"}>
+                <Badge
+                    key={role}
+                    variant="plain"
+                    className={SPELL_ROLE_BADGE_CLASSES[role][index === 0 ? "primary" : "secondary"]}
+                >
                     {SPELL_ROLE_LABELS[role]}
                 </Badge>
             ))}

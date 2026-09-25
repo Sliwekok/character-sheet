@@ -24,6 +24,47 @@ export const SPELL_ROLE_LABELS: Record<SpellRole, string> = {
     utility: "Utility",
 };
 
+/**
+ * Tailwind classes for each role's badge colour (used with Badge variant="plain").
+ * `primary` is the stronger look for a spell's main role; `secondary` is a
+ * fainter version of the same hue for any additional roles.
+ * Full class strings are kept literal so Tailwind picks them up.
+ */
+export const SPELL_ROLE_BADGE_CLASSES: Record<SpellRole, { primary: string; secondary: string }> = {
+    damage: {
+        primary: "border border-red-400/60 bg-red-500/25 text-red-200",
+        secondary: "border border-red-400/30 bg-red-500/10 text-red-300/90",
+    },
+    healing: {
+        primary: "border border-emerald-400/60 bg-emerald-500/25 text-emerald-200",
+        secondary: "border border-emerald-400/30 bg-emerald-500/10 text-emerald-300/90",
+    },
+    buff: {
+        primary: "border border-yellow-300/60 bg-yellow-400/20 text-yellow-100",
+        secondary: "border border-yellow-300/30 bg-yellow-400/10 text-yellow-200/90",
+    },
+    debuff: {
+        primary: "border border-fuchsia-400/60 bg-fuchsia-500/25 text-fuchsia-200",
+        secondary: "border border-fuchsia-400/30 bg-fuchsia-500/10 text-fuchsia-300/90",
+    },
+    control: {
+        primary: "border border-violet-400/60 bg-violet-500/25 text-violet-200",
+        secondary: "border border-violet-400/30 bg-violet-500/10 text-violet-300/90",
+    },
+    defense: {
+        primary: "border border-sky-400/60 bg-sky-500/25 text-sky-200",
+        secondary: "border border-sky-400/30 bg-sky-500/10 text-sky-300/90",
+    },
+    summon: {
+        primary: "border border-teal-400/60 bg-teal-500/25 text-teal-200",
+        secondary: "border border-teal-400/30 bg-teal-500/10 text-teal-300/90",
+    },
+    utility: {
+        primary: "border border-slate-300/50 bg-slate-400/20 text-slate-200",
+        secondary: "border border-slate-300/25 bg-slate-400/10 text-slate-300/90",
+    },
+};
+
 /** Cantrip upgrade tier from total character level: 1 (levels 1-4), 2 (5-10), 3 (11-16), 4 (17+). */
 export function cantripTier(characterLevel: number): number {
     if (characterLevel >= 17) return 4;

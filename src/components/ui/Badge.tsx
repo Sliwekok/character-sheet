@@ -1,7 +1,7 @@
 import type { HTMLAttributes } from "react";
 import { cn } from "@/utils/cn";
 
-type Variant = "solid" | "outline" | "muted";
+type Variant = "solid" | "outline" | "muted" | "plain";
 
 type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
   variant?: Variant;
@@ -11,6 +11,8 @@ const variants: Record<Variant, string> = {
   solid: "bg-foreground text-background-darken",
   outline: "border border-border-strong text-fontcolor",
   muted: "bg-background-darken text-fontcolor-secondary",
+  /** No colours of its own - pass them via className (e.g. spell role badges). */
+  plain: "",
 };
 
 /** Small pill used for tags like class, alignment, or a step number. */
