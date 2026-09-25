@@ -61,6 +61,7 @@ import { addArmor, getEquippedArmor, getEquippedShield, removeArmor, toggleArmor
 import {calculateProficiencyBonus, getProficiencyBonusBreakdown} from "@/utils/calculateProficiencyBonus";
 import { DiceRollResult } from "@/utils/dice";
 import { generateId } from "@/utils/id";
+import { getMagicItemCount } from "@/utils/magicItemCount";
 
 /** Most roll history entries anyone actually wants to scroll back through - oldest entries fall off past this so the list (and the id it's stored under, if this ever gets persisted) can't grow unbounded over a long session. */
 const MAX_ROLL_HISTORY = 50;
@@ -411,9 +412,12 @@ export default function CharacterDetailsPage() {
   const hasPactSlots = Object.keys(remainingSlots(pactMagicSlots, undefined)).length > 0;
   const hitDicePools = getHitDicePools(character);
   const totalSpellCount = character.spellsKnown.length + (character.grantedSpells?.length ?? 0);
-  const magicItemCount = character.magicItems?.length ?? 0;
+  // All magic items owned - `magicItems` plus magic weapons and magic armor/shields (see utils/magicItemCount.ts).
+  const magicItemCount = getMagicItemCount(character);
+  const otherMagicItemCount = character.magicItems?.length ?? 0;
   const gearItemCount = character.inventory?.reduce((total, entry) => total + entry.quantity, 0) ?? 0;
   const armorCount = character.armors?.length ?? 0;
+  const weaponCount = character.weapons?.length ?? 0;
   const featureCount =
     character.classes.reduce(
       (total, entry) =>
@@ -425,7 +429,7 @@ export default function CharacterDetailsPage() {
   const TAB_DEFINITIONS: TabItem<SheetTab>[] = [
     { key: "actions", label: "Actions" },
     { key: "spells", label: "Spells", count: totalSpellCount },
-    { key: "inventory", label: "Inventory", count: magicItemCount + gearItemCount + armorCount },
+    { key: "inventory", label: "Inventory", count: otherMagicItemCount + weaponCount + armorCount + gearItemCount },
     { key: "features", label: "Features & Traits", count: featureCount },
     { key: "background", label: "Background" },
   ];
