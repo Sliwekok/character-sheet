@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -40,6 +40,7 @@ import { StatusPanel } from "@/components/character/StatusPanel";
 import { SkillsPanel } from "@/components/character/SkillsPanel";
 import { AbilityScoresPanel } from "@/components/character/AbilityScoresPanel";
 import { FeatureEntry, FeatureLike } from "@/components/character/FeatureEntry";
+import { FeatureGroup } from "@/components/character/FeatureGroup";
 import { FeatEntry } from "@/components/character/FeatEntry";
 import { PdfExportPanel } from "@/components/character/PdfExportPanel";
 import { RollHistoryEntry, RollHistoryWidget } from "@/components/character/RollHistoryWidget";
@@ -50,6 +51,7 @@ import { applyCurrentHp, formatHitDicePools, getHitDicePools, getSheetMaxHp, hit
 import { calculateAbilityModifiers } from "@/utils/abilityModifiers";
 import { decodeFeatureChoiceSelection, featureChoiceKey, featureChoiceMaxSelections } from "@/utils/grantedSpells";
 import { Spell } from "@/interfaces/Spell";
+import { ClassFeature } from "@/interfaces/CharacterClass";
 import { CharacterDetails } from "@/interfaces/CharacterDetails";
 import { MagicItem } from "@/interfaces/MagicItem";
 import { GearItem } from "@/interfaces/GearItem";
@@ -65,6 +67,9 @@ const MAX_ROLL_HISTORY = 50;
 
 /** The character sheet's main content area is one of these five sections at a time - see `TAB_DEFINITIONS` below. */
 type SheetTab = "actions" | "spells" | "inventory" | "features" | "background";
+
+/** localStorage key for the Features & Traits tab's "Show locked features" toggle - a per-browser viewing preference, not character data. */
+const SHOW_LOCKED_FEATURES_KEY = "characterSheet.showLockedFeatures";
 
 /** Groups spells by level (0 = cantrip) and sorts each group alphabetically - used to render `spellsKnown` as a proper spellbook rather than one flat list. */
 function groupSpellsByLevel(spells: Spell[]): [number, Spell[]][] {
@@ -171,30 +176,57 @@ function combinedFeatures(
   classIndex: number,
   featureChoices: Record<string, string> | undefined
 ): FeatureLike[] {
+  const { classFeatures, subclassFeatures } = splitFeatures(entry, classIndex, featureChoices);
+  return [...classFeatures, ...subclassFeatures].sort(byLevelThenName);
+}
+
+function byLevelThenName(a: FeatureLike, b: FeatureLike) {
+  return a.level - b.level || a.name.localeCompare(b.name);
+}
+
+/**
+ * Same resolution as `combinedFeatures`, but keeps the base class's features
+ * and the subclass's features apart - the Features & Traits tab renders them
+ * under separate, individually collapsible class/subclass headings (see
+ * FeatureGroup). Each list is sorted by level, then name.
+ */
+function splitFeatures(
+  entry: StoredCharacter["classes"][number],
+  classIndex: number,
+  featureChoices: Record<string, string> | undefined
+): { classFeatures: FeatureLike[]; subclassFeatures: FeatureLike[] } {
   const classFeatures = Array.isArray(entry.class.features) ? entry.class.features : [];
   const subclassFeatures = Array.isArray(entry.subclass?.features) ? entry.subclass!.features : [];
-  return [...classFeatures, ...subclassFeatures]
-    .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))
-    .map((feature) => {
-      if (!feature.choice) return feature;
-      const key = featureChoiceKey(classIndex, feature);
-      const selectedIds = decodeFeatureChoiceSelection(featureChoices?.[key]);
-      const chosenOptions = feature.choice.options.filter((option) => selectedIds.includes(option.id));
-      if (chosenOptions.length === 0) {
-        return { ...feature, description: `${feature.description}\n\n(Choice not yet made - edit this character to pick one.)` };
-      }
-      const chosenLines = chosenOptions
-        .map((option) => `${option.label}${option.summary ? ` — ${option.summary}` : ""}`)
-        .join("\n");
-      const remaining = featureChoiceMaxSelections(feature.choice, entry.level) - chosenOptions.length;
-      return {
-        ...feature,
-        description: `${feature.description}\n\nChosen: ${chosenLines}${
-          remaining > 0 ? `\n\n(${remaining} more pick${remaining === 1 ? "" : "s"} available - edit this character to choose.)` : ""
-        }`,
-        grantedSpells: [...(feature.grantedSpells ?? []), ...chosenOptions.flatMap((option) => option.grantedSpells ?? [])],
-      };
-    });
+  const resolve = (list: ClassFeature[]) =>
+    [...list].sort(byLevelThenName).map((feature) => resolveFeatureChoice(feature, entry, classIndex, featureChoices));
+  return { classFeatures: resolve(classFeatures), subclassFeatures: resolve(subclassFeatures) };
+}
+
+/** Applies a feature's `FeatureChoice` pick(s) - see `combinedFeatures`'s header comment. */
+function resolveFeatureChoice(
+  feature: ClassFeature,
+  entry: StoredCharacter["classes"][number],
+  classIndex: number,
+  featureChoices: Record<string, string> | undefined
+): FeatureLike {
+  if (!feature.choice) return feature;
+  const key = featureChoiceKey(classIndex, feature);
+  const selectedIds = decodeFeatureChoiceSelection(featureChoices?.[key]);
+  const chosenOptions = feature.choice.options.filter((option) => selectedIds.includes(option.id));
+  if (chosenOptions.length === 0) {
+    return { ...feature, description: `${feature.description}\n\n(Choice not yet made - edit this character to pick one.)` };
+  }
+  const chosenLines = chosenOptions
+    .map((option) => `${option.label}${option.summary ? ` — ${option.summary}` : ""}`)
+    .join("\n");
+  const remaining = featureChoiceMaxSelections(feature.choice, entry.level) - chosenOptions.length;
+  return {
+    ...feature,
+    description: `${feature.description}\n\nChosen: ${chosenLines}${
+      remaining > 0 ? `\n\n(${remaining} more pick${remaining === 1 ? "" : "s"} available - edit this character to choose.)` : ""
+    }`,
+    grantedSpells: [...(feature.grantedSpells ?? []), ...chosenOptions.flatMap((option) => option.grantedSpells ?? [])],
+  };
 }
 
 /**
@@ -266,6 +298,37 @@ export default function CharacterDetailsPage() {
   // most immediately useful one mid-combat, so it's the default, same as
   // D&D Beyond's own character sheet.
   const [activeTab, setActiveTab] = useState<SheetTab>("actions");
+
+  // Features & Traits tab: whether features above the character's current
+  // level in that class ("Locked") are listed at all. Hidden by default so
+  // the tab shows what the character can actually use; remembered per
+  // browser (a viewing convenience, not character data - never saved to the
+  // character). Read after mount so server and first client render match.
+  const [showLockedFeatures, setShowLockedFeatures] = useState(false);
+  useEffect(() => {
+    try {
+      setShowLockedFeatures(window.localStorage.getItem(SHOW_LOCKED_FEATURES_KEY) === "true");
+    } catch {
+      // Storage unavailable (private mode etc.) - keep the default.
+    }
+  }, []);
+  function toggleShowLockedFeatures() {
+    const next = !showLockedFeatures;
+    setShowLockedFeatures(next);
+    try {
+      window.localStorage.setItem(SHOW_LOCKED_FEATURES_KEY, String(next));
+    } catch {
+      // Ignore - the toggle still works for this visit.
+    }
+  }
+
+  // Which class/subclass feature groups are collapsed, keyed
+  // `${classIndex}:class` / `${classIndex}:subclass` - all expanded by
+  // default; see FeatureGroup.
+  const [collapsedFeatureGroups, setCollapsedFeatureGroups] = useState<Record<string, boolean>>({});
+  function toggleFeatureGroup(key: string) {
+    setCollapsedFeatureGroups((current) => ({ ...current, [key]: !current[key] }));
+  }
 
   // Every "Roll ..." button press anywhere on the page (weapons, spells,
   // skills - see the `onRoll` prop threaded into WeaponEntry/SpellEntry/
@@ -352,7 +415,11 @@ export default function CharacterDetailsPage() {
   const gearItemCount = character.inventory?.reduce((total, entry) => total + entry.quantity, 0) ?? 0;
   const armorCount = character.armors?.length ?? 0;
   const featureCount =
-    character.classes.reduce((total, entry) => total + combinedFeatures(entry, 0, undefined).length, 0) +
+    character.classes.reduce(
+      (total, entry) =>
+        total + combinedFeatures(entry, 0, undefined).filter((feature) => showLockedFeatures || feature.level <= entry.level).length,
+      0
+    ) +
     character.feats.length;
 
   const TAB_DEFINITIONS: TabItem<SheetTab>[] = [
@@ -1043,33 +1110,80 @@ export default function CharacterDetailsPage() {
                   <Card>
                     <CardHeader>
                       <CardTitle>Class &amp; subclass features</CardTitle>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={toggleShowLockedFeatures}
+                        aria-pressed={showLockedFeatures}
+                        title="Features gained at higher levels than this character has reached"
+                      >
+                        {showLockedFeatures ? "Hide locked features" : "Show locked features"}
+                      </Button>
                     </CardHeader>
                     <CardContent className="flex flex-col gap-6 text-sm text-fontcolor-secondary">
                       {character.classes.map((entry, index) => {
-                        const features = combinedFeatures(entry, index, character.featureChoices);
+                        const { classFeatures, subclassFeatures } = splitFeatures(entry, index, character.featureChoices);
                         const subclassPending = !entry.subclass && entry.level < entry.class.subclassLevel;
+                        const isReached = (feature: FeatureLike) => feature.level <= entry.level;
+                        const visible = (list: FeatureLike[]) => (showLockedFeatures ? list : list.filter(isReached));
+                        const hiddenLocked = (list: FeatureLike[]) =>
+                          showLockedFeatures ? 0 : list.filter((feature) => !isReached(feature)).length;
+                        const renderFeatures = (list: FeatureLike[], emptyText: string) =>
+                          list.length === 0 ? (
+                            <p className="text-xs italic">{emptyText}</p>
+                          ) : (
+                            list.map((feature, featureIndex) => (
+                              <FeatureEntry
+                                key={`${feature.name}-${feature.level}-${featureIndex}`}
+                                feature={feature}
+                                reached={isReached(feature)}
+                                edition={character.edition}
+                                classLevel={entry.level}
+                              />
+                            ))
+                          );
+                        const shownClassFeatures = visible(classFeatures);
+                        const shownSubclassFeatures = visible(subclassFeatures);
+                        const classKey = `${index}:class`;
+                        const subclassKey = `${index}:subclass`;
                         return (
-                          <div key={`${entry.class.name}-${index}`} className="flex flex-col gap-2">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-foreground">
-                              {entry.class.name}
-                              {entry.subclass ? ` (${entry.subclass.name})` : ""} · Level {entry.level}
-                            </p>
+                          <div key={`${entry.class.name}-${index}`} className="flex flex-col gap-3">
+                            <FeatureGroup
+                              id={`features-${index}-class`}
+                              title={entry.class.name}
+                              subtitle={`Level ${entry.level}`}
+                              collapsed={Boolean(collapsedFeatureGroups[classKey])}
+                              onToggle={() => toggleFeatureGroup(classKey)}
+                              featureCount={shownClassFeatures.length}
+                              hiddenLockedCount={hiddenLocked(classFeatures)}
+                            >
+                              {renderFeatures(
+                                shownClassFeatures,
+                                classFeatures.length === 0 ? "No class features listed." : "No unlocked class features yet."
+                              )}
+                            </FeatureGroup>
+                            {entry.subclass && (
+                              <FeatureGroup
+                                id={`features-${index}-subclass`}
+                                variant="subclass"
+                                title={entry.subclass.name}
+                                subtitle={`${entry.class.name} subclass`}
+                                collapsed={Boolean(collapsedFeatureGroups[subclassKey])}
+                                onToggle={() => toggleFeatureGroup(subclassKey)}
+                                featureCount={shownSubclassFeatures.length}
+                                hiddenLockedCount={hiddenLocked(subclassFeatures)}
+                              >
+                                {renderFeatures(
+                                  shownSubclassFeatures,
+                                  subclassFeatures.length === 0 ? "No subclass features listed." : "No unlocked subclass features yet."
+                                )}
+                              </FeatureGroup>
+                            )}
                             {subclassPending && (
                               <p className="text-xs italic">
                                 Subclass not yet chosen - available at {entry.class.name} level {entry.class.subclassLevel}.
                               </p>
                             )}
-                            <div className="flex flex-col gap-2">
-                              {features.map((feature, featureIndex) => (
-                                <FeatureEntry
-                                  key={`${feature.name}-${feature.level}-${featureIndex}`}
-                                  feature={feature}
-                                  reached={feature.level <= entry.level}
-                                  edition={character.edition}
-                                  classLevel={entry.level}
-                                />
-                              ))}
-                            </div>
                           </div>
                         );
                       })}

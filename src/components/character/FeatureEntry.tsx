@@ -83,11 +83,11 @@ function grantedSpellBadgeLabel(grant: GrantedSpell): string {
  * exact same shape (see interfaces/CharacterClass.ts and
  * interfaces/Subclass.ts).
  *
- * Unlike WeaponEntry/SpellEntry, this always renders every feature the
- * class/subclass will EVER grant, not just the ones already unlocked - a
- * feature whose `level` is higher than the character's current level in
- * that class renders dimmed with a "Locked" badge instead of being left
- * out, so the player can see what's still ahead of them.
+ * A feature whose `level` is higher than the character's current level in
+ * that class (`reached` false) renders dimmed with a "Locked" badge. Whether
+ * locked features are passed in at all is the caller's call - the character
+ * sheet hides them unless its "Show locked features" toggle is on (see
+ * FeatureGroup and app/character/[id]/page.tsx).
  *
  * When `feature.grantedSpells` names a fixed spell, that name is decorated
  * inline wherever it's mentioned in `feature.description` (see
