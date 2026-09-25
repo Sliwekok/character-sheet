@@ -48,42 +48,47 @@ function isModifierArray(value: unknown): value is DdbGrantedModifier[] {
   return Array.isArray(value) && value.every((entry) => typeof entry === "object" && entry !== null);
 }
 
-/** Every modifier across every group in `modifiers`, flattened - or `[]` if `modifiers` is missing/an unexpected shape. */
-function allModifiers(modifiers: DdbModifierGroups | undefined): DdbGrantedModifier[] {
+/** Every modifier across every group in `modifiers` (or only the named `groups`), flattened - or `[]` if `modifiers` is missing/an unexpected shape. */
+function allModifiers(modifiers: DdbModifierGroups | undefined, groups?: string[]): DdbGrantedModifier[] {
   if (!modifiers || typeof modifiers !== "object") return [];
 
-  return Object.values(modifiers)
+  return Object.entries(modifiers)
+    .filter(([group]) => !groups || groups.includes(group))
+    .map(([, entries]) => entries)
     .filter(isModifierArray)
     .flat();
 }
 
 /**
- * Flat ability-score bonuses granted outside the character's base `stats`
- * (e.g. a feat's Ability Score Improvement, a magic item's set-value bonus)
- * - keyed by ability, summed if more than one source grants the same
- * ability.
- *
- * NOT currently called by convert.ts. This app tracks the 2024 background
- * allocation and each earned Ability Score Improvement as their own
- * bookkeeping, separate from the final ability scores, so a later edit can
- * subtract exactly what was added before re-adding it (see
- * utils/characterDraft.ts) - and this function has no way to tell which
- * ability bonus came from the background vs. which specific class-level
- * ASI slot vs. a magic item, so using its (summed, unattributed) result to
- * fill in either bookkeeping field risks recording a bonus that doesn't
- * match what's baked into the final ability scores. That mismatch is
- * exactly what let re-editing a previously-imported character double-apply
- * the bonus and come out overpowered - see convert.ts's ability-score
- * section and this folder's README. Left here (rather than deleted) in
- * case a future change finds a reliable way to attribute these to a
- * specific slot; don't wire it back into convert.ts's final ability scores
- * without also populating the matching bookkeeping field with the exact
- * same amount.
+ * The `modifiers` groups whose ability-score bonuses count toward the
+ * character's permanent scores: racial bonuses, class ASIs (2014), the 2024
+ * background allocation, and feats (2024 ASIs are feats on D&D Beyond).
+ * `item` and `condition` are left out on purpose - magic items are handled
+ * separately by this app and conditions are temporary.
  */
-export function readAbilityScoreBonuses(modifiers: DdbModifierGroups | undefined): Partial<AbilityScores> {
+export const PERMANENT_ABILITY_BONUS_GROUPS = ["race", "class", "background", "feat"];
+
+/**
+ * Flat ability-score bonuses granted outside the character's base `stats`
+ * - keyed by ability, summed if more than one source grants the same
+ * ability. Pass `groups` to only count certain sources (see
+ * `PERMANENT_ABILITY_BONUS_GROUPS`).
+ *
+ * The result is summed and UNATTRIBUTED (no way to tell which bonus came
+ * from which ASI slot), so it must never be baked straight into the final
+ * scores. convert.ts only uses it to work out the character's TARGET
+ * totals; reconcileAbilityScores.ts then turns the gap between that target
+ * and what this app shows into explicit background/ASI bookkeeping, and
+ * only that bookkeeping is added to the scores - see utils/characterDraft.ts
+ * for why the two must always match.
+ */
+export function readAbilityScoreBonuses(
+  modifiers: DdbModifierGroups | undefined,
+  groups?: string[],
+): Partial<AbilityScores> {
   const bonuses: Partial<AbilityScores> = {};
 
-  for (const modifier of allModifiers(modifiers)) {
+  for (const modifier of allModifiers(modifiers, groups)) {
     if (modifier.type !== "bonus" || !modifier.subType) continue;
     const key = ABILITY_SUBTYPE_TO_KEY[modifier.subType];
     if (!key) continue;
@@ -110,7 +115,7 @@ export function readSkillProficiencies(modifiers: DdbModifierGroups | undefined)
   return Array.from(skills);
 }
 
-/** True when `modifiers` was present and at least structurally readable (whether or not it actually granted anything) - lets convert.ts tell "genuinely no proficiencies" apart from "couldn't read this at all" for its warnings. */
+/** True when `modifiers` was present and at least structurally readable (whether or not it actually granted anything) - lets convert.ts tell "genuinely no proficiencies/bonuses" apart from "couldn't read this at all" for its warnings. */
 export function hasReadableModifiers(modifiers: DdbModifierGroups | undefined): boolean {
   return !!modifiers && typeof modifiers === "object" && Object.values(modifiers).some(isModifierArray);
 }

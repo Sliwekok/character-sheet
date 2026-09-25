@@ -33,10 +33,12 @@ The actual conversion logic lives in this folder:
 - `matchCompendium.ts` - finds a D&D Beyond name in this app's own
   compendium arrays (`@/data`).
 - `readModifiers.ts` - best-effort reading of D&D Beyond's `modifiers`
-  grouping for skill proficiencies (see "Best effort" below - this is read
-  defensively and degrades to "found nothing" rather than crashing if the
-  shape doesn't match). No longer used for ability score bonuses - see
-  below.
+  grouping for skill proficiencies and ability-score bonuses (see "Best
+  effort" below - this is read defensively and degrades to "found nothing"
+  rather than crashing if the shape doesn't match).
+- `reconcileAbilityScores.ts` - turns the gap between D&D Beyond's ability
+  score totals and this app's into background/ASI allocations - see
+  "Ability score bonuses" below.
 - `convert.ts` - `convertDndBeyondCharacter()`, the entry point: takes one
   raw D&D Beyond character payload and a resolution ruleset, returns
   either `{ character, warnings, edition }` or `{ error }`. Never throws.
@@ -44,10 +46,10 @@ The actual conversion logic lives in this folder:
 ## What imports reliably
 
 - Name, race, background, class(es)/levels/subclass, alignment.
-- Ability scores as D&D Beyond has them entered, **plus this app's own
-  racial modifier** for the matched race (2014) - see "Ability score
-  bonuses" below for why background/Ability Score Improvement bonuses are
-  handled differently. Hit points (current/max), currency.
+- Ability scores matching D&D Beyond's totals: base scores, this app's own
+  racial modifier (2014), plus the background allocation (2024) and
+  Ability Score Improvements reconstructed from the difference - see
+  "Ability score bonuses" below. Hit points (current/max), currency.
 - Equipped weapons, armor, and shield - matched to this app's compendium by
   base item type (e.g. D&D Beyond's "Flame Tongue Greatsword" is matched to
   this app's "Greatsword" and re-enchanted with the magic properties, via
@@ -65,27 +67,41 @@ and every earned Ability Score Improvement as their own bookkeeping
 (`backgroundAbilityBonuses`/`abilityScoreImprovements`) *separate* from the
 final `abilityScores`, precisely so that opening a character back up for
 editing can subtract exactly what was added before letting the player
-change it - see `utils/characterDraft.ts`. D&D Beyond's public JSON doesn't
-label which of its `modifiers` grants came from which source clearly
-enough to reconstruct that bookkeeping with confidence, and there's no
-reliable way to tell which specific class-level Ability Score Improvement
-slot a given bonus (or a feat taken instead of one) belongs to.
+change it - see `utils/characterDraft.ts`. The one hard rule: **whatever is
+baked into `abilityScores` must be recorded in that bookkeeping, exactly**
+(a mismatch is what once let re-editing an imported character double-apply
+its bonuses).
 
-Rather than guess - which risks recording a bonus in `abilityScores` that
-isn't *also* recorded in that bookkeeping, and that mismatch is exactly
-what let re-editing a previously-imported character double-apply the
-bonus and come out overpowered - the importer leaves these two unset and
-does **not** include their bonus in the imported ability scores at all.
-A character that has a 2024 background bonus or earned Ability Score
-Improvements to allocate comes in with a warning saying so; opening it for
-editing puts it through the exact same Ability Scores step (and the same
-required-before-save validation) a character who just leveled up already
-goes through, so allocating them there is guaranteed to apply the bonus
-exactly once.
+D&D Beyond's JSON doesn't say which ASI slot a bonus came from, so the
+importer reconstructs the bookkeeping from the *totals*
+(`reconcileAbilityScores.ts`):
 
-The racial modifier (2014) is the one exception - it's taken directly from
-this app's own matched `race` entry, not from D&D Beyond's `modifiers`, so
-it's always applied and never left as a follow-up step.
+1. **Target** - what D&D Beyond shows: `stats` + `bonusStats` + every
+   ability-score bonus in the `race`/`class`/`background`/`feat` modifier
+   groups (items and conditions ignored), capped at 20; `overrideStats`
+   wins outright.
+2. **Displayed** - what this app shows without background/ASIs: base +
+   this app's own race bonus (an overridden ability is exactly the
+   override).
+3. **Missing** = target - displayed, per ability (never negative).
+4. The missing points are handed out as legal allocations only: first the
+   2024 background (+2/+1 or +1/+1/+1 within its listed abilities - D&D
+   Beyond's own `background` group is tried first so attribution matches),
+   then each ASI slot in order (every slot takes exactly 2 points: +2 to
+   the ability missing the most, else +1/+1). Every background option is
+   tried and the one that places the most points wins.
+5. Only what was recorded is added to the final scores. Anything else is
+   reported on the Import preview:
+   - an ASI slot with nothing left to match (probably a feat on D&D
+     Beyond) stays unallocated - the Ability Scores step asks for it on
+     the next edit;
+   - leftover points that can't form a legal allocation (e.g. a
+     half-feat's +1) are not applied;
+   - abilities where this app shows *more* than D&D Beyond (usually a
+     reassigned racial bonus) are flagged.
+
+If `modifiers` can't be read at all, nothing is applied and the old
+"allocate these in the Ability Scores step" warnings are shown instead.
 
 ## Best effort - double-check these on the sheet
 

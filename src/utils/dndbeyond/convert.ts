@@ -10,13 +10,20 @@ import { Ruleset, getRulesetAsync } from "@/data";
 import { generateId } from "@/utils/id";
 import { enchantArmor, enchantWeapon, createCustomMagicItem } from "@/utils/customMagicItems";
 import { sumAbilityScores } from "@/utils/abilityScoreBonuses";
-import { getAsiSlots } from "@/utils/abilityScoreImprovements";
+import { AsiSlot, getAsiSlots, sumAsiAllocations } from "@/utils/abilityScoreImprovements";
+import { Background } from "@/interfaces/Background";
 import { buildOwnedArmors } from "@/utils/armor";
 
 import {DdbActions, DdbCharacterData, DdbClassEntry, DdbClassSpellsEntry, DdbGrantedModifier, DdbInventoryItem, DdbSourceRef, DdbSpells} from "./types";
 import { findByName } from "./matchCompendium";
 import { htmlToPlainText } from "./textUtils";
-import { hasReadableModifiers, readSkillProficiencies } from "./readModifiers";
+import {
+  hasReadableModifiers,
+  PERMANENT_ABILITY_BONUS_GROUPS,
+  readAbilityScoreBonuses,
+  readSkillProficiencies,
+} from "./readModifiers";
+import { AbilityScoreReconciliation, formatAbilityBonuses, reconcileAbilityScores } from "./reconcileAbilityScores";
 import { readActionSpellNames, readClassEmbeddedSpellNames, readGrantedSpellNames, readKnownSpellNames } from "./readSpells";
 import {Spell} from "@/interfaces/Spell";
 
@@ -240,38 +247,60 @@ async function detectEdition(data: DdbCharacterData): Promise<Edition> {
  * directly - `stats` (the base score the player assigned) plus `bonusStats`
  * (a manual flat adjustment D&D Beyond itself supports per ability) -
  * BEFORE any racial modifier, background allocation, or Ability Score
- * Improvement. `overrideStats`, when set, replaces the ability outright
- * (D&D Beyond's own "override" escape hatch), taking precedence over
- * everything else.
- *
- * Deliberately does NOT fold in D&D Beyond's `modifiers` grants (race/
- * background/feat/item ability bonuses) the way an earlier version of this
- * function did - see `convertDndBeyondCharacter`'s call site below for why:
- * this app tracks the race bonus, the background bonus, and each earned
- * Ability Score Improvement as separate bookkeeping
- * (`backgroundAbilityBonuses`/`abilityScoreImprovements`) that a later edit
- * subtracts back out before re-adding (see utils/characterDraft.ts), and
- * `modifiers`' exact shape was never confirmed against a live character.
- * Baking a guessed bonus into the final score here without ALSO recording
- * it in that bookkeeping is exactly what let re-editing an imported
- * character double-apply it - see the ability-score section below.
+ * Improvement. `overrideStats` is handled separately (see
+ * `overriddenAbilityScores`), since an override is a FINAL score, not a base.
  */
 function baseAbilityScores(data: DdbCharacterData): AbilityScores {
   const result = {} as AbilityScores;
 
   ABILITY_ORDER.forEach((key, index) => {
     const id = index + 1;
-    const override = data.overrideStats?.find((stat) => stat.id === id)?.value;
-    if (override != null) {
-      result[key] = override;
-      return;
-    }
-
     const base = data.stats.find((stat) => stat.id === id)?.value ?? 10;
     const manualBonus = data.bonusStats?.find((stat) => stat.id === id)?.value ?? 0;
     result[key] = base + manualBonus;
   });
 
+  return result;
+}
+
+/** D&D Beyond's per-ability "override" escape hatch - when set, that number IS the final score, replacing everything else. */
+function overriddenAbilityScores(data: DdbCharacterData): Partial<AbilityScores> {
+  const result: Partial<AbilityScores> = {};
+  ABILITY_ORDER.forEach((key, index) => {
+    const override = data.overrideStats?.find((stat) => stat.id === index + 1)?.value;
+    if (override != null) result[key] = override;
+  });
+  return result;
+}
+
+/** D&D Beyond caps ability scores at 20 unless something already pushed them past it. */
+const DEFAULT_ABILITY_SCORE_MAX = 20;
+
+/**
+ * The final ability scores D&D Beyond itself shows for this character:
+ * base + manual bonus + every permanent ability-score bonus in `modifiers`
+ * (race, class ASIs, background, feats - not items/conditions, see
+ * readModifiers.ts), capped at 20 like D&D Beyond does, with overrides
+ * winning outright. Only used as the TARGET for reconcileAbilityScores.ts -
+ * never baked straight into the imported scores.
+ */
+function targetAbilityScores(
+  data: DdbCharacterData,
+  base: AbilityScores,
+  displayed: AbilityScores,
+  overrides: Partial<AbilityScores>,
+): AbilityScores {
+  const bonuses = readAbilityScoreBonuses(data.modifiers, PERMANENT_ABILITY_BONUS_GROUPS);
+  const result = {} as AbilityScores;
+  for (const key of ABILITY_ORDER) {
+    const override = overrides[key];
+    if (override != null) {
+      result[key] = override;
+      continue;
+    }
+    const raw = base[key] + (bonuses[key] ?? 0);
+    result[key] = Math.min(raw, Math.max(DEFAULT_ABILITY_SCORE_MAX, displayed[key]));
+  }
   return result;
 }
 
@@ -312,6 +341,57 @@ function buildDetails(data: DdbCharacterData): CharacterDetails | undefined {
   }
 
   return Object.keys(details).length > 0 ? details : undefined;
+}
+
+function slotList(slots: AsiSlot[]): string {
+  return slots.map((slot) => `${slot.className} ${slot.level}`).join(", ");
+}
+
+/** Import-preview warnings describing what reconcileAbilityScores.ts applied and what's still left for the player. */
+function abilityScoreWarnings(result: AbilityScoreReconciliation, background: Background): string[] {
+  const warnings: string[] = [];
+  const applied: string[] = [];
+
+  if (result.backgroundAbilityBonuses) {
+    applied.push(`"${background.name}" background: ${formatAbilityBonuses(result.backgroundAbilityBonuses)}`);
+  }
+  for (const slot of result.filledSlots) {
+    applied.push(`ASI ${slot.className} ${slot.level}: ${formatAbilityBonuses(result.abilityScoreImprovements[slot.key])}`);
+  }
+  if (applied.length > 0) {
+    warnings.push(
+      `Ability score bonuses were matched against D&D Beyond's totals and applied - ${applied.join("; ")}. You can change these any time in the Ability Scores step.`,
+    );
+  }
+
+  if (background.abilityScoreOptions && !result.backgroundAbilityBonuses) {
+    warnings.push(
+      `The "${background.name}" background's ability score bonus couldn't be matched to D&D Beyond's totals, so it hasn't been applied. Open this character for editing and the Ability Scores step will ask you to allocate it before you can save.`,
+    );
+  }
+
+  if (result.unfilledSlots.length > 0) {
+    const plural = result.unfilledSlots.length > 1;
+    warnings.push(
+      `${result.unfilledSlots.length} Ability Score Improvement${plural ? "s" : ""} (${slotList(result.unfilledSlots)}) had no missing points left to match - on D&D Beyond ${plural ? "they were" : "it was"} probably taken as a feat instead. ${plural ? "They're" : "It's"} left unallocated; the Ability Scores step will ask for ${plural ? "them" : "it"} when you next edit this character.`,
+    );
+  }
+
+  const leftover = formatAbilityBonuses(result.leftover);
+  if (leftover) {
+    warnings.push(
+      `D&D Beyond has ${leftover} more than this sheet that couldn't be placed into a legal background/ASI allocation (e.g. a half-feat's +1) - not applied. Adjust by hand if needed.`,
+    );
+  }
+
+  const excess = formatAbilityBonuses(result.excess);
+  if (excess) {
+    warnings.push(
+      `This sheet shows ${excess} more than D&D Beyond - usually a racial bonus assigned differently there than in this app's race data. Double-check against the D&D Beyond sheet.`,
+    );
+  }
+
+  return warnings;
 }
 
 /**
@@ -400,38 +480,55 @@ export async function convertDndBeyondCharacter(
   // Race bonus comes from this app's own matched `race` (the same
   // `race.abilityModifiers`/`sumAbilityScores` combination
   // `finalizeDraft`/`randomCharacter` already use for every other
-  // character) rather than from D&D Beyond's `modifiers` - so it's exactly
-  // as reliable as the rest of this app's own ability-score math, whatever
-  // `modifiers`' real shape turns out to be.
-  const finalAbilityScores = sumAbilityScores(baseAbilityScores(data), race.abilityModifiers);
+  // character). An overridden ability is shown as exactly the override.
+  const baseScores = baseAbilityScores(data);
+  const overrides = overriddenAbilityScores(data);
+  const displayedScores: AbilityScores = { ...sumAbilityScores(baseScores, race.abilityModifiers), ...overrides };
 
-  // The background's 2024 ability-score allocation and every earned
-  // Ability Score Improvement are deliberately left UNSET below (not
-  // guessed at from `modifiers`) - this app records those as their own
-  // bookkeeping (`backgroundAbilityBonuses`/`abilityScoreImprovements`)
-  // specifically so a later edit can subtract exactly what was added
-  // before re-adding it (see utils/characterDraft.ts's `draftFromCharacter`/
-  // `finalizeDraft`). A guessed value here that isn't ALSO recorded there
-  // is exactly what let re-editing an imported character double-apply the
-  // bonus and come out overpowered. Leaving them unset instead means this
-  // character starts in the same state a character who just leveled up (or
-  // just picked a background) is already in every day: the wizard's
-  // Ability Scores step will require the bonus be allocated before the
-  // character can be saved again, the same safe, single-application path
-  // every other character already goes through.
+  // Background allocation (2024) and earned Ability Score Improvements are
+  // reconstructed by comparing D&D Beyond's own totals against
+  // `displayedScores`: whatever is missing is handed out to the background
+  // and the ASI slots as legal, explicit allocations (see
+  // reconcileAbilityScores.ts). ONLY those recorded allocations are added
+  // to the final scores, so `backgroundAbilityBonuses`/
+  // `abilityScoreImprovements` always match what's baked in and a later
+  // edit can't double-apply them (see utils/characterDraft.ts). Anything
+  // that can't be matched is left unset for the wizard's Ability Scores
+  // step, with a warning.
   const asiSlots = getAsiSlots(classes.map((entry) => ({ characterClass: entry.class, level: entry.level })));
-  if (background.abilityScoreOptions) {
-    warnings.push(
-      `The "${background.name}" background grants an ability score bonus that couldn't be reliably read from D&D Beyond, so it hasn't been applied yet - the ability scores below don't include it. Open this character for editing and the Ability Scores step will ask you to allocate it before you can save.`,
-    );
+  let backgroundAbilityBonuses: Partial<AbilityScores> | undefined;
+  let abilityScoreImprovements: Record<string, Partial<AbilityScores>> = {};
+
+  if (hasReadableModifiers(data.modifiers)) {
+    const target = targetAbilityScores(data, baseScores, displayedScores, overrides);
+    const result = reconcileAbilityScores({
+      displayed: displayedScores,
+      target,
+      background,
+      asiSlots,
+      preferredBackground: readAbilityScoreBonuses(data.modifiers, ["background"]),
+    });
+    backgroundAbilityBonuses = result.backgroundAbilityBonuses;
+    abilityScoreImprovements = result.abilityScoreImprovements;
+    warnings.push(...abilityScoreWarnings(result, background));
+  } else {
+    if (background.abilityScoreOptions) {
+      warnings.push(
+        `The "${background.name}" background grants an ability score bonus that couldn't be read from D&D Beyond, so it hasn't been applied yet. Open this character for editing and the Ability Scores step will ask you to allocate it before you can save.`,
+      );
+    }
+    if (asiSlots.length > 0) {
+      warnings.push(
+        `This character has earned ${asiSlots.length} Ability Score Improvement(s) (${slotList(asiSlots)}) that couldn't be read from D&D Beyond, so they haven't been applied yet. Open this character for editing and the Ability Scores step will ask you to allocate them before you can save.`,
+      );
+    }
   }
-  if (asiSlots.length > 0) {
-    const levels = asiSlots.map((slot) => `${slot.className} ${slot.level}`).join(", ");
-    const plural = asiSlots.length > 1;
-    warnings.push(
-      `This character has earned ${asiSlots.length} Ability Score Improvement${plural ? "s" : ""} (${levels}) that couldn't be reliably read from D&D Beyond, so ${plural ? "they haven't" : "it hasn't"} been applied yet - the ability scores below don't include ${plural ? "them" : "it"}. Open this character for editing and the Ability Scores step will ask you to allocate ${plural ? "them" : "it"} before you can save.`,
-    );
-  }
+
+  const finalAbilityScores = sumAbilityScores(
+    displayedScores,
+    backgroundAbilityBonuses ?? {},
+    sumAsiAllocations(asiSlots, abilityScoreImprovements),
+  );
 
   const skillProficiencies = readSkillProficiencies(data.modifiers);
   if (!hasReadableModifiers(data.modifiers)) {
@@ -521,13 +618,11 @@ export async function convertDndBeyondCharacter(
     feats,
     alignment,
     abilityScores: finalAbilityScores,
-    // Deliberately unset - see the ability-score section above. A missing
-    // record here is exactly what `draftFromCharacter` already treats as
-    // "nothing allocated yet" and requires be filled in before the
-    // character can be saved again, which is the correct (and only safe)
-    // state for any bonus that wasn't confidently attributed above.
-    backgroundAbilityBonuses: undefined,
-    abilityScoreImprovements: undefined,
+    // Exactly the allocations baked into `finalAbilityScores` above -
+    // anything unmatched stays unset, which `draftFromCharacter` treats as
+    // "not allocated yet" and requires be filled in before the next save.
+    backgroundAbilityBonuses,
+    abilityScoreImprovements: Object.keys(abilityScoreImprovements).length > 0 ? abilityScoreImprovements : undefined,
     skillProficiencies,
     savingThrowProficiencies,
     armors: buildOwnedArmors(equippedArmor, shield),
