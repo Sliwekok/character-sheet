@@ -878,7 +878,7 @@ export default function CharacterDetailsPage() {
             {/* Sidebar - reference stats a player checks constantly. Status is
                 deliberately last: it's the least-needed-at-a-glance of the
                 three, so it isn't the first thing under the header. */}
-            <div className="flex flex-col gap-4 lg:sticky lg:top-24">
+            <div className="flex flex-col gap-4">
               <AbilityScoresPanel character={character} onRoll={recordRoll} />
               <SkillsPanel character={character} onRoll={recordRoll} />
               <StatusPanel character={character} onUpdateDetails={handleUpdateDetails} />

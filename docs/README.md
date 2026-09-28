@@ -24,6 +24,8 @@ territory rather than a promise of where the project is headed.
 - **[generator.md](./generator.md)** — the character generator: the manual
   step-by-step wizard, the two random-generation modes, how editing an existing
   character works, and where characters are actually stored (`localStorage`).
+- **[testing.md](./testing.md)** — how the Vitest unit, component and integration
+  tests are organized, how to run them, and how the integration tests get a MongoDB.
 
 ## One-paragraph summary
 
@@ -49,6 +51,7 @@ npm run dev      # next dev --turbopack, http://localhost:3000
 npm run build    # production build
 npm run start    # serve the production build
 npm run lint     # next lint (eslint-config-react-app)
+npm test         # Vitest: unit + component + integration tests (see testing.md)
 ```
 
 No environment variables or external services are required — everything the app

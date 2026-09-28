@@ -31,3 +31,11 @@ npm run dev
 ```
 
 Then open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Tests
+
+```bash
+npm test
+```
+
+Runs the unit, React component and API integration tests with Vitest. The integration tests start an in-memory MongoDB automatically (downloaded once on the first run), or use your own with `MONGODB_TEST_URI`. See [docs/testing.md](docs/testing.md).
