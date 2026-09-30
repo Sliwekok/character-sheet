@@ -19,7 +19,8 @@ export function HitPointsEditor({
 }: {
     currentHp: number;
     maxHp: number;
-    onChange: (nextHp: number) => void;
+    /** Omit for a read-only view (a character shared with you) - just the badge, no editing. */
+    onChange?: (nextHp: number) => void;
 }) {
     const [editing, setEditing] = useState(false);
     const [draft, setDraft] = useState("");
@@ -31,9 +32,22 @@ export function HitPointsEditor({
 
     function commit() {
         const next = parseHpInput(draft, currentHp);
-        if (next !== null && next !== currentHp) onChange(next);
+        if (next !== null && next !== currentHp) onChange?.(next);
         setEditing(false);
     }
+
+    const badge = (
+        // Colour on an inner span, not the Badge's className - cn() has no
+        // conflict resolution, so it couldn't reliably override the muted
+        // variant's own text colour.
+        <Badge variant="muted" className="select-none">
+            <span className={cn(currentHp <= 0 && "text-foreground-danger")}>
+                HP {currentHp}/{maxHp}
+            </span>
+        </Badge>
+    );
+
+    if (!onChange) return badge;
 
     if (editing) {
         return (
@@ -69,14 +83,7 @@ export function HitPointsEditor({
             title="Double-click to edit current HP"
             className="inline-flex cursor-pointer rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
         >
-            {/* Colour on an inner span, not the Badge's className - cn() has no
-                conflict resolution, so it couldn't reliably override the muted
-                variant's own text colour. */}
-            <Badge variant="muted" className="select-none">
-                <span className={cn(currentHp <= 0 && "text-foreground-danger")}>
-                    HP {currentHp}/{maxHp}
-                </span>
-            </Badge>
+            {badge}
         </button>
     );
 }

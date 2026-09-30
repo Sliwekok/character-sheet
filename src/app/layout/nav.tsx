@@ -11,6 +11,7 @@ import { AccountMenu } from "@/components/auth/AccountMenu";
 const NAV_LINKS = [
   { href: "/home", label: "Home" },
   { href: "/newCharacter", label: "New Character" },
+  { href: "/campaigns", label: "Campaigns" },
   { href: "/about", label: "About" },
 ];
 

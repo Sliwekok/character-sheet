@@ -5,6 +5,8 @@ import { finalizeDraft, isDraftReadyToFinalize } from "@/utils/characterDraft";
 import { calculateAbilityModifiers } from "@/utils/abilityModifiers";
 import { calculateArmorClass } from "@/utils/calculateArmorClass";
 import { levelLabel } from "@/components/character/wizard/SpellsStep";
+import { SharingPicker } from "@/components/campaigns/SharingPicker";
+import { CharacterSharing, isSharingComplete } from "@/utils/campaigns";
 
 type ReviewStepProps = {
   draft: CharacterDraft;
@@ -12,9 +14,11 @@ type ReviewStepProps = {
   onSave: () => void;
   /** Extra controls rendered next to Save - e.g. the random flow's "Reroll" button. */
   extraActions?: ReactNode;
+  /** When given, shows the "Who can see this character?" picker above Save (see SharingPicker). */
+  sharing?: { value: CharacterSharing; onChange: (next: CharacterSharing) => void };
 };
 
-export function ReviewStep({ draft, isEditing, onSave, extraActions }: ReviewStepProps) {
+export function ReviewStep({ draft, isEditing, onSave, extraActions, sharing }: ReviewStepProps) {
   const ready = isDraftReadyToFinalize(draft);
   const preview = ready ? finalizeDraft(draft) : null;
 
@@ -120,8 +124,19 @@ export function ReviewStep({ draft, isEditing, onSave, extraActions }: ReviewSte
         </CardContent>
       </Card>
 
+      {sharing && (
+        <Card>
+          <CardContent className="flex flex-col gap-3">
+            <h3 className="font-display text-lg tracking-wide text-fontcolor">Who can see this character?</h3>
+            <SharingPicker value={sharing.value} onChange={sharing.onChange} />
+          </CardContent>
+        </Card>
+      )}
+
       <div className="flex flex-wrap items-center gap-3">
-        <Button onClick={onSave}>{isEditing ? "Save changes" : "Save character"}</Button>
+        <Button onClick={onSave} disabled={sharing ? !isSharingComplete(sharing.value) : false}>
+          {isEditing ? "Save changes" : "Save character"}
+        </Button>
         {extraActions}
       </div>
     </div>

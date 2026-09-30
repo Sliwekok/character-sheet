@@ -34,7 +34,20 @@ export type CharacterSummary = {
  * card itself changing. See utils/characterSummary.ts for how a real,
  * stored character is turned into this shape.
  */
-export function CharacterCard({ character }: { character: CharacterSummary }) {
+export function CharacterCard({
+  character,
+  href: hrefOverride,
+  ownerName,
+  tag,
+}: {
+  character: CharacterSummary;
+  /** Where the card links to - defaults to the character's own sheet. Shared cards pass the read-only `?owner=` link. */
+  href?: string;
+  /** Set for another player's character (shown under the class line). */
+  ownerName?: string;
+  /** Small extra badge next to AC/Initiative, e.g. the character's sharing setting. */
+  tag?: string;
+}) {
   const { name, level, alignment, className, armorClass, initiative, abilityModifiers } =
     character;
 
@@ -54,7 +67,7 @@ export function CharacterCard({ character }: { character: CharacterSummary }) {
   // `mock-` ids are the /home placeholder sample cards (not real stored
   // characters, see that page's MOCK_CHARACTERS) and keep the old harmless
   // in-page anchor instead, since there's no real character to look up.
-  const href = character.id.startsWith("mock-") ? `/home#${character.id}` : `/character/${character.id}`;
+  const href = hrefOverride ?? (character.id.startsWith("mock-") ? `/home#${character.id}` : `/character/${character.id}`);
 
   return (
     <Link href={href} className="block h-full">
@@ -65,6 +78,7 @@ export function CharacterCard({ character }: { character: CharacterSummary }) {
             <p className="mt-1 text-sm text-fontcolor-secondary">
               Level {level} &middot; {className}
             </p>
+            {ownerName && <p className="mt-1 text-xs text-fontcolor-secondary">Played by {ownerName}</p>}
           </div>
           <Badge variant="outline" className="text-center">{alignment}</Badge>
         </CardHeader>
@@ -72,6 +86,7 @@ export function CharacterCard({ character }: { character: CharacterSummary }) {
           <div className="flex gap-3">
             <Badge variant="solid">AC {armorClass}</Badge>
             <Badge variant="muted">Initiative {formatModifier(initiative)}</Badge>
+            {tag && <Badge variant="outline">{tag}</Badge>}
           </div>
           <StatBlock stats={stats} />
         </CardContent>

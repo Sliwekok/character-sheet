@@ -1,5 +1,6 @@
 import "server-only";
 import { Collection, Db, MongoClient, ObjectId } from "mongodb";
+import type { CharacterVisibility } from "@/interfaces/Campaign";
 
 /**
  * MongoDB connection + typed collections for the backend (auth + character
@@ -72,6 +73,38 @@ export interface CharacterDoc {
   deletedAt: Date | null;
   /** Server-side write time, for debugging/auditing only. */
   serverUpdatedAt: Date;
+  /**
+   * Copied out of `data` on every write (see server/characters.ts) so
+   * sharing can be queried and enforced without parsing every character.
+   * Missing on rows written before sharing existed = "private".
+   */
+  visibility?: CharacterVisibility;
+  /** Hex id of the campaign a shared/public character is shown in, or null. */
+  campaignId?: string | null;
+}
+
+/**
+ * A group of players who can see each other's "shared" characters - see
+ * server/campaigns.ts. Joining happens through the invite link
+ * (`/join/<inviteCode>`); the owner can regenerate the code to revoke old
+ * links and remove members.
+ */
+export interface CampaignDoc {
+  _id: ObjectId;
+  name: string;
+  description: string;
+  ownerId: ObjectId;
+  /** Every member including the owner, in join order. */
+  memberIds: ObjectId[];
+  /**
+   * Random, unguessable code in the invite link. Stored as-is (not
+   * hashed, unlike session tokens) because the owner needs to be able to
+   * copy the link again later; it only grants "join this campaign", and
+   * regenerating it revokes every old link.
+   */
+  inviteCode: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 type Globals = typeof globalThis & {
@@ -105,6 +138,9 @@ async function ensureIndexes(db: Db): Promise<void> {
     db.collection<PasswordResetDoc>("passwordResets").createIndex({ tokenHash: 1 }, { unique: true }),
     db.collection<PasswordResetDoc>("passwordResets").createIndex({ userId: 1 }),
     db.collection<CharacterDoc>("characters").createIndex({ userId: 1, characterId: 1 }, { unique: true }),
+    db.collection<CharacterDoc>("characters").createIndex({ campaignId: 1, visibility: 1 }),
+    db.collection<CampaignDoc>("campaigns").createIndex({ inviteCode: 1 }, { unique: true }),
+    db.collection<CampaignDoc>("campaigns").createIndex({ memberIds: 1 }),
   ]);
 
   // Nice to have: TTL indexes let MongoDB delete expired sessions/reset
@@ -140,6 +176,7 @@ export async function collections(): Promise<{
   sessions: Collection<SessionDoc>;
   passwordResets: Collection<PasswordResetDoc>;
   characters: Collection<CharacterDoc>;
+  campaigns: Collection<CampaignDoc>;
 }> {
   const db = await getDb();
   return {
@@ -147,5 +184,6 @@ export async function collections(): Promise<{
     sessions: db.collection<SessionDoc>("sessions"),
     passwordResets: db.collection<PasswordResetDoc>("passwordResets"),
     characters: db.collection<CharacterDoc>("characters"),
+    campaigns: db.collection<CampaignDoc>("campaigns"),
   };
 }

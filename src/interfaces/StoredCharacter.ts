@@ -1,4 +1,5 @@
 import { Character } from "@/interfaces/Characters";
+import type { CharacterVisibility } from "@/interfaces/Campaign";
 
 /**
  * A `Character` as persisted by the app - adds the bookkeeping fields
@@ -13,4 +14,15 @@ export interface StoredCharacter extends Character {
     id: string;
     createdAt: string;
     updatedAt: string;
+    /**
+     * Who else can view this character (read-only) - see
+     * interfaces/Campaign.ts. Missing = "private". Travels with the
+     * character through sync, so the server can enforce it.
+     */
+    visibility?: CharacterVisibility;
+    /**
+     * The campaign a "shared" (required) or "public" (optional) character
+     * is shown in. Ignored while `visibility` is "private".
+     */
+    campaignId?: string | null;
 }

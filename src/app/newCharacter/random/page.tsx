@@ -9,6 +9,7 @@ import { getRulesetAsync, Ruleset } from "@/data";
 import { generateRandomCharacter, RandomCharacterOverrides } from "@/utils/randomCharacter";
 import { draftFromCharacter, finalizeDraft } from "@/utils/characterDraft";
 import { saveCharacter } from "@/utils/storage";
+import { CharacterSharing, isSharingComplete, sharingPatch } from "@/utils/campaigns";
 import { ReviewStep } from "@/components/character/wizard/ReviewStep";
 import { ALIGNMENTS } from "@/utils/randomNames";
 
@@ -20,6 +21,8 @@ export default function RandomCharacterPage() {
   const [overrides, setOverrides] = useState<RandomCharacterOverrides>({});
   const [generated, setGenerated] = useState<StoredCharacter | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  // Kept across rerolls - it's the player's choice, not part of the dice.
+  const [sharing, setSharing] = useState<CharacterSharing>({ visibility: "private", campaignId: null });
 
   // Only needed here to populate the guided form's race/class pickers with
   // a specific edition's options - fetched on demand (and cached per
@@ -56,8 +59,8 @@ export default function RandomCharacterPage() {
 
   function handleSave() {
     if (!generated) return;
-    const finalized = finalizeDraft(draftFromCharacter(generated));
-    if (!finalized) return;
+    const finalized = finalizeDraft({ ...draftFromCharacter(generated), ...sharingPatch(sharing) });
+    if (!finalized || !isSharingComplete(sharing)) return;
     saveCharacter(finalized);
     router.push("/home");
   }
@@ -219,6 +222,7 @@ export default function RandomCharacterPage() {
               draft={draftFromCharacter(generated)}
               isEditing={false}
               onSave={handleSave}
+              sharing={{ value: sharing, onChange: setSharing }}
               extraActions={
                 <Button variant="secondary" onClick={() => generate(overrides)} disabled={isGenerating}>
                   {isGenerating ? "Rerolling…" : "🎲 Reroll"}

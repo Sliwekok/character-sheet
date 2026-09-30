@@ -1,4 +1,5 @@
 import { AbilityScores } from "@/interfaces/Characters";
+import type { CharacterVisibility } from "./Campaign";
 import { Edition } from "@/interfaces/Edition";
 import { Race } from "@/interfaces/Race";
 import { CharacterClass } from "@/interfaces/CharacterClass";
@@ -196,4 +197,12 @@ export interface CharacterDraft {
     featureChoices: Record<string, string>;
     /** Flavor/print-only fields, edited on the Details step - see CharacterDetails.ts. Always a valid (possibly empty) object, same convention as `backgroundAbilityBonuses` above. */
     details: CharacterDetails;
+    /**
+     * Sharing settings, picked on the Review step and carried straight
+     * through to `StoredCharacter.visibility`/`campaignId` - see
+     * interfaces/Campaign.ts. Missing = "private" (also what an edit of a
+     * character saved before sharing existed starts from).
+     */
+    visibility?: CharacterVisibility;
+    campaignId?: string | null;
 }

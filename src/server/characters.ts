@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { CharacterDoc, collections } from "./db";
 import { HttpError } from "./http";
 import type { RemoteCharacter } from "@/interfaces/Sync";
+import { normalizeVisibility } from "@/interfaces/Campaign";
 
 /** Server-side character persistence shared by the /api/characters routes. */
 
@@ -38,6 +39,18 @@ export async function getCharacter(userId: ObjectId, characterId: string): Promi
   const { characters } = await collections();
   const doc = await characters.findOne({ userId, characterId });
   return doc ? toRemote(doc) : null;
+}
+
+const CAMPAIGN_ID_PATTERN = /^[a-f0-9]{24}$/;
+
+/** The indexed `visibility`/`campaignId` copy of a character's sharing settings. */
+export function sharingFields(data: Record<string, unknown>): Pick<CharacterDoc, "visibility" | "campaignId"> {
+  const visibility = normalizeVisibility(data.visibility);
+  const campaignId =
+    visibility !== "private" && typeof data.campaignId === "string" && CAMPAIGN_ID_PATTERN.test(data.campaignId)
+      ? data.campaignId
+      : null;
+  return { visibility, campaignId };
 }
 
 /**
@@ -77,6 +90,12 @@ export async function upsertCharacter(
     characterId,
     data: serialized,
     name: typeof data.name === "string" ? data.name.slice(0, 200) : undefined,
+    // Sharing settings live inside the character (so they sync like any
+    // other edit) and are mirrored here for querying. Whether the owner is
+    // actually a member of `campaignId` is checked when reading, not here -
+    // leaving/being removed from a campaign then hides the character
+    // without touching it.
+    ...sharingFields(data),
     updatedAt,
     deletedAt: null,
     serverUpdatedAt: new Date(),
@@ -111,6 +130,8 @@ export async function deleteCharacterRemote(
     userId,
     characterId,
     data: null,
+    visibility: "private",
+    campaignId: null,
     updatedAt: existing?.updatedAt ?? deletedAt,
     deletedAt,
     serverUpdatedAt: now,

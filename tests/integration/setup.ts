@@ -68,7 +68,7 @@ beforeEach(async () => {
   const { getDb } = await import("@/server/db");
   const db = await getDb();
   await Promise.all(
-    ["users", "sessions", "passwordResets", "characters"].map((name) => db.collection(name).deleteMany({}))
+    ["users", "sessions", "passwordResets", "characters", "campaigns"].map((name) => db.collection(name).deleteMany({}))
   );
 });
 

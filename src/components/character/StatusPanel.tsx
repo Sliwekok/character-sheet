@@ -13,16 +13,29 @@ import { CONDITIONS, CONDITION_DESCRIPTIONS, MAX_EXHAUSTION_LEVEL, getExhaustion
  * checkbox, since a pip's "on" state is positional (pip 3 only makes sense
  * filled if 1 and 2 are too) rather than independently toggled.
  */
-function Pip({ filled, onClick, label }: { filled: boolean; onClick: () => void; label: string }) {
+function Pip({
+  filled,
+  onClick,
+  label,
+  disabled,
+}: {
+  filled: boolean;
+  onClick: () => void;
+  label: string;
+  disabled?: boolean;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       aria-label={label}
       aria-pressed={filled}
       className={cn(
-        "h-3 w-3 shrink-0 cursor-pointer rounded-full border transition-colors",
-        filled ? "border-foreground-hover bg-foreground" : "border-border-strong hover:border-foreground/60"
+        "h-3 w-3 shrink-0 rounded-full border transition-colors",
+        filled ? "border-foreground-hover bg-foreground" : "border-border-strong",
+        !disabled && "cursor-pointer",
+        !disabled && !filled && "hover:border-foreground/60"
       )}
     />
   );
@@ -41,11 +54,13 @@ function PipRow({
   value,
   onChange,
   label,
+  disabled,
 }: {
   count: number;
   value: number;
   onChange: (next: number) => void;
   label: string;
+  disabled?: boolean;
 }) {
   return (
     <div className="flex items-center gap-1">
@@ -54,6 +69,7 @@ function PipRow({
           key={index}
           label={`${label} ${index + 1}`}
           filled={index < value}
+          disabled={disabled}
           onClick={() => onChange(value === index + 1 ? index : index + 1)}
         />
       ))}
@@ -78,11 +94,14 @@ function PipRow({
  */
 export function StatusPanel({
   character,
-  onUpdateDetails,
+  onUpdateDetails: onUpdate,
 }: {
   character: Character;
-  onUpdateDetails: (patch: Partial<CharacterDetails>) => void;
+  /** Omit for a read-only view (a character shared with you) - every control is then disabled. */
+  onUpdateDetails?: (patch: Partial<CharacterDetails>) => void;
 }) {
+  const readOnly = !onUpdate;
+  const onUpdateDetails = (patch: Partial<CharacterDetails>) => onUpdate?.(patch);
   const details = character.details;
   const deathSaves: DeathSaves = details?.deathSaves ?? { successes: 0, failures: 0 };
   const exhaustionLevel = details?.exhaustionLevel ?? 0;
@@ -109,6 +128,7 @@ export function StatusPanel({
               type="checkbox"
               checked={Boolean(details?.inspiration)}
               onChange={(event) => onUpdateDetails({ inspiration: event.target.checked })}
+              disabled={readOnly}
               className="h-3.5 w-3.5 accent-foreground"
             />
             Inspiration
@@ -120,6 +140,7 @@ export function StatusPanel({
               count={MAX_EXHAUSTION_LEVEL}
               value={exhaustionLevel}
               label="Exhaustion level"
+              disabled={readOnly}
               onChange={(next) => onUpdateDetails({ exhaustionLevel: next })}
             />
             <Tooltip title={`Exhaustion ${exhaustionLevel}`}>
@@ -136,6 +157,7 @@ export function StatusPanel({
             {concentratingOn ? (
               <Badge variant="solid" className="max-w-[10rem] truncate">
                 {concentratingOn}
+                {!readOnly && (
                 <button
                   type="button"
                   onClick={() => onUpdateDetails({ concentratingOn: undefined })}
@@ -144,6 +166,7 @@ export function StatusPanel({
                 >
                   ✕
                 </button>
+                )}
               </Badge>
             ) : (
               <Badge variant="muted">None</Badge>
@@ -160,6 +183,7 @@ export function StatusPanel({
                 count={3}
                 value={deathSaves.successes}
                 label="Death save success"
+                disabled={readOnly}
                 onChange={(next) => onUpdateDetails({ deathSaves: { ...deathSaves, successes: next } })}
               />
             </span>
@@ -169,10 +193,11 @@ export function StatusPanel({
                 count={3}
                 value={deathSaves.failures}
                 label="Death save failure"
+                disabled={readOnly}
                 onChange={(next) => onUpdateDetails({ deathSaves: { ...deathSaves, failures: next } })}
               />
             </span>
-            {!stable && (
+            {!stable && !readOnly && (
               <Button
                 size="sm"
                 variant="ghost"
@@ -192,9 +217,11 @@ export function StatusPanel({
                 <button
                   type="button"
                   onClick={() => toggleCondition(condition)}
+                  disabled={readOnly}
                   aria-pressed={active}
                   className={cn(
-                    "cursor-pointer rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide transition-colors",
+                    readOnly ? "cursor-default" : "cursor-pointer",
+                    "rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide transition-colors",
                     active
                       ? "border-foreground-hover/60 bg-foreground/25 text-foreground hover:bg-foreground/40"
                       : "border-border-strong text-fontcolor-secondary hover:border-foreground/50 hover:text-foreground"

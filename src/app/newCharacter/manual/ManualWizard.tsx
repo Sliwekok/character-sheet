@@ -18,6 +18,7 @@ import { areAsiSlotsComplete, getAsiSlots, sumAsiAllocations } from "@/utils/abi
 import { getEffectiveCasterProgression } from "@/utils/spellcasting";
 import { areFeatureChoicesComplete, getAutoGrantedSpellNames, resolveSpellsByName } from "@/utils/grantedSpells";
 import { saveCharacter } from "@/utils/storage";
+import { getCharacterSharing, sharingPatch } from "@/utils/campaigns";
 import { useStoredCharacter } from "@/components/auth/useStoredCharacter";
 import { StepProgress } from "@/components/character/wizard/StepProgress";
 import { EditionStep } from "@/components/character/wizard/EditionStep";
@@ -511,7 +512,15 @@ export default function ManualWizard() {
             )}
 
             {currentStep === "Review" && (
-              <ReviewStep draft={draft} isEditing={isEditing} onSave={handleSave} />
+              <ReviewStep
+                draft={draft}
+                isEditing={isEditing}
+                onSave={handleSave}
+                sharing={{
+                  value: getCharacterSharing(draft),
+                  onChange: (sharing) => updateDraft(sharingPatch(sharing)),
+                }}
+              />
             )}
           </div>
 

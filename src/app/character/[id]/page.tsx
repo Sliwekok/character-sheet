@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   Alert,
   Badge,
@@ -65,6 +65,9 @@ import { getMagicItemCount } from "@/utils/magicItemCount";
 import { SPELL_ACTION_FILTERS, SpellActionFilter, matchesSpellActionFilter } from "@/utils/spellActionType";
 import { useRoll20Sync } from "@/utils/roll20/roll20Bridge";
 import { Roll20SyncButton, Roll20SyncMessage } from "@/components/character/Roll20SyncButton";
+import { useSharedCharacter } from "@/components/campaigns/useSharedCharacter";
+import { SharingDialog } from "@/components/campaigns/SharingDialog";
+import { CharacterSharing, getCharacterSharing, sharingPatch, VISIBILITY_LABELS } from "@/utils/campaigns";
 
 /** Most roll history entries anyone actually wants to scroll back through - oldest entries fall off past this so the list (and the id it's stored under, if this ever gets persisted) can't grow unbounded over a long session. */
 const MAX_ROLL_HISTORY = 50;
@@ -117,8 +120,9 @@ function ArmorEntry({
   onRemove,
 }: {
   armor: Armor;
-  onToggleEquip: () => void;
-  onRemove: () => void;
+  /** Both omitted for a read-only view (a character shared with you). */
+  onToggleEquip?: () => void;
+  onRemove?: () => void;
 }) {
   return (
     <div className="rounded-(--radius-sm) bg-background-darken/60 px-3 py-2">
@@ -135,6 +139,7 @@ function ArmorEntry({
           {armor.rarity && <Badge variant="muted">{armor.rarity}</Badge>}
           {armor.requiresAttunement && <Badge variant="muted">Attunement</Badge>}
         </div>
+        {onToggleEquip && onRemove && (
         <div className="flex shrink-0 items-center gap-3">
           <button
             type="button"
@@ -151,6 +156,7 @@ function ArmorEntry({
             Remove
           </button>
         </div>
+        )}
       </div>
       {armor.magicDescription && <p className="mt-1 whitespace-pre-line text-xs">{armor.magicDescription}</p>}
     </div>
@@ -296,6 +302,10 @@ export default function CharacterDetailsPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const id = params.id;
+  // `?owner=<userId>` = a share link (see SharingDialog / utils/campaigns.ts).
+  // For anyone but that owner the character is fetched read-only from the
+  // server instead of localStorage, and every editing control is hidden.
+  const ownerParam = useSearchParams().get("owner");
 
   // Drives the "Delete character" confirmation alert below - kept separate
   // from `character` so closing it doesn't touch the loaded data.
@@ -373,8 +383,24 @@ export default function CharacterDetailsPage() {
   // see useStoredCharacter. Edits below still go through
   // `setCharacter(current => saveCharacter(...))`, which saves locally and
   // queues the upload.
-  const [character, setCharacter] = useStoredCharacter(id);
-  const { status: authStatus } = useAuth();
+  const { status: authStatus, user } = useAuth();
+  const waitingForAuth = Boolean(ownerParam) && authStatus === "loading";
+  const readOnly = Boolean(ownerParam) && !waitingForAuth && !(authStatus === "authenticated" && user?.id === ownerParam);
+  const [ownCharacter, setOwnCharacter] = useStoredCharacter(readOnly || waitingForAuth ? null : id);
+  const shared = useSharedCharacter(readOnly ? ownerParam : null, id);
+  const character: StoredCharacter | null | undefined = waitingForAuth
+    ? undefined
+    : readOnly
+      ? shared.view === undefined
+        ? undefined
+        : shared.view?.character ?? null
+      : ownCharacter;
+  // Read-only: every `setCharacter(current => saveCharacter(...))` below
+  // becomes a no-op, as a backstop behind the hidden controls - a shared
+  // character is never written to this browser's storage or synced.
+  const setCharacter: typeof setOwnCharacter = readOnly ? () => undefined : setOwnCharacter;
+
+  const [showSharing, setShowSharing] = useState(false);
 
   const [showShop, setShowShop] = useState(false);
 
@@ -411,14 +437,28 @@ export default function CharacterDetailsPage() {
       <Container size="md" className="pb-24">
         <Card>
           <CardContent className="flex flex-col items-start gap-3 text-sm text-fontcolor-secondary">
-            <p>No character found with that id - it may have been deleted.</p>
+            {readOnly ? (
+              <p>
+                This character isn&apos;t available - it may have been deleted, made private, or shared only with a
+                campaign you&apos;re not in.
+              </p>
+            ) : (
+              <p>No character found with that id - it may have been deleted.</p>
+            )}
             {authStatus === "anonymous" && (
-              <p>If you saved it on another device, sign in to load it from your account.</p>
+              <p>
+                {readOnly
+                  ? "If it was shared with your campaign, sign in to view it."
+                  : "If you saved it on another device, sign in to load it from your account."}
+              </p>
             )}
             <div className="flex flex-wrap gap-3">
               <Button href="/home">Back to characters</Button>
               {authStatus === "anonymous" && (
-                <Button href={`/login?next=${encodeURIComponent(`/character/${id}`)}`} variant="secondary">
+                <Button
+                  href={`/login?next=${encodeURIComponent(`/character/${id}${ownerParam ? `?owner=${ownerParam}` : ""}`)}`}
+                  variant="secondary"
+                >
                   Sign in
                 </Button>
               )}
@@ -478,6 +518,10 @@ export default function CharacterDetailsPage() {
     { key: "features", label: "Features & Traits", count: featureCount },
     { key: "background", label: "Background" },
   ];
+
+  function handleSaveSharing(sharing: CharacterSharing) {
+    setCharacter((current) => (current ? saveCharacter({ ...current, ...sharingPatch(sharing) }) : current));
+  }
 
   function handleDeleteCharacter() {
     if (!character?.id) return false;
@@ -800,6 +844,10 @@ export default function CharacterDetailsPage() {
         />
       )}
 
+      {showSharing && !readOnly && (
+        <SharingDialog character={character} onSave={handleSaveSharing} onClose={() => setShowSharing(false)} />
+      )}
+
       {showShop && (
         <Shop
           character={character}
@@ -821,6 +869,24 @@ export default function CharacterDetailsPage() {
         />
 
         <div className="mt-8 flex flex-col gap-6">
+          {readOnly && shared.view && (
+            <Card className="border-foreground/40">
+              <CardContent className="flex flex-wrap items-center justify-between gap-3 text-sm text-fontcolor-secondary">
+                <p>
+                  <span className="font-semibold text-fontcolor">{shared.view.owner.displayName}</span>&apos;s character
+                  {shared.view.campaign ? (
+                    <>
+                      {" "}
+                      in <span className="font-semibold text-fontcolor">{shared.view.campaign.name}</span>
+                    </>
+                  ) : null}{" "}
+                  - you&apos;re viewing it read-only. Rolls work, but nothing you do here changes the character.
+                </p>
+                <Badge variant="muted">Read-only</Badge>
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardContent className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-3">
@@ -833,7 +899,11 @@ export default function CharacterDetailsPage() {
                       they agree for anything saved since per-level HP history/the minimum-1-per-level
                       fix, but this keeps a character saved before either existed from showing a
                       badge that disagrees with its own tooltip breakdown. Double-click to edit. */}
-                  <HitPointsEditor currentHp={character.currentHP} maxHp={hp.total} onChange={handleSetCurrentHp} />
+                  <HitPointsEditor
+                    currentHp={character.currentHP}
+                    maxHp={hp.total}
+                    onChange={readOnly ? undefined : handleSetCurrentHp}
+                  />
                   <Tooltip title="Max HP" lines={hp.lines} />
                 </span>
                 <span className="flex items-center gap-1">
@@ -853,6 +923,8 @@ export default function CharacterDetailsPage() {
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-2">
+                {!readOnly && (
+                <>
                 <span className="flex items-center gap-1">
                   <Button size="sm" variant="secondary" onClick={() => setShowShortRest(true)}>
                     Short rest
@@ -876,9 +948,21 @@ export default function CharacterDetailsPage() {
                   </Tooltip>
                 </span>
                 <Roll20SyncButton state={roll20} />
+                </>
+                )}
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={() => setShowSharing(true)}
+                    title="Who can see this character - click to change or copy its link"
+                    className="cursor-pointer rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+                  >
+                    <Badge variant="muted">{VISIBILITY_LABELS[getCharacterSharing(character).visibility]}</Badge>
+                  </button>
+                )}
                 <Badge variant="outline">{character.alignment}</Badge>
               </div>
-              <Roll20SyncMessage state={roll20} />
+              {!readOnly && <Roll20SyncMessage state={roll20} />}
             </CardContent>
           </Card>
 
@@ -889,7 +973,7 @@ export default function CharacterDetailsPage() {
             <div className="flex flex-col gap-4">
               <AbilityScoresPanel character={character} onRoll={recordRoll} />
               <SkillsPanel character={character} onRoll={recordRoll} />
-              <StatusPanel character={character} onUpdateDetails={handleUpdateDetails} />
+              <StatusPanel character={character} onUpdateDetails={readOnly ? undefined : handleUpdateDetails} />
             </div>
 
             {/* Main column - the tab strip swaps what's shown below it rather
@@ -929,7 +1013,7 @@ export default function CharacterDetailsPage() {
                             character={character}
                             weapon={weapon}
                             index={index}
-                            onToggleMastery={handleToggleWeaponMastery}
+                            onToggleMastery={readOnly ? undefined : handleToggleWeaponMastery}
                             onRoll={recordRoll}
                           />
                         ))}
@@ -965,7 +1049,7 @@ export default function CharacterDetailsPage() {
                           pactMagicSlots={pactMagicSlots}
                           expendedSpellSlots={character.details?.expendedSpellSlots}
                           expendedPactSlots={character.details?.expendedPactSlots}
-                          onAdjust={handleAdjustSlot}
+                          onAdjust={readOnly ? undefined : handleAdjustSlot}
                         />
                       </div>
                     )}
@@ -1015,9 +1099,9 @@ export default function CharacterDetailsPage() {
                                 characterLevel={characterLevel}
                                 maxSlotLevel={maxSlotLevel}
                                 castableSlotLevels={castableLevels(spell.level, remainingSpellSlots, remainingPactSlots)}
-                                onCast={hasAnySlots ? handleCastSpell : undefined}
+                                onCast={hasAnySlots && !readOnly ? handleCastSpell : undefined}
                                 concentratingOn={character.details?.concentratingOn}
-                                onToggleConcentration={handleToggleConcentration}
+                                onToggleConcentration={readOnly ? undefined : handleToggleConcentration}
                                 onRoll={recordRoll}
                               />
                             ))}
@@ -1047,9 +1131,9 @@ export default function CharacterDetailsPage() {
                               characterLevel={characterLevel}
                               maxSlotLevel={maxSlotLevel}
                               castableSlotLevels={castableLevels(spell.level, remainingSpellSlots, remainingPactSlots)}
-                              onCast={hasAnySlots ? handleCastSpell : undefined}
+                              onCast={hasAnySlots && !readOnly ? handleCastSpell : undefined}
                               concentratingOn={character.details?.concentratingOn}
-                              onToggleConcentration={handleToggleConcentration}
+                              onToggleConcentration={readOnly ? undefined : handleToggleConcentration}
                               onRoll={recordRoll}
                             />
                           ))}
@@ -1067,9 +1151,11 @@ export default function CharacterDetailsPage() {
                     {armorCount > 0 && <Badge variant="muted">{armorCount} armor{armorCount === 1 ? "" : "s"}</Badge>}
                     {magicItemCount > 0 && <Badge variant="muted">{magicItemCount} magic item{magicItemCount === 1 ? "" : "s"}</Badge>}
                     {gearItemCount > 0 && <Badge variant="muted">{gearItemCount} gear item{gearItemCount === 1 ? "" : "s"}</Badge>}
+                    {!readOnly && (
                     <div onClick={() => setShowShop(true)} className="cursor-pointer flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border-strong text-[16px] font-bold leading-none text-fontcolor-secondary select-none">
                       <span className="relative top-[-1px]">+</span>
                     </div>
+                    )}
                   </CardHeader>
                   <CardContent className="flex flex-col gap-3 text-sm text-fontcolor-secondary">
                     <div className="flex flex-col gap-2">
@@ -1082,8 +1168,8 @@ export default function CharacterDetailsPage() {
                           <ArmorEntry
                             key={`${armor.name}-${index}`}
                             armor={armor}
-                            onToggleEquip={() => handleToggleArmorEquipped(index)}
-                            onRemove={() => handleRemoveArmor(index)}
+                            onToggleEquip={readOnly ? undefined : () => handleToggleArmorEquipped(index)}
+                            onRemove={readOnly ? undefined : () => handleRemoveArmor(index)}
                           />
                         ))
                       ) : (
@@ -1160,6 +1246,7 @@ export default function CharacterDetailsPage() {
                               <Badge variant="outline">{entry.item.category}</Badge>
                               <Badge variant="muted">×{entry.quantity}</Badge>
                             </div>
+                            {!readOnly && (
                             <button
                               type="button"
                               onClick={() => handleRemoveGearItem(index)}
@@ -1167,6 +1254,7 @@ export default function CharacterDetailsPage() {
                             >
                               Remove
                             </button>
+                            )}
                           </div>
                         ))
                       ) : (
@@ -1403,7 +1491,12 @@ export default function CharacterDetailsPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3 border-t border-border pt-6">
-            <Button href={`/newCharacter/manual?edit=${character.id}`}>Edit character</Button>
+            {!readOnly && <Button href={`/newCharacter/manual?edit=${character.id}`}>Edit character</Button>}
+            {!readOnly && (
+              <Button variant="secondary" onClick={() => setShowSharing(true)}>
+                Sharing
+              </Button>
+            )}
             <PdfExportPanel character={character} />
             <Button variant="secondary" onClick={() => downloadCharacterAsJson(character)}>
               Export as JSON
@@ -1414,9 +1507,11 @@ export default function CharacterDetailsPage() {
             >
               Back to characters
             </Link>
-            <Button variant="danger" size="md" onClick={() => setShowDeleteConfirm(true)}>
-              Delete character
-            </Button>
+            {!readOnly && (
+              <Button variant="danger" size="md" onClick={() => setShowDeleteConfirm(true)}>
+                Delete character
+              </Button>
+            )}
           </div>
         </div>
       </Container>

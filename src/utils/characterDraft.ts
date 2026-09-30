@@ -203,6 +203,9 @@ export function draftFromCharacter(character: StoredCharacter): CharacterDraft {
         // once the ruleset has loaded.
         featureChoices: character.featureChoices ?? {},
         details: character.details ?? {},
+        // Editing must not quietly un-share (or re-share) a character.
+        visibility: character.visibility,
+        campaignId: character.campaignId,
     };
 }
 
@@ -301,6 +304,8 @@ export function finalizeDraft(draft: CharacterDraft): StoredCharacter | null {
         featureChoices: Object.keys(draft.featureChoices).length > 0 ? draft.featureChoices : undefined,
         languages: [...draft.race.languages, ...draft.languages],
         details: cleanDetails(draft.details),
+        visibility: draft.visibility ?? "private",
+        campaignId: draft.visibility && draft.visibility !== "private" ? draft.campaignId ?? null : null,
     };
 
     base.initiative = calculateAbilityModifiers(base.abilityScores).dexterity;

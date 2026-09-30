@@ -9,6 +9,13 @@ import * as forgotPasswordRoute from "@/app/api/auth/forgot-password/route";
 import * as resetPasswordRoute from "@/app/api/auth/reset-password/route";
 import * as charactersRoute from "@/app/api/characters/route";
 import * as characterRoute from "@/app/api/characters/[id]/route";
+import * as campaignsRoute from "@/app/api/campaigns/route";
+import * as campaignRoute from "@/app/api/campaigns/[id]/route";
+import * as campaignInviteRoute from "@/app/api/campaigns/[id]/invite/route";
+import * as campaignMemberRoute from "@/app/api/campaigns/[id]/members/[memberId]/route";
+import * as inviteRoute from "@/app/api/invites/[code]/route";
+import * as sharedRoute from "@/app/api/shared/route";
+import * as sharedCharacterRoute from "@/app/api/shared/[ownerId]/[id]/route";
 
 export const APP_ORIGIN = "http://localhost:3000";
 
@@ -43,11 +50,28 @@ function resolveRoute(pathname: string): { route: RouteModule; params: Record<st
     "/api/auth/forgot-password": forgotPasswordRoute,
     "/api/auth/reset-password": resetPasswordRoute,
     "/api/characters": charactersRoute,
+    "/api/campaigns": campaignsRoute,
+    "/api/shared": sharedRoute,
   };
   if (staticRoutes[pathname]) return { route: staticRoutes[pathname], params: {} };
 
   const character = pathname.match(/^\/api\/characters\/([^/]+)$/);
   if (character) return { route: characterRoute as RouteModule, params: { id: decodeURIComponent(character[1]) } };
+
+  const segment = "([^/]+)";
+  const dynamicRoutes: [RegExp, RouteModule, string[]][] = [
+    [new RegExp(`^/api/campaigns/${segment}$`), campaignRoute as RouteModule, ["id"]],
+    [new RegExp(`^/api/campaigns/${segment}/invite$`), campaignInviteRoute as RouteModule, ["id"]],
+    [new RegExp(`^/api/campaigns/${segment}/members/${segment}$`), campaignMemberRoute as RouteModule, ["id", "memberId"]],
+    [new RegExp(`^/api/invites/${segment}$`), inviteRoute as RouteModule, ["code"]],
+    [new RegExp(`^/api/shared/${segment}/${segment}$`), sharedCharacterRoute as RouteModule, ["ownerId", "id"]],
+  ];
+  for (const [pattern, route, names] of dynamicRoutes) {
+    const match = pathname.match(pattern);
+    if (match) {
+      return { route, params: Object.fromEntries(names.map((name, i) => [name, decodeURIComponent(match[i + 1])])) };
+    }
+  }
 
   throw new Error(`No test route for ${pathname}`);
 }

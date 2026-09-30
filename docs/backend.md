@@ -29,7 +29,10 @@ you to other devices.
 - `sessions` - `tokenHash` (sha256 of the cookie value), `userId`, `expiresAt` (TTL, 30 days).
 - `passwordResets` - `tokenHash`, `userId`, `expiresAt` (TTL, 60 minutes), `usedAt`.
 - `characters` - `userId` + `characterId` (unique pair), `data` (the whole
-  `StoredCharacter` as a JSON string), `name`, `updatedAt`, `deletedAt`.
+  `StoredCharacter` as a JSON string), `name`, `updatedAt`, `deletedAt`,
+  `visibility`, `campaignId` (copied out of `data` for sharing queries).
+- `campaigns` - `name`, `description`, `ownerId`, `memberIds`, `inviteCode`
+  (unique), timestamps - see "Sharing & campaigns".
 
 Indexes are created automatically on first request.
 
@@ -81,6 +84,41 @@ What happens to characters already in the browser at sign-in:
 Signing out first tries to upload pending changes (and warns if it can't),
 then removes the account's characters from the browser, so the next person
 using it doesn't see them.
+
+## Sharing & campaigns
+
+Players can let others **view** (never edit) their characters.
+
+- **Visibility** lives on the character itself (`StoredCharacter.visibility`
+  + `campaignId`, see `interfaces/Campaign.ts`), so it syncs like any other
+  edit. The server copies both into indexed fields on `characters` rows.
+  - `private` (default, and what older characters are treated as) - owner only.
+  - `shared` - members of the chosen campaign.
+  - `public` - anyone with the link, no account needed; if a campaign is
+    picked too, it's also listed for that campaign.
+  Picked on the wizard's Review step, the random/import pages, and later from
+  the sheet's **Sharing** button (which also copies the read-only link).
+- **Campaigns** (`campaigns` collection, `server/campaigns.ts`): anyone
+  signed in can create one and becomes its owner/GM. Players join through the
+  invite link `/join/<inviteCode>`. The owner can rename, delete, regenerate
+  the link (old links stop working) and remove players; members can leave.
+- **Read-only view**: `/character/<id>?owner=<userId>`. For anyone but that
+  owner, the sheet fetches `GET /api/shared/<ownerId>/<id>` instead of
+  localStorage, hides every editing control, and its save calls are no-ops -
+  the character is never written to the viewer's storage or synced.
+- **/home** lists the player's own characters, then one section per
+  campaign with the other members' shared/public characters
+  (`GET /api/shared`).
+- Access is checked at read time: a character is only listed/viewable
+  through a campaign while its owner is still a member, so leaving, being
+  removed or deleting the campaign hides it without touching the character.
+  Anything not viewable is a 404 (private ids can't be probed). Writes stay
+  scoped to the signed-in user's own rows, so a viewer can't overwrite
+  someone else's character even with its id.
+
+API: `GET/POST /api/campaigns`, `GET/PUT/DELETE /api/campaigns/[id]`,
+`POST /api/campaigns/[id]/invite`, `DELETE /api/campaigns/[id]/members/[memberId]`,
+`GET/POST /api/invites/[code]`, `GET /api/shared`, `GET /api/shared/[ownerId]/[id]`.
 
 ## Setup
 

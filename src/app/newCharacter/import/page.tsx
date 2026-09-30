@@ -21,6 +21,8 @@ import { toCharacterSummary } from "@/utils/characterSummary";
 import { saveCharacter } from "@/utils/storage";
 import { parseCharacterId } from "@/utils/dndbeyond/characterId";
 import { convertDndBeyondCharacter, isConvertError } from "@/utils/dndbeyond/convert";
+import { SharingPicker } from "@/components/campaigns/SharingPicker";
+import { CharacterSharing, isSharingComplete, sharingPatch } from "@/utils/campaigns";
 
 /**
  * Third "New character" entry point, alongside the step-by-step wizard and
@@ -38,6 +40,9 @@ export default function ImportCharacterPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
+  // Always starts private - an exported file may carry the original
+  // owner's sharing settings, which mean nothing for this copy.
+  const [sharing, setSharing] = useState<CharacterSharing>({ visibility: "private", campaignId: null });
   const [imported, setImported] = useState<StoredCharacter | null>(null);
 
   const [ddbInput, setDdbInput] = useState("");
@@ -113,7 +118,8 @@ export default function ImportCharacterPage() {
 
   function handleConfirm() {
     if (!imported) return;
-    const saved = saveCharacter(imported);
+    if (!isSharingComplete(sharing)) return;
+    const saved = saveCharacter({ ...imported, ...sharingPatch(sharing) });
     router.push(`/character/${saved.id}`);
   }
 
@@ -254,8 +260,17 @@ export default function ImportCharacterPage() {
                 </CardContent>
               </Card>
 
+              <Card>
+                <CardContent className="flex flex-col gap-3">
+                  <h3 className="font-display text-lg tracking-wide text-fontcolor">Who can see this character?</h3>
+                  <SharingPicker value={sharing} onChange={setSharing} />
+                </CardContent>
+              </Card>
+
               <div className="flex flex-wrap items-center gap-3">
-                <Button onClick={handleConfirm}>Save character</Button>
+                <Button onClick={handleConfirm} disabled={!isSharingComplete(sharing)}>
+                  Save character
+                </Button>
                 <Button variant="secondary" onClick={handleChooseDifferent}>
                   Start over
                 </Button>

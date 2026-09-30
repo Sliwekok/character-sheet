@@ -22,7 +22,8 @@ function SlotRow({
     level: number;
     max: number;
     expended: number;
-    onChange: (delta: number) => void;
+    /** Omitted = read-only pips. */
+    onChange?: (delta: number) => void;
     poolLabel: string;
 }) {
     const available = Math.max(0, max - expended);
@@ -38,14 +39,16 @@ function SlotRow({
                         <button
                             key={index}
                             type="button"
-                            onClick={() => onChange(filled ? 1 : -1)}
-                            aria-label={`${poolLabel} ${levelLabel(level)} slot ${index + 1} - ${filled ? "available, click to spend" : "spent, click to restore"}`}
-                            title={filled ? "Available - click to spend" : "Spent - click to restore"}
+                            onClick={() => onChange?.(filled ? 1 : -1)}
+                            disabled={!onChange}
+                            aria-label={`${poolLabel} ${levelLabel(level)} slot ${index + 1} - ${filled ? "available" : "spent"}${onChange ? (filled ? ", click to spend" : ", click to restore") : ""}`}
+                            title={onChange ? (filled ? "Available - click to spend" : "Spent - click to restore") : filled ? "Available" : "Spent"}
                             className={cn(
-                                "h-5 w-5 shrink-0 cursor-pointer rounded-full border-2 transition-colors",
+                                "h-5 w-5 shrink-0 rounded-full border-2 transition-colors",
+                                onChange && "cursor-pointer",
                                 filled
-                                    ? "border-foreground-hover bg-foreground hover:bg-foreground-hover"
-                                    : "border-border-strong bg-transparent hover:border-foreground/70"
+                                    ? cn("border-foreground-hover bg-foreground", onChange && "hover:bg-foreground-hover")
+                                    : cn("border-border-strong bg-transparent", onChange && "hover:border-foreground/70")
                             )}
                         />
                     );
@@ -69,7 +72,7 @@ function SlotPoolRows({
     pool: SlotPool;
     slots: SpellSlots | null;
     expended: Record<number, number> | undefined;
-    onAdjust: (pool: SlotPool, level: number, delta: number) => void;
+    onAdjust?: (pool: SlotPool, level: number, delta: number) => void;
 }) {
     const levels = Object.entries(slots ?? {})
         .filter(([, count]) => (count ?? 0) > 0)
@@ -87,7 +90,7 @@ function SlotPoolRows({
                     max={count}
                     expended={expended?.[level] ?? 0}
                     poolLabel={title}
-                    onChange={(delta) => onAdjust(pool, level, delta)}
+                    onChange={onAdjust ? (delta) => onAdjust(pool, level, delta) : undefined}
                 />
             ))}
         </div>
@@ -113,7 +116,8 @@ export function SpellSlotsPanel({
     pactMagicSlots: SpellSlots | null;
     expendedSpellSlots?: Record<number, number>;
     expendedPactSlots?: Record<number, number>;
-    onAdjust: (pool: SlotPool, level: number, delta: number) => void;
+    /** Omit for a read-only view (a character shared with you). */
+    onAdjust?: (pool: SlotPool, level: number, delta: number) => void;
 }) {
     return (
         <div className="flex flex-col gap-3">
