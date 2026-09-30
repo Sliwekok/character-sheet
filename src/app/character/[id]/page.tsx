@@ -63,6 +63,8 @@ import { DiceRollResult } from "@/utils/dice";
 import { generateId } from "@/utils/id";
 import { getMagicItemCount } from "@/utils/magicItemCount";
 import { SPELL_ACTION_FILTERS, SpellActionFilter, matchesSpellActionFilter } from "@/utils/spellActionType";
+import { useRoll20Sync } from "@/utils/roll20/roll20Bridge";
+import { Roll20SyncButton, Roll20SyncMessage } from "@/components/character/Roll20SyncButton";
 
 /** Most roll history entries anyone actually wants to scroll back through - oldest entries fall off past this so the list (and the id it's stored under, if this ever gets persisted) can't grow unbounded over a long session. */
 const MAX_ROLL_HISTORY = 50;
@@ -395,6 +397,10 @@ export default function CharacterDetailsPage() {
   // upcasting) from the compendium by name - stored `spellsKnown` copies
   // may predate it. Must stay above the early returns below (it's a hook).
   const resolveSpellMechanics = useSpellMechanicsLookup();
+
+  // "Sync with Roll20" button + live HP streaming to Roll20 once synced (see
+  // utils/roll20/roll20Bridge.ts). A hook, so it stays above the early returns.
+  const roll20 = useRoll20Sync(character, resolveSpellMechanics);
 
   if (character === undefined) {
     return <CharacterLoading />;
@@ -869,8 +875,10 @@ export default function CharacterDetailsPage() {
                     </p>
                   </Tooltip>
                 </span>
+                <Roll20SyncButton state={roll20} />
                 <Badge variant="outline">{character.alignment}</Badge>
               </div>
+              <Roll20SyncMessage state={roll20} />
             </CardContent>
           </Card>
 

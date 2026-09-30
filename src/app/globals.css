@@ -9,6 +9,7 @@
   /* text */
   --fontcolor: #f5c45e;
   --fontcolor-secondary: #a9b6cc;
+  --fontcolor-danger: #ff2e2e;
 
   /* accent */
   --foreground: #e78b48;
@@ -37,6 +38,7 @@
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
   --color-foreground-danger: var(--foreground-danger);
+  --color-fontcolor-danger: var(--fontcolor-danger);
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
