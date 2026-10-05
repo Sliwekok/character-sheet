@@ -3,10 +3,12 @@ import type { AbilityScores, Character } from "@/interfaces/Characters";
 import type { MagicItem } from "@/interfaces/MagicItem";
 import {
   getSpellcastingInfo,
+  getMartialArtsWeaponOption,
   getUnarmedStrikeWeapon,
   getWeaponAbility,
   getWeaponAttackInfo,
   getWeaponDamageInfo,
+  isMonkWeapon,
   isProficientWithWeapon,
   sneakAttackDamageBonus,
 } from "@/utils/attackCalculations";
@@ -414,6 +416,96 @@ describe("getUnarmedStrikeWeapon", () => {
   it("uses the Monk die for a multiclassed Monk", () => {
     const character = makeCharacter({ classes: [classLevel(Fighter2024, 3), classLevel(Monk2024, 5)] });
     expect(getUnarmedStrikeWeapon(character).damage.dice).toBe("1d8");
+  });
+});
+
+describe("isMonkWeapon", () => {
+  it.each([
+    ["Shortsword", true],
+    ["Quarterstaff", true],
+    ["Dagger", true],
+    ["Handaxe", true],
+    ["Greatclub", false], // two-handed
+    ["Longsword", false], // martial, not shortsword
+    ["Scimitar", false],
+    ["Dart", false], // ranged
+    ["Shortbow", false],
+  ])("2014: %s -> %s", (name, expected) => {
+    expect(isMonkWeapon(weapon(name), "2014")).toBe(expected);
+  });
+
+  it.each([
+    ["Shortsword", true],
+    ["Scimitar", true], // martial + light
+    ["Quarterstaff", true],
+    ["Greatclub", true], // any simple melee in 2024
+    ["Longsword", false],
+    ["Shortbow", false],
+  ])("2024: %s -> %s", (name, expected) => {
+    expect(isMonkWeapon(weapon(name), "2024")).toBe(expected);
+  });
+
+  it("matches magic shortswords by name (2014)", () => {
+    expect(isMonkWeapon(weapon("Shortsword", { name: "Shortsword +1", bonus: 1 }), "2014")).toBe(true);
+  });
+
+  it("never treats the synthetic Unarmed Strike as a monk weapon", () => {
+    const monk = makeCharacter({ classes: [classLevel(Monk2024, 5)] });
+    expect(isMonkWeapon(getUnarmedStrikeWeapon(monk), "2024")).toBe(false);
+  });
+});
+
+describe("Martial Arts on monk weapons", () => {
+  const monk = (level: number, overrides: Partial<Character> = {}) =>
+    makeCharacter({
+      edition: "2014",
+      classes: [classLevel(Monk2014, level)],
+      abilityScores: withScores({ strength: 10, dexterity: 16 }),
+      ...overrides,
+    });
+
+  it("offers the Martial Arts die for a monk weapon only", () => {
+    expect(getMartialArtsWeaponOption(monk(5), weapon("Shortsword"))).toMatchObject({ die: 6, diceFormula: "1d6", active: true });
+    expect(getMartialArtsWeaponOption(monk(5), weapon("Longsword"))).toBeUndefined();
+    expect(getMartialArtsWeaponOption(fighter({}), weapon("Shortsword"))).toBeUndefined();
+  });
+
+  it("replaces the weapon die only when asked to", () => {
+    expect(getWeaponDamageInfo(monk(11), weapon("Dagger")).diceFormula).toBe("1d4");
+    const info = getWeaponDamageInfo(monk(11), weapon("Dagger"), false, false, true);
+    expect(info).toMatchObject({ diceFormula: "1d8", martialArtsDie: true, flatBonus: 3 });
+    expect(info.lines).toContainEqual({ label: "Martial Arts die (Monk 11)", value: "1d8" });
+    expect(info.lines).toContainEqual({ label: "Replaces weapon die", value: "1d4" });
+  });
+
+  it("replaces the versatile die too", () => {
+    expect(getWeaponDamageInfo(monk(1), weapon("Quarterstaff"), true, false, true).diceFormula).toBe("1d4");
+  });
+
+  it("uses the 2024 Monk die", () => {
+    const monk2024 = makeCharacter({ classes: [classLevel(Monk2024, 5)] });
+    expect(getWeaponDamageInfo(monk2024, weapon("Scimitar"), false, false, true).diceFormula).toBe("1d8");
+  });
+
+  it("lets a monk weapon use Dexterity when it's better", () => {
+    const attack = getWeaponAttackInfo(monk(1), weapon("Quarterstaff"));
+    expect(attack).toMatchObject({ ability: "dexterity", attackBonus: 5 });
+    expect(attack.lines[0].label).toBe("Dexterity modifier (Martial Arts)");
+    expect(getWeaponDamageInfo(monk(1), weapon("Quarterstaff")).flatBonus).toBe(3);
+  });
+
+  it("is off while wearing armor or a shield", () => {
+    const armored = monk(5, { armors: [armor("Leather", { equipped: true })] });
+    expect(getMartialArtsWeaponOption(armored, weapon("Shortsword"))?.active).toBe(false);
+    expect(getWeaponDamageInfo(armored, weapon("Shortsword"), false, false, true)).toMatchObject({ diceFormula: "1d6", martialArtsDie: false });
+    expect(getWeaponAttackInfo(armored, weapon("Quarterstaff")).ability).toBe("strength");
+    const shielded = monk(5, { armors: [armor("Shield", { equipped: true })] });
+    expect(getMartialArtsWeaponOption(shielded, weapon("Shortsword"))?.active).toBe(false);
+  });
+
+  it("ignores owned-but-unequipped armor", () => {
+    const carrying = monk(5, { armors: [armor("Leather", { equipped: false })] });
+    expect(getWeaponDamageInfo(carrying, weapon("Shortsword"), false, false, true).diceFormula).toBe("1d6");
   });
 });
 

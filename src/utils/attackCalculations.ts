@@ -5,6 +5,7 @@ import { calculateProficiencyBonus } from "@/utils/calculateProficiencyBonus";
 import { ABILITY_LABELS } from "@/utils/statBreakdowns";
 import { StatLine, formatEquationTerm, formatSigned } from "@/utils/statLine";
 import { getChosenFightingStyleEffects } from "@/utils/fightingStyles";
+import { getEquippedArmor, getEquippedShield } from "@/utils/armor";
 
 /**
  * Which ability a weapon's attack/damage rolls use. Finesse weapons use
@@ -13,12 +14,35 @@ import { getChosenFightingStyleEffects } from "@/utils/fightingStyles";
  * else - including thrown weapons like handaxes/javelins that lack finesse
  * - uses Str, same as melee RAW.
  */
-export function getWeaponAbility(weapon: Weapon, abilityScores: AbilityScores): keyof AbilityScores {
+export function getWeaponAbility(
+  weapon: Weapon,
+  abilityScores: AbilityScores,
+  /** Treat the weapon as finesse even if it isn't - e.g. a monk weapon under Martial Arts (see `getCharacterWeaponAbility`). */
+  allowFinesse = false
+): keyof AbilityScores {
   const modifiers = calculateAbilityModifiers(abilityScores);
-  if (weapon.properties.includes("finesse")) {
+  if (allowFinesse || weapon.properties.includes("finesse")) {
     return modifiers.dexterity > modifiers.strength ? "dexterity" : "strength";
   }
   return weapon.type === "ranged" ? "dexterity" : "strength";
+}
+
+/**
+ * `getWeaponAbility` for a weapon in this character's hands: additionally
+ * lets an ACTIVE Martial Arts monk weapon use Dexterity when it's better
+ * (RAW: "you can use Dexterity instead of Strength for the attack and
+ * damage rolls of your unarmed strikes and monk weapons"). `martialArts`
+ * is true when that's what flipped the ability, for the tooltip line.
+ */
+function getCharacterWeaponAbility(
+  character: Character,
+  weapon: Weapon
+): { ability: keyof AbilityScores; martialArts: boolean } {
+  const base = getWeaponAbility(weapon, character.abilityScores);
+  const option = getMartialArtsWeaponOption(character, weapon);
+  if (!option?.active || !option.alternativeAbility) return { ability: base, martialArts: false };
+  const ability = getWeaponAbility(weapon, character.abilityScores, true);
+  return { ability, martialArts: ability !== base };
 }
 
 /**
@@ -55,6 +79,116 @@ export function isProficientWithWeapon(character: Character, weapon: Weapon): bo
 }
 
 /**
+ * Whether the character currently counts as "not wearing armor or wielding
+ * a shield" for Martial Arts - reads the `armors` list via utils/armor.ts
+ * (`getEquippedArmor`/`getEquippedShield`), plus the legacy single
+ * `equippedArmor`/`shield` fields for characters saved before `armors`
+ * existed.
+ */
+function isUnarmoredForMartialArts(character: Character): boolean {
+  return !getEquippedArmor(character) && !getEquippedShield(character) && !character.equippedArmor && !character.shield;
+}
+
+export type MartialArtsProgression = {
+  /** Die SIZE (4 for d4, ...) at the character's current level in `className`. */
+  die: number;
+  /** Name of the class granting it (e.g. "Monk") - for tooltip lines. */
+  className: string;
+  /** That class's own edition - decides which "monk weapon" definition applies (see `isMonkWeapon`). */
+  edition: Character["edition"];
+  /** Level in `className` the die was looked up at. */
+  classLevel: number;
+  alternativeAbility?: keyof AbilityScores;
+};
+
+/**
+ * The highest Martial Arts-style die (`CharacterClass.unarmedStrike`) the
+ * character has reached across all their classes, IGNORING the armor/shield
+ * condition - callers check that separately via `isUnarmoredForMartialArts`
+ * so the UI can explain why the feature is off. Undefined for a character
+ * with no such class levels.
+ */
+export function getMartialArtsProgression(character: Character): MartialArtsProgression | undefined {
+  let best: MartialArtsProgression | undefined;
+  for (const { class: charClass, level } of character.classes) {
+    const progression = charClass.unarmedStrike;
+    if (!progression) continue;
+    const reachedLevels = Object.keys(progression.dieByLevel)
+      .map(Number)
+      .filter((threshold) => threshold <= level);
+    if (reachedLevels.length === 0) continue;
+
+    const die = progression.dieByLevel[Math.max(...reachedLevels)];
+    if (!best || die > best.die) {
+      best = {
+        die,
+        className: charClass.name,
+        edition: charClass.edition,
+        classLevel: level,
+        alternativeAbility: progression.alternativeAbility ?? best?.alternativeAbility,
+      };
+    } else if (progression.alternativeAbility && !best.alternativeAbility) {
+      best.alternativeAbility = progression.alternativeAbility;
+    }
+  }
+  return best;
+}
+
+/**
+ * Whether `weapon` is a "monk weapon" Martial Arts applies to:
+ *   - 2014 PHB: shortswords, plus any simple melee weapon without the
+ *     two-handed or heavy property.
+ *   - 2024 PHB: any Simple Melee weapon, plus Martial Melee weapons with the
+ *     Light property (e.g. Shortsword, Scimitar).
+ * Name matching on "shortsword" also catches magic variants like
+ * "Shortsword +1". The synthetic Unarmed Strike is excluded - it already
+ * gets the Martial Arts die via `getUnarmedStrikeWeapon`.
+ */
+export function isMonkWeapon(weapon: Weapon, edition: Character["edition"]): boolean {
+  if (weapon.isUnarmedStrike || weapon.type !== "melee") return false;
+  if (edition === "2024") {
+    return weapon.category === "simple" || (weapon.category === "martial" && weapon.properties.includes("light"));
+  }
+  if (weapon.name.toLowerCase().includes("shortsword")) return true;
+  return (
+    weapon.category === "simple" && !weapon.properties.includes("two-handed") && !weapon.properties.includes("heavy")
+  );
+}
+
+export type MartialArtsWeaponOption = {
+  /** Die SIZE (4 for d4, ...). */
+  die: number;
+  /** e.g. "1d6". */
+  diceFormula: string;
+  className: string;
+  classLevel: number;
+  /** False while wearing armor or a shield - Martial Arts is switched off (RAW), so the option can be shown but not used. */
+  active: boolean;
+  alternativeAbility?: keyof AbilityScores;
+};
+
+/**
+ * The Martial Arts damage-die swap available for this particular weapon,
+ * or undefined if the character has no Martial Arts levels or the weapon
+ * isn't a monk weapon (see `isMonkWeapon`). RAW also requires "wielding
+ * only monk weapons" - like `fightingStyleDamageBonus`, this app doesn't
+ * track which carried weapon is in-hand, so only the armor/shield part of
+ * the condition is checked (`active`).
+ */
+export function getMartialArtsWeaponOption(character: Character, weapon: Weapon): MartialArtsWeaponOption | undefined {
+  const progression = getMartialArtsProgression(character);
+  if (!progression || !isMonkWeapon(weapon, progression.edition)) return undefined;
+  return {
+    die: progression.die,
+    diceFormula: `1d${progression.die}`,
+    className: progression.className,
+    classLevel: progression.classLevel,
+    active: isUnarmoredForMartialArts(character),
+    alternativeAbility: progression.alternativeAbility,
+  };
+}
+
+/**
  * Builds the synthetic `Weapon` representing this character's Unarmed
  * Strike, so it can be fed straight into `getWeaponAttackInfo`/
  * `getWeaponDamageInfo`/`<WeaponEntry>` like any carried weapon. Base RAW
@@ -65,42 +199,24 @@ export function isProficientWithWeapon(character: Character, weapon: Weapon): bo
  *
  * If any of the character's classes grants an `unarmedStrike` progression
  * (e.g. a Monk's Martial Arts), the HIGHEST such die across all of them
- * replaces that flat 1 (RAW: the feature die replaces the base damage, it
- * doesn't add to it) once the character has reached the level it's gained
- * at, and - approximating the RAW "unarmed or wielding only monk weapons,
- * and not wearing armor or wielding a shield" condition the same way
- * `calculateArmorClass.ts` approximates Unarmored Defense (by checking
- * `equippedArmor`/`shield` rather than tracking which weapon is literally
- * in-hand) - only while the character has no armor or shield equipped.
- * When active, the weapon is marked `finesse` so `getWeaponAbility` picks
- * whichever of Strength/Dexterity is actually better, mirroring how a
- * Monk can choose Dexterity for their unarmed strikes.
+ * (`getMartialArtsProgression`) replaces that flat 1 (RAW: the feature die
+ * replaces the base damage, it doesn't add to it) - only while the
+ * character has no armor or shield equipped (`isUnarmoredForMartialArts`,
+ * the same approximation `calculateArmorClass.ts` uses for Unarmored
+ * Defense). When active, the weapon is marked `finesse` so
+ * `getWeaponAbility` picks whichever of Strength/Dexterity is actually
+ * better, mirroring how a Monk can choose Dexterity for their unarmed
+ * strikes.
  */
 export function getUnarmedStrikeWeapon(character: Character): Weapon {
-  const unarmored = !character.equippedArmor && !character.shield;
-  let die: number | undefined;
-  let allowsAlternativeAbility = false;
-  if (unarmored) {
-    for (const { class: charClass, level } of character.classes) {
-      const progression = charClass.unarmedStrike;
-      if (!progression) continue;
-      const reachedLevels = Object.keys(progression.dieByLevel)
-        .map(Number)
-        .filter((threshold) => threshold <= level);
-      if (reachedLevels.length === 0) continue;
-
-      const classDie = progression.dieByLevel[Math.max(...reachedLevels)];
-      if (die === undefined || classDie > die) die = classDie;
-      if (progression.alternativeAbility) allowsAlternativeAbility = true;
-    }
-  }
+  const progression = isUnarmoredForMartialArts(character) ? getMartialArtsProgression(character) : undefined;
 
   return {
     name: "Unarmed Strike",
     category: "simple",
     type: "melee",
-    damage: { dice: die ? `1d${die}` : "1", type: "bludgeoning" },
-    properties: allowsAlternativeAbility ? ["finesse"] : [],
+    damage: { dice: progression ? `1d${progression.die}` : "1", type: "bludgeoning" },
+    properties: progression?.alternativeAbility ? ["finesse"] : [],
     weight: 0,
     isUnarmedStrike: true,
   };
@@ -196,7 +312,7 @@ export type WeaponAttackInfo = {
 
 /** Attack-roll bonus for one weapon in this character's hands, plus the line-by-line breakdown shown in its info tooltip. */
 export function getWeaponAttackInfo(character: Character, weapon: Weapon): WeaponAttackInfo {
-  const ability = getWeaponAbility(weapon, character.abilityScores);
+  const { ability, martialArts: abilityFromMartialArts } = getCharacterWeaponAbility(character, weapon);
   const abilityModifier = calculateAbilityModifiers(character.abilityScores)[ability];
   const proficient = isProficientWithWeapon(character, weapon);
   const proficiencyBonus = proficient ? calculateProficiencyBonus(character) : 0;
@@ -206,7 +322,10 @@ export function getWeaponAttackInfo(character: Character, weapon: Weapon): Weapo
   const attackBonus = abilityModifier + proficiencyBonus + magicBonus + magicItems.total + fightingStyle.total;
 
   const lines: StatLine[] = [
-    { label: `${ABILITY_LABELS[ability]} modifier`, value: formatSigned(abilityModifier) },
+    {
+      label: `${ABILITY_LABELS[ability]} modifier${abilityFromMartialArts ? " (Martial Arts)" : ""}`,
+      value: formatSigned(abilityModifier),
+    },
     { label: "Proficiency bonus", value: proficient ? formatSigned(proficiencyBonus) : "+0 (not proficient)" },
   ];
   if (magicBonus) lines.push({ label: "Magic bonus", value: formatSigned(magicBonus) });
@@ -277,25 +396,50 @@ export type WeaponDamageInfo = {
   fightingStyleBonus: number;
   /** Extra Sneak Attack damage dice (always d6s) from a Rogue level, if any - see `sneakAttackDamageBonus`'s header comment for the RAW conditions this app doesn't track. Kept separate from `flatBonus` (a flat number) since this is a dice COUNT, not a modifier. */
   sneakAttackDice: number;
+  /** True when the weapon's own die was replaced by the Martial Arts die (see `getMartialArtsWeaponOption`). */
+  martialArtsDie: boolean;
   flatBonus: number;
   lines: StatLine[];
 };
 
-/** Damage dice + flat bonus for one weapon, plus the breakdown shown in its info tooltip. Pass `useVersatile` to use `weapon.versatileDamage` (two-handed) instead of the one-handed `weapon.damage.dice`. */
-export function getWeaponDamageInfo(character: Character, weapon: Weapon, useVersatile = false, useSneakAttack = false): WeaponDamageInfo {
-  const ability = getWeaponAbility(weapon, character.abilityScores);
+/**
+ * Damage dice + flat bonus for one weapon, plus the breakdown shown in its
+ * info tooltip. Pass `useVersatile` to use `weapon.versatileDamage`
+ * (two-handed) instead of the one-handed `weapon.damage.dice`, and
+ * `useMartialArts` to replace the weapon's die with the character's Martial
+ * Arts die - ignored unless `getMartialArtsWeaponOption` says it's a monk
+ * weapon and Martial Arts is active (no armor/shield). The Martial Arts die
+ * replaces whichever die would otherwise be rolled, versatile included.
+ */
+export function getWeaponDamageInfo(
+  character: Character,
+  weapon: Weapon,
+  useVersatile = false,
+  useSneakAttack = false,
+  useMartialArts = false
+): WeaponDamageInfo {
+  const { ability, martialArts: abilityFromMartialArts } = getCharacterWeaponAbility(character, weapon);
   const abilityModifier = calculateAbilityModifiers(character.abilityScores)[ability];
   const magicBonus = weapon.bonus ?? 0;
   const magicItems = magicItemBonusTotal(character, "damageRolls");
   const fightingStyle = fightingStyleDamageBonus(character, weapon, useVersatile);
   const sneakAttack = useSneakAttack ? sneakAttackDamageBonus(character) : { dice: 0, lines: [] };
   const flatBonus = abilityModifier + magicBonus + magicItems.total + fightingStyle.total;
-  const diceFormula = useVersatile && weapon.versatileDamage ? weapon.versatileDamage : weapon.damage.dice;
+  const weaponDice = useVersatile && weapon.versatileDamage ? weapon.versatileDamage : weapon.damage.dice;
+  const martialArts = useMartialArts ? getMartialArtsWeaponOption(character, weapon) : undefined;
+  const martialArtsDie = !!martialArts?.active;
+  const diceFormula = martialArtsDie && martialArts ? martialArts.diceFormula : weaponDice;
 
-  const lines: StatLine[] = [
-    { label: "Base damage", value: diceFormula },
-    { label: `${ABILITY_LABELS[ability]} modifier`, value: formatSigned(abilityModifier) },
-  ];
+  const lines: StatLine[] = martialArtsDie && martialArts
+    ? [
+        { label: `Martial Arts die (${martialArts.className} ${martialArts.classLevel})`, value: diceFormula },
+        { label: "Replaces weapon die", value: weaponDice },
+      ]
+    : [{ label: "Base damage", value: diceFormula }];
+  lines.push({
+    label: `${ABILITY_LABELS[ability]} modifier${abilityFromMartialArts ? " (Martial Arts)" : ""}`,
+    value: formatSigned(abilityModifier),
+  });
   if (magicBonus) lines.push({ label: "Magic bonus", value: formatSigned(magicBonus) });
   lines.push(...magicItems.lines);
   lines.push(...fightingStyle.lines);
@@ -310,6 +454,7 @@ export function getWeaponDamageInfo(character: Character, weapon: Weapon, useVer
     magicItemBonus: magicItems.total,
     fightingStyleBonus: fightingStyle.total,
     sneakAttackDice: sneakAttack.dice,
+    martialArtsDie,
     flatBonus,
     lines,
   };

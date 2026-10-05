@@ -4,7 +4,12 @@ import { useState } from "react";
 import { Character } from "@/interfaces/Characters";
 import { Weapon } from "@/interfaces/Weapon";
 import { Badge, Button, Tooltip, formatModifier } from "@/components/ui";
-import { getWeaponAttackInfo, getWeaponDamageInfo, sneakAttackDamageBonus} from "@/utils/attackCalculations";
+import {
+  getMartialArtsWeaponOption,
+  getWeaponAttackInfo,
+  getWeaponDamageInfo,
+  sneakAttackDamageBonus,
+} from "@/utils/attackCalculations";
 import { DiceRollResult, describeDiceRoll, rollD20, rollDiceFormula } from "@/utils/dice";
 import { cn } from "@/utils/cn";
 import {
@@ -42,6 +47,12 @@ type RolledResult = { label: string; result: DiceRollResult };
  *     Nick's extra attack, Vex's advantage follow-up) - their own "Roll ..."
  *     button next to "Roll attack"/"Roll damage".
  *
+ * A monk weapon (see `isMonkWeapon` in utils/attackCalculations.ts) held by
+ * a character with Martial Arts levels gets a "Martial Arts die" checkbox
+ * that swaps the weapon's damage die for the Martial Arts die in both the
+ * displayed damage and "Roll damage". It's disabled (with the reason shown)
+ * while armor or a shield is equipped, since Martial Arts is off then.
+ *
  * `index` is this weapon's position in `character.weapons` - the only
  * identity a weapon has (see utils/weaponMastery.ts) - and `onToggleMastery`
  * is how a checkbox change gets persisted by the parent page (it calls
@@ -75,9 +86,11 @@ export function WeaponEntry({
   const [useVersatile, setUseVersatile] = useState(false);
   const [rolled, setRolled] = useState<RolledResult | null>(null);
   const [useSneakAttack, setUseSneakAttack] = useState(false);
+  const [useMartialArts, setUseMartialArts] = useState(false);
 
+  const martialArts = getMartialArtsWeaponOption(character, weapon);
   const attack = getWeaponAttackInfo(character, weapon);
-  const damage = getWeaponDamageInfo(character, weapon, useVersatile, useSneakAttack);
+  const damage = getWeaponDamageInfo(character, weapon, useVersatile, useSneakAttack, useMartialArts);
 
   const masteryEffect = weapon.mastery ? WEAPON_MASTERY_EFFECTS[weapon.mastery] : undefined;
   const masteryCap = getWeaponMasteryCount(character.classes, character.edition);
@@ -111,7 +124,7 @@ export function WeaponEntry({
         total: weaponRoll.total + sneakRoll.diceTotal,
       };
     }
-    const label = `Damage (${damage.damageType})${damage.sneakAttackDice > 0 ? " + Sneak Attack" : ""}`;
+    const label = `Damage (${damage.damageType})${damage.martialArtsDie ? " · Martial Arts" : ""}${damage.sneakAttackDice > 0 ? " + Sneak Attack" : ""}`;
     setRolled({ label, result });
     onRoll?.(`${weapon.name} — ${label}`, result);
   }
@@ -225,6 +238,29 @@ export function WeaponEntry({
           <Button size="sm" variant="accent" onClick={rollMasteryAttack} className="m-2">
             {masteryEffect.rollLabel}
           </Button>
+      )}
+
+      {martialArts && (
+          <label
+            className={cn(
+              "flex w-fit items-center gap-1.5 text-xs",
+              martialArts.active ? "text-fontcolor-secondary" : "text-fontcolor-secondary/50"
+            )}
+            title={
+              martialArts.active
+                ? `Replace this weapon's damage die with your ${martialArts.className} Martial Arts die (${martialArts.diceFormula})`
+                : "Martial Arts doesn't work while wearing armor or wielding a shield"
+            }
+          >
+            <input
+                type="checkbox"
+                checked={useMartialArts && martialArts.active}
+                disabled={!martialArts.active}
+                onChange={(event) => setUseMartialArts(event.target.checked)}
+                className="h-3.5 w-3.5 accent-foreground"
+            />
+            Martial Arts die ({martialArts.diceFormula}){!martialArts.active && " - off while wearing armor/shield"}
+          </label>
       )}
 
       {sneakAttackUnlocked && (
