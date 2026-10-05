@@ -17,6 +17,14 @@ import { defineConfig } from "vitest/config";
 const srcDir = fileURLToPath(new URL("./src", import.meta.url));
 const serverOnlyStub = fileURLToPath(new URL("./tests/stubs/server-only.ts", import.meta.url));
 
+// Node 25+ turns on its own Web Storage by default: a global `localStorage` that, without
+// --localstorage-file, is undefined and shadows jsdom's - so every window.localStorage call
+// in the jsdom tests throws. Switch Node's version off in the test workers (older Nodes that
+// don't know the flag are left alone).
+const nodeWebStorageOff = process.allowedNodeEnvironmentFlags.has("--no-experimental-webstorage")
+  ? ["--no-experimental-webstorage"]
+  : [];
+
 const shared = {
   // tsconfig says `jsx: preserve` (Next compiles JSX itself) - tests need it compiled.
   esbuild: { jsx: "automatic" as const },
@@ -31,6 +39,10 @@ export default defineConfig({
     // Keep random dice/uuid tests from leaking mocks into each other.
     restoreMocks: true,
     unstubGlobals: true,
+    poolOptions: {
+      forks: { execArgv: nodeWebStorageOff },
+      threads: { execArgv: nodeWebStorageOff },
+    },
     coverage: {
       provider: "v8",
       include: ["src/**/*.{ts,tsx}"],
