@@ -33,9 +33,9 @@ export const MonkSubclasses: Subclass[] = [
         grantedAtLevel: 3,
         description: "Warriors of Shadow practice stealth and subterfuge, harnessing the power of the Shadowfell. They are at home in darkness, able to draw gloom around themselves to hide, leap from shadow to shadow, and take on a wraithlike form.",
         features: [
+            { name: "Shadow Arts", level: 3, description: "You have learned to draw on the power of the Shadowfell, gaining the following benefits." },
             { name: "Darkness", level: 3, description: "You can expend 1 Focus Point to cast the Darkness spell without spell components. You can see within the spell's area when you cast it with this feature. While the spell persists, you can move its area of Darkness to a space within 60 feet of yourself at the start of each of your turns." },
             { name: "Darkvision", level: 3, description: "You gain Darkvision with a range of 60 feet. If you already have Darkvision, its range increases by 60 feet." },
-            { name: "Shadow Arts", level: 3, description: "You have learned to draw on the power of the Shadowfell, gaining the following benefits." },
             { name: "Shadowy Figments", level: 3, description: "You know the Minor Illusion spell. Wisdom is your spellcasting ability for it." },
             { name: "Shadow Step", level: 6, description: "While entirely within Dim Light or Darkness, you can use a Bonus Action to teleport up to 60 feet to an unoccupied space you can see that is also in Dim Light or Darkness. You then have Advantage on the next melee attack you make before the end of the current turn." },
             { name: "Improved Shadow Step", level: 11, description: "You can draw on your Shadowfell connection to empower your teleportation. When you use your Shadow Step, you can expend 1 Focus Point to remove the requirement that you must start and end in Dim Light or Darkness for that use of the feature. As part of this Bonus Action, you can make an Unarmed Strike immediately after you teleport." },
