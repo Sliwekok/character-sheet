@@ -65,6 +65,8 @@ import { getMagicItemCount } from "@/utils/magicItemCount";
 import { SPELL_ACTION_FILTERS, SpellActionFilter, matchesSpellActionFilter } from "@/utils/spellActionType";
 import { useRoll20Sync } from "@/utils/roll20/roll20Bridge";
 import { Roll20SyncButton, Roll20SyncMessage } from "@/components/character/Roll20SyncButton";
+import { useRoll20RollVisibility } from "@/utils/roll20/roll20RollVisibility";
+import { Roll20RollVisibilityToggle } from "@/components/character/Roll20RollVisibilityToggle";
 import { useSharedCharacter } from "@/components/campaigns/useSharedCharacter";
 import { SharingDialog } from "@/components/campaigns/SharingDialog";
 import { CharacterSharing, getCharacterSharing, sharingPatch, VISIBILITY_LABELS } from "@/utils/campaigns";
@@ -427,6 +429,9 @@ export default function CharacterDetailsPage() {
   // "Sync with Roll20" button + live HP streaming to Roll20 once synced (see
   // utils/roll20/roll20Bridge.ts). A hook, so it stays above the early returns.
   const roll20 = useRoll20Sync(character, resolveSpellMechanics);
+  // Public / GM only toggle in the header - decides whether the Roll20
+  // extension posts forwarded rolls to everyone or whispers them to the GM.
+  const [rollVisibility, setRollVisibility] = useRoll20RollVisibility();
 
   if (character === undefined) {
     return <CharacterLoading />;
@@ -791,9 +796,10 @@ export default function CharacterDetailsPage() {
 
     // Forwards the roll to the "Character Sheet -> Roll20 Chat" browser
     // extension, if installed - it listens for this postMessage on the page
-    // and relays it into whatever Roll20 tab is open. A no-op with the
-    // extension absent (nothing is listening, so the message just goes
-    // nowhere). See roll20-chat-extension/README.md for the other half.
+    // and relays it into whatever Roll20 tab is open, as a public message or
+    // a /w gm whisper per `rollVisibility` (the header toggle). A no-op with
+    // the extension absent (nothing is listening, so the message just goes
+    // nowhere). See character-sheet-extension-roll20/README.md for the other half.
     if (typeof window !== "undefined") {
       window.postMessage(
         {
@@ -802,6 +808,7 @@ export default function CharacterDetailsPage() {
           label,
           result,
           characterName: character?.name,
+          visibility: rollVisibility,
         },
         window.location.origin
       );
@@ -950,6 +957,7 @@ export default function CharacterDetailsPage() {
                 <Roll20SyncButton state={roll20} />
                 </>
                 )}
+                <Roll20RollVisibilityToggle value={rollVisibility} onChange={setRollVisibility} />
                 {!readOnly && (
                   <button
                     type="button"
