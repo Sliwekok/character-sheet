@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -70,6 +70,33 @@ import { Roll20RollVisibilityToggle } from "@/components/character/Roll20RollVis
 import { useSharedCharacter } from "@/components/campaigns/useSharedCharacter";
 import { SharingDialog } from "@/components/campaigns/SharingDialog";
 import { CharacterSharing, getCharacterSharing, sharingPatch, VISIBILITY_LABELS } from "@/utils/campaigns";
+
+/** Small uppercase caption above a control in the sheet's header cards (Actions / Miscellaneous). */
+function HeaderFieldLabel({ children }: { children: ReactNode }) {
+  return (
+    <span className="text-[11px] font-semibold uppercase tracking-wide text-fontcolor-secondary">{children}</span>
+  );
+}
+
+/**
+ * One headline number in the header's "Character" card (AC / Initiative /
+ * Proficiency) - same dark tile treatment as the sidebar's ability scores,
+ * so the two read as one family. The tooltip sits beside the value so its
+ * breakdown is one hover away, as everywhere else on the sheet.
+ */
+function HeaderStatTile({ label, value, tooltip }: { label: string; value: ReactNode; tooltip: ReactNode }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-1.5 rounded-(--radius-sm) bg-background-darken/60 px-2 py-3 text-center">
+      <span className="text-[11px] font-semibold uppercase leading-tight tracking-wide text-fontcolor-secondary">
+        {label}
+      </span>
+      <span className="flex items-center gap-1">
+        <span className="text-2xl font-bold leading-none text-fontcolor">{value}</span>
+        {tooltip}
+      </span>
+    </div>
+  );
+}
 
 /** Most roll history entries anyone actually wants to scroll back through - oldest entries fall off past this so the list (and the id it's stored under, if this ever gets persisted) can't grow unbounded over a long session. */
 const MAX_ROLL_HISTORY = 50;
@@ -894,85 +921,130 @@ export default function CharacterDetailsPage() {
             </Card>
           )}
 
-          <Card>
-            <CardContent className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="flex items-center gap-1">
-                  <Badge variant="solid">AC {ac.total}</Badge>
-                  <Tooltip title="Armor Class" lines={ac.lines} />
-                </span>
-                <span className="flex items-center gap-1">
-                  {/* `hp.total` (the tooltip's own sum), not the stored `character.maxHP` -
-                      they agree for anything saved since per-level HP history/the minimum-1-per-level
-                      fix, but this keeps a character saved before either existed from showing a
-                      badge that disagrees with its own tooltip breakdown. Double-click to edit. */}
-                  <HitPointsEditor
-                    currentHp={character.currentHP}
-                    maxHp={hp.total}
-                    onChange={readOnly ? undefined : handleSetCurrentHp}
+          {/* Header row - three equal-height cards side by side on desktop
+              (stacked on smaller screens): Character vitals, Actions (rests +
+              Roll20 sync) and Miscellaneous (roll visibility, sharing,
+              alignment). A read-only viewer can't rest or sync, so the Actions
+              card is dropped there and the other two share the row. */}
+          <div className={`grid grid-cols-1 items-stretch gap-6 ${readOnly ? "lg:grid-cols-2" : "lg:grid-cols-3"}`}>
+            <Card className="flex h-full flex-col">
+              <CardHeader>
+                <CardTitle>Character</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-1 flex-col gap-4">
+                <div className="grid grid-cols-3 gap-2">
+                  <HeaderStatTile
+                    label="AC"
+                    value={ac.total}
+                    tooltip={<Tooltip title="Armor Class" lines={ac.lines} />}
                   />
-                  <Tooltip title="Max HP" lines={hp.lines} />
-                </span>
-                <span className="flex items-center gap-1">
-                  <Badge variant="muted">Hit Dice {formatHitDicePools(hitDicePools)}</Badge>
-                  <Tooltip
-                    title="Hit Dice"
-                    lines={hitDicePools.map((pool) => ({ label: `d${pool.hitDie}`, value: `${pool.remaining}/${pool.total} left` }))}
+                  <HeaderStatTile
+                    label="Initiative"
+                    value={formatModifier(character.initiative)}
+                    tooltip={<Tooltip title="Initiative" lines={initiative.lines} />}
                   />
-                </span>
-                <span className="flex items-center gap-1">
-                  <Badge variant="muted">Initiative {formatModifier(character.initiative)}</Badge>
-                  <Tooltip title="Initiative" lines={initiative.lines} />
-                </span>
-                <span className="flex items-center gap-1">
-                  <Badge variant="muted">Proficiency {formatModifier(calculateProficiencyBonus(character))}</Badge>
-                  <Tooltip title="Proficiency" lines={getProficiencyBonusBreakdown(character)} />
-                </span>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {!readOnly && (
-                <>
-                <span className="flex items-center gap-1">
-                  <Button size="sm" variant="secondary" onClick={() => setShowShortRest(true)}>
-                    Short rest
-                  </Button>
-                  <Tooltip title="Short rest">
-                    <p>
-                      Choose how many Hit Dice to spend - each heals its roll plus your Constitution modifier. Also
-                      restores all spent Pact Magic slots; regular spell slots only come back on a Long rest.
-                    </p>
-                  </Tooltip>
-                </span>
-                <span className="flex items-center gap-1">
-                  <Button size="sm" variant="secondary" onClick={handleLongRest}>
-                    Long rest
-                  </Button>
-                  <Tooltip title="Long rest">
-                    <p>
-                      Restores HP to max and every spent spell slot (and Pact Magic slot) to full, and recovers spent Hit
-                      Dice ({character.edition === "2024" ? "all of them" : "up to half your total"}).
-                    </p>
-                  </Tooltip>
-                </span>
-                <Roll20SyncButton state={roll20} />
-                </>
-                )}
-                <Roll20RollVisibilityToggle value={rollVisibility} onChange={setRollVisibility} />
-                {!readOnly && (
-                  <button
-                    type="button"
-                    onClick={() => setShowSharing(true)}
-                    title="Who can see this character - click to change or copy its link"
-                    className="cursor-pointer rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
-                  >
-                    <Badge variant="muted">{VISIBILITY_LABELS[getCharacterSharing(character).visibility]}</Badge>
-                  </button>
-                )}
-                <Badge variant="outline">{character.alignment}</Badge>
-              </div>
-              {!readOnly && <Roll20SyncMessage state={roll20} />}
-            </CardContent>
-          </Card>
+                  <HeaderStatTile
+                    label="Proficiency"
+                    value={formatModifier(calculateProficiencyBonus(character))}
+                    tooltip={<Tooltip title="Proficiency" lines={getProficiencyBonusBreakdown(character)} />}
+                  />
+                </div>
+                <div className="mt-auto flex flex-wrap items-center gap-3 border-t border-border pt-4">
+                  <span className="flex items-center gap-1">
+                    {/* `hp.total` (the tooltip's own sum), not the stored `character.maxHP` -
+                        they agree for anything saved since per-level HP history/the minimum-1-per-level
+                        fix, but this keeps a character saved before either existed from showing a
+                        badge that disagrees with its own tooltip breakdown. Double-click to edit. */}
+                    <HitPointsEditor
+                      currentHp={character.currentHP}
+                      maxHp={hp.total}
+                      onChange={readOnly ? undefined : handleSetCurrentHp}
+                    />
+                    <Tooltip title="Max HP" lines={hp.lines} />
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Badge variant="muted">Hit Dice {formatHitDicePools(hitDicePools)}</Badge>
+                    <Tooltip
+                      title="Hit Dice"
+                      lines={hitDicePools.map((pool) => ({ label: `d${pool.hitDie}`, value: `${pool.remaining}/${pool.total} left` }))}
+                    />
+                  </span>
+                  <div className="flex flex-col items-start gap-2">
+                    <Badge variant="outline">{character.alignment}</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {!readOnly && (
+              <Card className="flex h-full flex-col">
+                <CardHeader>
+                  <CardTitle>Actions</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-1 flex-col gap-4">
+                  <div className="flex flex-col gap-2">
+                    <HeaderFieldLabel>Rest</HeaderFieldLabel>
+                    <div className="grid grid-cols-2 gap-2">
+                      <span className="flex items-center gap-1">
+                        <Button size="sm" variant="secondary" className="flex-1" onClick={() => setShowShortRest(true)}>
+                          Short rest
+                        </Button>
+                        <Tooltip title="Short rest">
+                          <p>
+                            Choose how many Hit Dice to spend - each heals its roll plus your Constitution modifier. Also
+                            restores all spent Pact Magic slots; regular spell slots only come back on a Long rest.
+                          </p>
+                        </Tooltip>
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Button size="sm" variant="secondary" className="flex-1" onClick={handleLongRest}>
+                          Long rest
+                        </Button>
+                        <Tooltip title="Long rest">
+                          <p>
+                            Restores HP to max and every spent spell slot (and Pact Magic slot) to full, and recovers spent
+                            Hit Dice ({character.edition === "2024" ? "all of them" : "up to half your total"}).
+                          </p>
+                        </Tooltip>
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-auto flex flex-col gap-2 border-t border-border pt-4">
+                    <HeaderFieldLabel>Roll20</HeaderFieldLabel>
+                    <Roll20SyncButton state={roll20} />
+                    <Roll20SyncMessage state={roll20} />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            <Card className="flex h-full flex-col">
+              <CardHeader>
+                <CardTitle>Miscellaneous</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-1 flex-col gap-4">
+                <div className="flex flex-col gap-2">
+                  <HeaderFieldLabel>Roll20 chat</HeaderFieldLabel>
+                  <Roll20RollVisibilityToggle value={rollVisibility} onChange={setRollVisibility} />
+                </div>
+                <div className="mt-auto grid grid-cols-2 gap-4 border-t border-border pt-4">
+                  {!readOnly && (
+                    <div className="flex flex-col items-start gap-2">
+                      <HeaderFieldLabel>Sharing</HeaderFieldLabel>
+                      <button
+                        type="button"
+                        onClick={() => setShowSharing(true)}
+                        title="Who can see this character - click to change or copy its link"
+                        className="cursor-pointer rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+                      >
+                        <Badge variant="muted">{VISIBILITY_LABELS[getCharacterSharing(character).visibility]}</Badge>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr] lg:items-start">
             {/* Sidebar - reference stats a player checks constantly. Status is

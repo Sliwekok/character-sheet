@@ -1,6 +1,19 @@
+import type { ReactNode } from "react";
 import { Card, CardContent, CardHeader, Container, Skeleton, SkeletonHeading } from "@/components/ui";
 
 const TABS = ["Actions", "Spells", "Inventory", "Features & Traits", "Background"];
+
+/** Shell for one of the three header cards (Character / Actions / Miscellaneous) - same `h-full` flex column as the real cards, so the row stays equal-height. */
+function HeaderCardSkeleton({ titleWidth, children }: { titleWidth: string; children: ReactNode }) {
+  return (
+    <Card className="flex h-full flex-col">
+      <CardHeader>
+        <Skeleton className={`h-5 ${titleWidth}`} />
+      </CardHeader>
+      <CardContent className="flex flex-1 flex-col gap-4">{children}</CardContent>
+    </Card>
+  );
+}
 
 /** Placeholder for the sidebar's `AbilityScoresPanel` (6 ability scores). */
 function AbilityScoresSkeleton() {
@@ -52,7 +65,7 @@ function StatusSkeleton() {
 
 /**
  * Shown automatically by Next.js while `/character/[id]` is loading.
- * Mirrors the real page's layout - header stat bar, sticky sidebar
+ * Mirrors the real page's layout - header row of three cards, sticky sidebar
  * (ability scores / skills / status), and a tabbed main column - closely
  * enough that navigating in from a character card on `/home` swaps
  * straight into a matching skeleton instead of a blank/frozen-looking gap.
@@ -63,17 +76,51 @@ export default function CharacterSheetLoading() {
       <SkeletonHeading subtitleLines={1} />
 
       <div className="mt-8 flex flex-col gap-6">
-        <Card>
-          <CardContent className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-3">
-              <Skeleton className="h-6 w-16 rounded-full" />
-              <Skeleton className="h-6 w-20 rounded-full" />
-              <Skeleton className="h-6 w-24 rounded-full" />
-              <Skeleton className="h-6 w-24 rounded-full" />
+        {/* Header row: Character / Actions / Miscellaneous - one row of three equal-height cards. */}
+        <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-3">
+          <HeaderCardSkeleton titleWidth="w-24">
+            <div className="grid grid-cols-3 gap-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-[68px]" />
+              ))}
             </div>
-            <Skeleton className="h-6 w-16 rounded-full" />
-          </CardContent>
-        </Card>
+            <div className="mt-auto flex flex-wrap items-center gap-3 border-t border-border pt-4">
+              <Skeleton className="h-6 w-24 rounded-full" />
+              <Skeleton className="h-6 w-28 rounded-full" />
+            </div>
+          </HeaderCardSkeleton>
+
+          <HeaderCardSkeleton titleWidth="w-20">
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-3 w-12" />
+              <div className="grid grid-cols-2 gap-2">
+                <Skeleton className="h-9 rounded-(--radius-lg)" />
+                <Skeleton className="h-9 rounded-(--radius-lg)" />
+              </div>
+            </div>
+            <div className="mt-auto flex flex-col gap-2 border-t border-border pt-4">
+              <Skeleton className="h-3 w-14" />
+              <Skeleton className="h-9 w-40 rounded-(--radius-lg)" />
+            </div>
+          </HeaderCardSkeleton>
+
+          <HeaderCardSkeleton titleWidth="w-32">
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-9 w-56 rounded-(--radius-lg)" />
+            </div>
+            <div className="mt-auto grid grid-cols-2 gap-4 border-t border-border pt-4">
+              <div className="flex flex-col gap-2">
+                <Skeleton className="h-3 w-14" />
+                <Skeleton className="h-6 w-20 rounded-full" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-6 w-24 rounded-full" />
+              </div>
+            </div>
+          </HeaderCardSkeleton>
+        </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr] lg:items-start">
           <div className="flex flex-col gap-4">
