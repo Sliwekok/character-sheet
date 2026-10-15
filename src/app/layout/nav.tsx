@@ -58,7 +58,7 @@ export default function Nav() {
   }, [search, allItemsList]);
 
   return (
-    <nav className="sticky top-0 z-30 border-b border-border bg-background-darken/95 backdrop-blur-sm">
+    <nav className="sticky top-0 z-300 border-b border-border bg-background-darken/95 backdrop-blur-sm">
       <Container size="xl">
         <div className="flex h-20 items-center justify-between">
           <Link href="/home" className="shrink-0">
