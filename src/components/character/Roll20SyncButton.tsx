@@ -2,6 +2,7 @@
 
 import { Button, Tooltip } from "@/components/ui";
 import { Roll20SyncState } from "@/utils/roll20/roll20Bridge";
+import {useEffect, useState} from "react";
 
 /**
  * Header button that pushes the whole character into Roll20 through the
@@ -11,32 +12,60 @@ import { Roll20SyncState } from "@/utils/roll20/roll20Bridge";
  */
 export function Roll20SyncButton({ state }: { state: Roll20SyncState }) {
   const { status, record, sync, unlink } = state;
+  const [addedDots, setAddedDots] = useState(0);
   const syncing = status === "syncing";
+
+  useEffect(() => {
+    if (!syncing) {
+      setAddedDots(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setAddedDots((dots) => (dots + 1) % 4);
+    }, 250);
+
+    return () => clearInterval(interval);
+  }, [syncing]);
+
+  const syncingText = "Syncing" + ".".repeat(addedDots);
+
   return (
-    <span className="flex items-center gap-1">
-      <Button size="sm" variant="secondary" onClick={() => void sync()} disabled={syncing}>
-        {syncing ? "Syncing…" : "Sync with Roll20"}
+      <span className="flex items-center gap-1">
+      <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => void sync()}
+          disabled={syncing}
+      >
+        {syncing ? syncingText : "Sync with Roll20"}
       </Button>
       <Tooltip title="Sync with Roll20">
         <p>
-          Sends everything on this sheet - abilities, saves, skills, HP, AC, attacks, spells and slots, features,
-          inventory, currency and background - to the Roll20 game open in another tab. The first sync creates the
-          character there; later syncs update it.
+          Sends everything on this sheet - abilities, saves, skills, HP, AC,
+          attacks, spells and slots, features, inventory, currency and
+          background - to the Roll20 game open in another tab. The first sync
+          creates the character there; later syncs update it.
         </p>
         <p className="mt-2">
           {record
-            ? `Synced ${new Date(record.syncedAt).toLocaleString()}. HP changes on this sheet now stream to Roll20 automatically.`
-            : "After the first sync, HP changes stream to Roll20 automatically."}
+              ? `Synced ${new Date(record.syncedAt).toLocaleString()}. HP changes on this sheet now stream to Roll20 automatically.`
+              : "After the first sync, HP changes stream to Roll20 automatically."}
         </p>
         {record && (
-          <button type="button" className="mt-2 text-xs underline" onClick={unlink}>
-            Stop streaming HP for this character
-          </button>
+            <button
+                type="button"
+                className="mt-2 text-xs underline"
+                onClick={unlink}
+            >
+              Stop streaming HP for this character
+            </button>
         )}
       </Tooltip>
     </span>
   );
 }
+
 
 /** Result line shown under the header stat bar after a sync attempt. */
 export function Roll20SyncMessage({ state }: { state: Roll20SyncState }) {
