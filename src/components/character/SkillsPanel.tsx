@@ -95,7 +95,7 @@ export function SkillsPanel({
             ];
 
             return (
-              <div key={skill} className="flex flex-wrap items-center gap-x-2 gap-y-1 py-1.5 text-xs">
+              <div key={skill} className="flex flex-wrap items-center gap-x-1.5 gap-y-1 py-1.5 text-xs">
                 <span
                   aria-hidden
                   title={expertise ? "Expertise" : proficient ? "Proficient" : "Not proficient"}
@@ -108,7 +108,7 @@ export function SkillsPanel({
                         : "border-border-strong"
                   )}
                 />
-                <span className="flex-1 min-w-[5rem] truncate text-fontcolor">{skill}</span>
+                <span className="min-w-0 flex-1 truncate text-fontcolor" title={skill}>{skill}</span>
                 <span className="w-7 shrink-0 text-[11px] uppercase text-fontcolor-secondary">
                   {abilityAbbrev(ability)}
                 </span>
@@ -116,7 +116,7 @@ export function SkillsPanel({
                   {formatModifier(total)}
                   <Tooltip title={skill} lines={tooltipLines} />
                 </span>
-                <Button size="sm" variant="secondary" onClick={() => rollSkill(skill)}>
+                <Button size="xs" variant="secondary" className="shrink-0" onClick={() => rollSkill(skill)}>
                   Roll
                 </Button>
                 {result && (

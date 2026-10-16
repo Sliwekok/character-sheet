@@ -7,7 +7,7 @@ import type {
 import { cn } from "@/utils/cn";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger" | "accent";
-type Size = "sm" | "md" | "lg";
+type Size = "xs" | "sm" | "md" | "lg";
 
 const base =
   "inline-flex items-center justify-center gap-2 rounded-(--radius-lg) font-medium cursor-pointer " +
@@ -28,6 +28,8 @@ const variants: Record<Variant, string> = {
 };
 
 const sizes: Record<Size, string> = {
+  /** Compact inline action inside dense rows (e.g. the SkillsPanel's per-skill "Roll"), where `sm` would wrap onto its own line in the 280px sidebar. */
+  xs: "h-7 px-2.5 text-xs",
   sm: "h-9 px-4 text-sm",
   md: "h-11 px-5 text-base",
   lg: "h-12 px-6 text-base sm:h-14 sm:px-8",

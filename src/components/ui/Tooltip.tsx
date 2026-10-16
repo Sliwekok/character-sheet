@@ -143,7 +143,7 @@ export function Tooltip({ title, lines, children, className, trigger, triggerCla
             }
           : { position: "fixed", top: -9999, left: -9999, visibility: "hidden" }
       }
-      className="z-50 w-64 max-w-[80vw] rounded-(--radius-sm) border border-border bg-background-elevated px-3 py-2 text-left text-xs normal-case tracking-normal text-fontcolor-secondary shadow-[0_12px_30px_-16px_rgba(0,0,0,0.85)]"
+      className="z-[1100] w-64 max-w-[80vw] rounded-(--radius-sm) border border-border bg-background-elevated px-3 py-2 text-left text-xs normal-case tracking-normal text-fontcolor-secondary shadow-[0_12px_30px_-16px_rgba(0,0,0,0.85)]"
     >
       {title && <p className="mb-1 font-semibold text-fontcolor">{title}</p>}
       {lines && lines.length > 0 && (

@@ -198,7 +198,7 @@ export function SpellsStep({
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
       <div className="flex flex-col gap-4">
         {grantedSpells.length > 0 && (
           <Card>
@@ -340,7 +340,7 @@ export function SpellsStep({
       <SpellDetailPanel
         spell={previewSpell}
         selected={previewSpell ? isSelected(previewSpell) || isGranted(previewSpell) : false}
-        className="lg:sticky lg:top-6"
+        className="lg:sticky lg:top-24"
       />
     </div>
   );

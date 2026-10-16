@@ -45,7 +45,7 @@ function ModeCardSkeleton({ recommended = false }: { recommended?: boolean }) {
  */
 export default function NewCharacterLoading() {
   return (
-    <Container size="lg" className="pb-24">
+    <Container size="lg" className="pt-10 pb-24">
       <SkeletonHeading align="center" subtitleLines={1} />
 
       <div className={MODE_GRID_CLASSES}>

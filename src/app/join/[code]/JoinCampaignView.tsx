@@ -49,7 +49,7 @@ export default function JoinCampaignView() {
 
   if (!invite && !error) {
     return (
-      <Container size="md" className="pb-24">
+      <Container size="md" className="pt-10 pb-24">
         <SkeletonHeading subtitleLines={0} />
         <Skeleton className="mt-8 h-48 w-full rounded-(--radius-lg)" />
       </Container>
@@ -58,7 +58,7 @@ export default function JoinCampaignView() {
 
   if (!invite) {
     return (
-      <Container size="md" className="pb-24">
+      <Container size="md" className="pt-10 pb-24">
         <SectionHeading eyebrow="Campaign invite" title="Invite not found" />
         <Card className="mt-8">
           <CardContent className="flex flex-col items-start gap-4 text-sm text-fontcolor-secondary">
@@ -72,7 +72,7 @@ export default function JoinCampaignView() {
   }
 
   return (
-    <Container size="md" className="pb-24">
+    <Container size="md" className="pt-10 pb-24">
       <SectionHeading eyebrow="Campaign invite" title={invite.name} subtitle={`Run by ${invite.ownerName}`} />
       <Card className="mt-8">
         <CardContent className="flex flex-col items-start gap-4 text-sm text-fontcolor-secondary">

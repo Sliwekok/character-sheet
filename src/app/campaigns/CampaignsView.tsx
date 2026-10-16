@@ -354,7 +354,7 @@ export default function CampaignsView() {
 
   if (status === "anonymous" || !user) {
     return (
-      <Container size="md" className="pb-24">
+      <Container size="md" className="pt-10 pb-24">
         <SectionHeading eyebrow="Campaigns" title="Play together" />
         <Card className="mt-8">
           <CardContent className="flex flex-col items-start gap-4 text-sm text-fontcolor-secondary">
@@ -375,7 +375,7 @@ export default function CampaignsView() {
   }
 
   return (
-    <Container size="lg" className="pb-24">
+    <Container size="lg" className="pt-10 pb-24">
       <SectionHeading
         eyebrow="Play together"
         title="Campaigns"

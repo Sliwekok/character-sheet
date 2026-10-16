@@ -24,7 +24,7 @@ export function AuthLayout({
   footer?: ReactNode;
 }) {
   return (
-    <Container size="md" className="pb-24">
+    <Container size="md" className="pt-10 pb-24">
       <div className="mx-auto w-full max-w-md">
         <SectionHeading eyebrow={eyebrow} title={title} subtitle={subtitle} align="center" />
         <Card className="mt-8">
@@ -39,7 +39,7 @@ export function AuthLayout({
 /** Matching skeleton for `AuthLayout` - used by the routes' `loading.tsx` and Suspense fallbacks. */
 export function AuthLayoutSkeleton({ fields = 2 }: { fields?: number }) {
   return (
-    <Container size="md" className="pb-24">
+    <Container size="md" className="pt-10 pb-24">
       <div className="mx-auto w-full max-w-md">
       <SkeletonHeading align="center" />
       <Card className="mt-8">

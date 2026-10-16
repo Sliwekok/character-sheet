@@ -9,7 +9,7 @@ import { CharacterCardSkeleton } from "@/components/character/CharacterCardSkele
  */
 export default function HomeLoading() {
   return (
-    <Container size="xl" className="pb-24">
+    <Container size="xl" className="pt-10 pb-24">
       <SkeletonHeading />
 
       <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">

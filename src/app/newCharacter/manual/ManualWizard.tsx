@@ -394,7 +394,7 @@ export default function ManualWizard() {
   return (
     <>
       <Nav />
-      <Container size="lg" className="pb-24">
+      <Container size="lg" className="pt-10 pb-24">
         <SectionHeading
           eyebrow={isEditing ? "Editing character" : "New character"}
           title="Step by step"

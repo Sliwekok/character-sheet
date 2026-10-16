@@ -7,7 +7,7 @@ import { Card, CardContent, Container, Skeleton, SkeletonHeading } from "@/compo
  */
 export default function AboutLoading() {
   return (
-    <Container size="md" className="pb-24">
+    <Container size="md" className="pt-10 pb-24">
       <SkeletonHeading />
 
       <Card className="mt-8">

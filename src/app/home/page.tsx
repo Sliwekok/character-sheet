@@ -62,7 +62,7 @@ export default function HomePage() {
 
   return (
     <>
-      <Container size="xl" className="pb-24">
+      <Container size="xl" className="pt-10 pb-24">
         <SectionHeading
           eyebrow="Your party"
           title="Characters"

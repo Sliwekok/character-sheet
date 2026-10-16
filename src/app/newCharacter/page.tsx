@@ -120,7 +120,7 @@ function ModeCard({ mode }: { mode: Mode }) {
 
 export default function NewCharacterPage() {
   return (
-    <Container size="lg" className="pb-24">
+    <Container size="lg" className="pt-10 pb-24">
       <SectionHeading
         align="center"
         eyebrow="New character"

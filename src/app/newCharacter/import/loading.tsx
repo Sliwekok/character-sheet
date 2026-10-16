@@ -26,7 +26,7 @@ function ImportOptionSkeleton() {
  */
 export default function ImportLoading() {
   return (
-    <Container size="md" className="pb-24">
+    <Container size="md" className="pt-10 pb-24">
       <SkeletonHeading />
 
       <div className="mt-8 flex flex-col gap-6">

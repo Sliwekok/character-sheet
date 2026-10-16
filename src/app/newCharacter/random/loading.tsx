@@ -25,7 +25,7 @@ function RandomModeSkeleton() {
  */
 export default function RandomLoading() {
   return (
-    <Container size="lg" className="pb-24">
+    <Container size="lg" className="pt-10 pb-24">
       <SkeletonHeading />
 
       <div className="mt-8 grid gap-6 sm:grid-cols-2">

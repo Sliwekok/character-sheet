@@ -528,7 +528,7 @@ export function MagicItemsStep({
 
   return (
     <div className="flex flex-col gap-6">
-      <Card className="z-100">
+      <Card>
         <CardContent className="flex flex-col gap-3">
           <p className="text-sm font-medium text-fontcolor-secondary">Add from the compendium</p>
 

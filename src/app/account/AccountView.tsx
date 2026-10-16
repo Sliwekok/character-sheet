@@ -158,7 +158,7 @@ export default function AccountView() {
 
   if (status === "anonymous" || !user) {
     return (
-      <Container size="md" className="pb-24">
+      <Container size="md" className="pt-10 pb-24">
         <SectionHeading eyebrow="Account" title="You're not signed in" />
         <Card className="mt-8">
           <CardContent className="flex flex-col items-start gap-4 text-sm text-fontcolor-secondary">
@@ -201,7 +201,7 @@ export default function AccountView() {
         </Alert>
       )}
 
-      <Container size="md" className="pb-24">
+      <Container size="md" className="pt-10 pb-24">
         <SectionHeading eyebrow="Account" title={user.displayName || "Your account"} subtitle={user.email} />
 
         {passwordChanged && (

@@ -143,7 +143,7 @@ export function Alert({
   if (!modal) return panel;
   if (typeof document === "undefined") return null;
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-[2px]">{panel}</div>,
+    <div className="fixed inset-0 z-[1050] flex items-center justify-center bg-black/60 p-4 backdrop-blur-[2px]">{panel}</div>,
     document.body
   );
 }

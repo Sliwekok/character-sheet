@@ -125,6 +125,10 @@ export function getRulesetAsync(edition: Edition): Promise<Ruleset> {
  */
 export async function getSpecificItem(edition: Edition, type: keyof Ruleset, item: string) {
   const ruleset = await getRulesetAsync(edition);
-  const group = ruleset[type] as unknown as { name: string }[];
+  // `type` comes straight from the /search URL, so guard against a
+  // hand-edited / stale link naming a key that isn't a list (or doesn't exist)
+  // - that used to throw "Cannot read properties of undefined (reading 'find')".
+  const group = ruleset[type] as unknown as { name: string }[] | undefined;
+  if (!Array.isArray(group)) return undefined;
   return group.find((i) => i.name === item);
 }

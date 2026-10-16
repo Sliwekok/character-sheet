@@ -31,7 +31,7 @@ export default function ManualWizardLoading() {
   return (
     <>
       <Nav />
-      <Container size="lg" className="pb-24">
+      <Container size="lg" className="pt-10 pb-24">
         <SkeletonHeading subtitleLines={1} />
 
         <div className="mt-8 flex flex-col gap-8">

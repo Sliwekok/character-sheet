@@ -70,6 +70,7 @@ export default function Nav() {
               options={filteredOptions}
               placeholder="Roll for wisdom"
               className="w-full"
+              portalMenu={false}
               value={undefined}
               getOptionLabel={(option) => "(" + option.ruleset + ") " + option.name}
               getOptionValue={(option) => option.name + " " + option.ruleset + " " + option.type}
@@ -147,9 +148,12 @@ export default function Nav() {
         </div>
       </Container>
 
-      {/* mobile menu */}
+      {/* mobile menu - `absolute top-full` (anchored to the sticky nav) rather
+          than `fixed`: the nav's `backdrop-blur` makes it the containing block
+          for fixed descendants, so a `fixed inset-0 top-20` panel collapsed to
+          zero height inside the 80px-tall nav instead of covering the screen. */}
       {isOpen && (
-        <div className="fixed inset-0 top-20 z-20 flex flex-col items-center justify-center gap-8 bg-background-darken md:hidden">
+        <div className="absolute inset-x-0 top-full flex h-[calc(100dvh-5rem)] flex-col items-center justify-center gap-8 overflow-y-auto bg-background-darken md:hidden">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}

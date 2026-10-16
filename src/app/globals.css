@@ -45,6 +45,13 @@
   --font-display: var(--font-cinzel);
 }
 
+/* Solid fallback behind the body gradient - overscroll / rubber-banding and
+   anything taller than the fixed gradient show this dark tone instead of
+   the browser's default white. */
+html {
+  background-color: var(--background-darken);
+}
+
 body {
   background: radial-gradient(
     ellipse 120% 70% at 50% -10%,

@@ -47,7 +47,6 @@ import { PdfExportPanel } from "@/components/character/PdfExportPanel";
 import { RollHistoryEntry, RollHistoryWidget } from "@/components/character/RollHistoryWidget";
 import { Shop } from "@/components/character/Shop";
 import { HitPointsEditor } from "@/components/character/HitPointsEditor";
-import { ArmorClassShield } from "@/components/character/ArmorClassShield";
 import { ShortRestDialog } from "@/components/character/ShortRestDialog";
 import { applyCurrentHp, formatHitDicePools, getHitDicePools, getSheetMaxHp, hitDiceAfterLongRest, spendHitDice } from "@/utils/hitDice";
 import { calculateAbilityModifiers } from "@/utils/abilityModifiers";
@@ -72,6 +71,7 @@ import { Roll20RollVisibilityToggle } from "@/components/character/Roll20RollVis
 import { useSharedCharacter } from "@/components/campaigns/useSharedCharacter";
 import { SharingDialog } from "@/components/campaigns/SharingDialog";
 import { CharacterSharing, getCharacterSharing, sharingPatch, VISIBILITY_LABELS } from "@/utils/campaigns";
+import {ArmorClassShield} from "@/components/character/ArmorClassShield";
 
 /** Small uppercase caption above a control in the sheet's header cards (Actions / Miscellaneous). */
 function HeaderFieldLabel({ children }: { children: ReactNode }) {
@@ -81,9 +81,9 @@ function HeaderFieldLabel({ children }: { children: ReactNode }) {
 }
 
 /**
- * One headline value in the header's "Character" card (HP heart / AC shield /
- * Initiative / Proficiency) - same dark tile treatment as the sidebar's ability scores,
- * so the two read as one family. The tooltip sits in the tile's corner so its
+ * One headline number in the header's "Character" card (AC / Initiative /
+ * Proficiency) - same dark tile treatment as the sidebar's ability scores,
+ * so the two read as one family. The tooltip sits beside the value so its
  * breakdown is one hover away, as everywhere else on the sheet.
  */
 function HeaderStatTile({ label, value, tooltip }: { label: string; value: ReactNode; tooltip: ReactNode }) {
@@ -475,7 +475,7 @@ export default function CharacterDetailsPage() {
 
   if (character === null) {
     return (
-      <Container size="md" className="pb-24">
+      <Container size="md" className="pt-10 pb-24">
         <Card>
           <CardContent className="flex flex-col items-start gap-3 text-sm text-fontcolor-secondary">
             {readOnly ? (

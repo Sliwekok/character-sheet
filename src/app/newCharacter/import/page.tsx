@@ -143,7 +143,7 @@ export default function ImportCharacterPage() {
 
   return (
     <>
-      <Container size="md" className="pb-24">
+      <Container size="md" className="pt-10 pb-24">
         <SectionHeading
           eyebrow="New character"
           title="Import"
