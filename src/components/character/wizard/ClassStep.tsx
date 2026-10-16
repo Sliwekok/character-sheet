@@ -7,7 +7,7 @@ import { Badge, Button, Card, CardContent, Combobox, Select, TextInput } from "@
 import { rollsNeededForClassEntry } from "@/utils/calculateMaxHp";
 import { rollDie } from "@/utils/dice";
 import { TextWithSpellMentions } from "@/components/character/SpellMention";
-import { decodeFeatureChoiceSelection, encodeFeatureChoiceSelection, getFeatureChoices } from "@/utils/grantedSpells";
+import { decodeFeatureChoiceSelection, encodeFeatureChoiceSelection, getFeatureChoices, isFeatureChoiceOptionAvailable } from "@/utils/grantedSpells";
 import { cn } from "@/utils/cn";
 import {JSX} from "react";
 
@@ -405,10 +405,17 @@ export function ClassStep({
                       <div className="flex max-h-72 flex-col gap-1 overflow-y-auto rounded-(--radius-sm) border border-border-strong p-2">
                         {pending.choice.options.map((option) => {
                           const checked = selectedIds.includes(option.id);
-                          const disabled = !checked && selectedIds.length >= pending.maxSelections;
+                          // An option whose `minLevel` this entry hasn't reached
+                          // (e.g. Thirsting Blade before Warlock 5) stays listed
+                          // but can't be ticked - an already-ticked one can
+                          // still be unticked (pruneFeatureChoices normally
+                          // removes it on de-leveling anyway).
+                          const levelLocked = !isFeatureChoiceOptionAvailable(option, pending.classLevel);
+                          const disabled = !checked && (levelLocked || selectedIds.length >= pending.maxSelections);
                           return (
                             <label
                               key={option.id}
+                              title={levelLocked ? `Requires ${pending.className} level ${option.minLevel}` : undefined}
                               className={cn(
                                 "flex items-start gap-2 text-sm",
                                 disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
@@ -423,6 +430,18 @@ export function ClassStep({
                               />
                               <span>
                                 <span className="font-medium text-fontcolor">{option.label}</span>
+                                {option.minLevel !== undefined && (
+                                  <span
+                                    className={cn(
+                                      "ml-1 whitespace-nowrap rounded-(--radius-sm) border px-1.5 py-0.5 text-xs",
+                                      levelLocked
+                                        ? "border-red-500/60 text-red-500"
+                                        : "border-border-strong text-fontcolor-secondary"
+                                    )}
+                                  >
+                                    {levelLocked ? `Requires ${pending.className} level ${option.minLevel}` : `${pending.className} level ${option.minLevel}+`}
+                                  </span>
+                                )}
                                 {/* Same "Free spell: X" badge treatment classSummaryBlock/subclassSummary give a class/subclass feature's own grantedSpells - shown here too so an invocation that grants a spell (e.g. Mask of Many Faces -> Disguise Self) is called out the same way at the point of choosing it, on top of showing up in the actual Spells step's "Granted spells (free)" list once picked (see utils/grantedSpells.ts's getAutoGrantedSpellNames). */}
                                 {(option.grantedSpells ?? []).map((grant, grantIndex) => (
                                   <Badge key={grantIndex} variant="solid" className="ml-1">
@@ -456,11 +475,15 @@ export function ClassStep({
                       <option value="" disabled>
                         Choose... (required)
                       </option>
-                      {pending.choice.options.map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {option.label}
-                        </option>
-                      ))}
+                      {pending.choice.options.map((option) => {
+                        const levelLocked = !isFeatureChoiceOptionAvailable(option, pending.classLevel);
+                        return (
+                          <option key={option.id} value={option.id} disabled={levelLocked}>
+                            {option.label}
+                            {levelLocked ? ` (requires ${pending.className} level ${option.minLevel})` : ""}
+                          </option>
+                        );
+                      })}
                     </Select>
                     {chosenOption && (
                       <p className="flex flex-wrap items-center gap-1 text-xs text-fontcolor-secondary">

@@ -14,7 +14,7 @@ import { generateId } from "@/utils/id";
 import { randomBackgroundAllocation, sumAbilityScores } from "@/utils/abilityScoreBonuses";
 import { getAsiSlots, randomAsiAllocations, sumAsiAllocations } from "@/utils/abilityScoreImprovements";
 import { getSpellLimits } from "@/utils/spellcasting";
-import { encodeFeatureChoiceSelection, getAutoGrantedSpellNames, getFeatureChoices, resolveSpellsByName } from "@/utils/grantedSpells";
+import { encodeFeatureChoiceSelection, getAutoGrantedSpellNames, getFeatureChoices, isFeatureChoiceOptionAvailable, resolveSpellsByName } from "@/utils/grantedSpells";
 import { Spell } from "@/interfaces/Spell";
 import { buildOwnedArmors } from "@/utils/armor";
 
@@ -131,7 +131,11 @@ export async function generateRandomCharacter(overrides: RandomCharacterOverride
         // utils/grantedSpells.ts's `featureChoiceMaxSelections`.
         // `pickRandomN` never picks the same option twice, so this can't
         // double up on the same invocation.
-        const picked = pickRandomN(pending.choice.options, pending.maxSelections);
+        // Only options the entry's level qualifies for (an invocation's
+        // `minLevel`, e.g. Thirsting Blade at Warlock 5) - see
+        // utils/grantedSpells.ts's `isFeatureChoiceOptionAvailable`.
+        const available = pending.choice.options.filter((option) => isFeatureChoiceOptionAvailable(option, pending.classLevel));
+        const picked = pickRandomN(available, pending.maxSelections);
         featureChoices[pending.key] = encodeFeatureChoiceSelection(picked.map((option) => option.id));
     });
 

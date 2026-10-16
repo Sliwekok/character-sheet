@@ -1,5 +1,5 @@
 import { Spell } from "@/interfaces/Spell";
-import { CharacterClass, ClassFeature, FeatureChoice, GrantedSpell } from "@/interfaces/CharacterClass";
+import { CharacterClass, ClassFeature, FeatureChoice, FeatureChoiceOption, GrantedSpell } from "@/interfaces/CharacterClass";
 import { Subclass } from "@/interfaces/Subclass";
 
 /**
@@ -54,6 +54,19 @@ export function featureChoiceMaxSelections(choice: FeatureChoice, level: number)
 }
 
 /**
+ * Whether `option` can be picked by an entry at `level` (the entry's OWN
+ * class level) - i.e. it has no `minLevel` prerequisite, or the entry has
+ * reached it (e.g. a Warlock's Thirsting Blade invocation at Warlock level
+ * 5+). ClassStep shows an unavailable option disabled rather than hiding
+ * it, the random generator only picks from available ones, and
+ * `pruneFeatureChoices` drops an already-picked one that's no longer
+ * available.
+ */
+export function isFeatureChoiceOptionAvailable(option: FeatureChoiceOption, level: number): boolean {
+    return option.minLevel === undefined || option.minLevel <= level;
+}
+
+/**
  * Decodes one `CharacterDraft.featureChoices`/`Character.featureChoices`
  * entry into the list of selected `FeatureChoiceOption.id`s it represents -
  * a single-select choice's stored value (a bare option id, e.g. `"chain"`)
@@ -82,6 +95,8 @@ export interface PendingFeatureChoice {
     choice: FeatureChoice;
     /** How many of `choice.options` can be selected at once, at this entry's current level - see `featureChoiceMaxSelections()`. Always 1 for a single-select choice. */
     maxSelections: number;
+    /** The entry's own current class level (as opposed to `level`, the feature's granting level) - what each option's `minLevel` is checked against, see `isFeatureChoiceOptionAvailable()`. */
+    classLevel: number;
 }
 
 /**
@@ -106,6 +121,7 @@ export function getFeatureChoices(classes: GrantEntryInput[]): PendingFeatureCho
                 level: feature.level,
                 choice: feature.choice,
                 maxSelections: featureChoiceMaxSelections(feature.choice, entry.level),
+                classLevel: entry.level,
             });
         });
     });
@@ -139,6 +155,9 @@ export function areFeatureChoicesComplete(
  * pick count) dropped - e.g. de-leveling out of an Eldritch Invocation slot
  * keeps whichever invocations were picked FIRST, same "keep what was
  * already there" spirit as utils/spellcasting.ts's `pruneSpellsToLimits`.
+ * Any picked option whose `minLevel` the entry no longer meets (e.g.
+ * dropping a Warlock from 5 to 4 with Thirsting Blade picked) is dropped
+ * too - see `isFeatureChoiceOptionAvailable()`.
  */
 export function pruneFeatureChoices(
     classes: GrantEntryInput[],
@@ -150,7 +169,11 @@ export function pruneFeatureChoices(
     for (const [key, raw] of Object.entries(choices)) {
         const entry = byKey.get(key);
         if (!entry) continue;
-        const validIds = new Set(entry.choice.options.map((option) => option.id));
+        const validIds = new Set(
+            entry.choice.options
+                .filter((option) => isFeatureChoiceOptionAvailable(option, entry.classLevel))
+                .map((option) => option.id)
+        );
         const selected = decodeFeatureChoiceSelection(raw)
             .filter((id) => validIds.has(id))
             .slice(0, entry.maxSelections);

@@ -130,6 +130,18 @@ export interface FeatureChoiceOption {
   grantedSpells?: GrantedSpell[];
   /** Set only on a Fighting Style option whose benefit this app tracks as a real stat bonus - see `FightingStyleEffect`'s header comment. */
   fightingStyleEffect?: FightingStyleEffect;
+  /**
+   * Minimum level IN THIS CLASS (the entry's own class level, same
+   * convention as `ClassFeature.level`) before this option can be picked -
+   * e.g. a Warlock's Thirsting Blade invocation needs Warlock level 5.
+   * Undefined means no level prerequisite. ClassStep still lists an option
+   * the entry hasn't reached yet but disables it (with a "Warlock level N"
+   * note), the random generator never picks one, and
+   * utils/grantedSpells.ts's `pruneFeatureChoices` drops an already-picked
+   * one if the level drops back below it - see
+   * `isFeatureChoiceOptionAvailable()`.
+   */
+  minLevel?: number;
 }
 
 /**

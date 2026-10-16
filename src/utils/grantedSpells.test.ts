@@ -9,6 +9,7 @@ import {
   getAutoGrantedSpellNames,
   getBonusSpellCaps,
   getFeatureChoices,
+  isFeatureChoiceOptionAvailable,
   pruneFeatureChoices,
   resolveSpellsByName,
   type GrantEntryInput,
@@ -129,6 +130,7 @@ describe("getFeatureChoices", () => {
       level: 2,
       choice: invocationChoice,
       maxSelections: 3,
+      classLevel: 5,
     });
   });
 
@@ -186,6 +188,49 @@ describe("pruneFeatureChoices", () => {
 
   it("trims a multi-select choice down to the new cap, keeping the first picks", () => {
     expect(pruneFeatureChoices([at(4)], { [INV_KEY]: "mask,armor,sight" })).toEqual({ [INV_KEY]: "mask,armor" });
+  });
+});
+
+describe("invocation level prerequisites (minLevel)", () => {
+  const REAL_INV_KEY = "0:Eldritch Invocations:invocations";
+  const invocations = (warlock: typeof Warlock2024) => warlock.features.find((f) => f.name === "Eldritch Invocations")!.choice!;
+
+  it("isFeatureChoiceOptionAvailable honors minLevel and treats a missing one as always available", () => {
+    expect(isFeatureChoiceOptionAvailable({ id: "a", label: "A" }, 1)).toBe(true);
+    expect(isFeatureChoiceOptionAvailable({ id: "a", label: "A", minLevel: 5 }, 4)).toBe(false);
+    expect(isFeatureChoiceOptionAvailable({ id: "a", label: "A", minLevel: 5 }, 5)).toBe(true);
+  });
+
+  it.each([
+    ["2014", Warlock2014],
+    ["2024", Warlock2024],
+  ])("%s: every option's minLevel matches the \"(Nth level\" note in its summary", (_edition, warlock) => {
+    for (const option of invocations(warlock).options) {
+      const match = option.summary?.match(/\((\d+)(?:st|nd|rd|th) level/);
+      expect(option.minLevel, option.label).toBe(match ? Number(match[1]) : undefined);
+    }
+  });
+
+  it("uses the real RAW levels for a few known invocations", () => {
+    const byId = (warlock: typeof Warlock2024, id: string) => invocations(warlock).options.find((o) => o.id === id)!;
+    expect(byId(Warlock2014, "thirsting-blade").minLevel).toBe(5);
+    expect(byId(Warlock2014, "lifedrinker").minLevel).toBe(12);
+    expect(byId(Warlock2014, "agonizing-blast").minLevel).toBeUndefined();
+    expect(byId(Warlock2024, "pact-of-the-blade").minLevel).toBeUndefined();
+    expect(byId(Warlock2024, "agonizing-blast").minLevel).toBe(2);
+    expect(byId(Warlock2024, "witch-sight").minLevel).toBe(15);
+  });
+
+  it("exposes the entry's class level on each pending choice", () => {
+    expect(getFeatureChoices([{ characterClass: Warlock2024, level: 4 }])[0].classLevel).toBe(4);
+  });
+
+  it("pruneFeatureChoices drops a picked invocation the current level no longer qualifies for", () => {
+    const picks = { [REAL_INV_KEY]: "pact-of-the-blade,thirsting-blade,devils-sight" };
+    expect(pruneFeatureChoices([{ characterClass: Warlock2024, level: 5 }], picks)).toEqual(picks);
+    expect(pruneFeatureChoices([{ characterClass: Warlock2024, level: 4 }], picks)).toEqual({
+      [REAL_INV_KEY]: "pact-of-the-blade,devils-sight",
+    });
   });
 });
 
