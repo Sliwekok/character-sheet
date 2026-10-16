@@ -28,7 +28,8 @@ import { getChosenWeaponMasteryIndexes, getWeaponMasteryCount, toggleWeaponMaste
 import { downloadCharacterAsJson } from "@/utils/characterImportExport";
 import { getArmorClassBreakdown } from "@/utils/calculateArmorClass";
 import { getMaxHpBreakdown } from "@/utils/calculateMaxHp";
-import { getInitiativeBreakdown } from "@/utils/statBreakdowns";
+import { getInitiativeBreakdown, getSpeedBreakdown } from "@/utils/statBreakdowns";
+import { describeFeatSlot, getFeatGrants, pairFeatsWithSelections, resolveFeatSelections } from "@/utils/feats";
 import { getSpellcastingInfo, getUnarmedStrikeWeapon } from "@/utils/attackCalculations";
 import { getPactMagicSlots, getSpellSlots } from "@/utils/spellcasting";
 import { levelLabel } from "@/components/character/wizard/SpellsStep";
@@ -442,6 +443,12 @@ export default function CharacterDetailsPage() {
       ac: getArmorClassBreakdown(character),
       hp: getMaxHpBreakdown(character),
       initiative: getInitiativeBreakdown(character),
+      speed: getSpeedBreakdown(character),
+      // Non-skill proficiencies/defenses from feats - listed on the Background tab.
+      featGrants: getFeatGrants(
+        resolveFeatSelections(character.featSelections ?? [], character.feats ?? []),
+        character.skillProficiencies
+      ),
       spellSlots: getSpellSlots(character),
       pactMagicSlots: getPactMagicSlots(character),
       spellcasting: getSpellcastingInfo(character),
@@ -501,7 +508,8 @@ export default function CharacterDetailsPage() {
     );
   }
 
-  const { ac, hp, initiative, spellSlots, pactMagicSlots, spellcasting } = derived!;
+  const { ac, hp, initiative, speed, featGrants, spellSlots, pactMagicSlots, spellcasting } = derived!;
+  const featEntries = pairFeatsWithSelections(character.feats ?? [], character.featSelections);
   const classSummary = character.classes
     .map((entry) => `${entry.class.name}${entry.subclass ? ` (${entry.subclass.name})` : ""} ${entry.level}`)
     .join(", ");
@@ -940,7 +948,7 @@ export default function CharacterDetailsPage() {
                   />
                   <HeaderStatTile
                     label="Initiative"
-                    value={formatModifier(character.initiative)}
+                    value={formatModifier(initiative.total)}
                     tooltip={<Tooltip title="Initiative" lines={initiative.lines} />}
                   />
                   <HeaderStatTile
@@ -961,6 +969,10 @@ export default function CharacterDetailsPage() {
                       onChange={readOnly ? undefined : handleSetCurrentHp}
                     />
                     <Tooltip title="Max HP" lines={hp.lines} />
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Badge variant="muted">Speed {speed.total} ft.</Badge>
+                    <Tooltip title="Speed" lines={speed.lines} />
                   </span>
                   <span className="flex items-center gap-1">
                     <Badge variant="muted">Hit Dice {formatHitDicePools(hitDicePools)}</Badge>
@@ -1433,13 +1445,20 @@ export default function CharacterDetailsPage() {
                   <Card>
                     <CardHeader>
                       <CardTitle>Feats</CardTitle>
-                      {character.feats.length > 0 && <Badge variant="muted">{character.feats.length}</Badge>}
+                      {featEntries.length > 0 && <Badge variant="muted">{featEntries.length}</Badge>}
                     </CardHeader>
                     <CardContent className="flex flex-col gap-2 text-sm text-fontcolor-secondary">
-                      {character.feats.length === 0 ? (
-                        <p>No feats yet - edit this character to add some.</p>
+                      {featEntries.length === 0 ? (
+                        <p>No feats yet - edit this character to add some (Feats step).</p>
                       ) : (
-                        character.feats.map((feat) => <FeatEntry key={feat.name} feat={feat} />)
+                        featEntries.map(({ feat, selection }, index) => (
+                          <FeatEntry
+                            key={`${selection?.slot ?? "feat"}-${feat.name}-${index}`}
+                            feat={feat}
+                            selection={selection}
+                            sourceLabel={selection ? describeFeatSlot(selection.slot, character.classes) : undefined}
+                          />
+                        ))
                       )}
                     </CardContent>
                   </Card>
@@ -1479,6 +1498,25 @@ export default function CharacterDetailsPage() {
                           duplicated here as a flat name list. */}
                       <p>Saving throws: {character.savingThrowProficiencies.join(", ") || "None"}</p>
                       <p>Languages: {character.languages.join(", ") || "None"}</p>
+                      {character.skillExpertise && character.skillExpertise.length > 0 && (
+                        <p>Expertise: {character.skillExpertise.join(", ")}</p>
+                      )}
+                      {featGrants.tools.length > 0 && <p>Tool proficiencies (feats): {featGrants.tools.join(", ")}</p>}
+                      {featGrants.armor.length > 0 && <p>Armor training (feats): {featGrants.armor.join(", ")}</p>}
+                      {featGrants.weapons.length > 0 && <p>Weapon proficiencies (feats): {featGrants.weapons.join(", ")}</p>}
+                      {featGrants.resistances.length > 0 && <p>Resistances: {featGrants.resistances.join(", ")}</p>}
+                      {featGrants.immunities.length > 0 && <p>Immunities: {featGrants.immunities.join(", ")}</p>}
+                      {featGrants.conditionImmunities.length > 0 && (
+                        <p>Condition immunities: {featGrants.conditionImmunities.join(", ")}</p>
+                      )}
+                      {Object.keys(featGrants.senses).length > 0 && (
+                        <p>
+                          Senses:{" "}
+                          {Object.entries(featGrants.senses)
+                            .map(([sense, range]) => `${sense} ${range} ft.`)
+                            .join(", ")}
+                        </p>
+                      )}
                     </CardContent>
                   </Card>
 

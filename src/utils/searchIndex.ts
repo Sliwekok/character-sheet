@@ -2,7 +2,7 @@ import { getRulesetAsync, Ruleset } from "@/data";
 import { Edition } from "@/interfaces/Edition";
 
 /** Every Ruleset key that holds a searchable list - i.e. every key except `edition` itself. */
-export type SearchableType = Exclude<keyof Ruleset, "edition">;
+export type SearchableType = Exclude<keyof Ruleset, "edition" | "spellClassLists">;
 
 export interface SearchIndexEntry {
   name: string;

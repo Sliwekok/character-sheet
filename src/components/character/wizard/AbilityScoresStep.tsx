@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { AbilityScores } from "@/interfaces/Characters";
 import {AbilityScoreMethod, AbilityScoreState, DraftClassEntry} from "@/interfaces/CharacterDraft";
 import { Race } from "@/interfaces/Race";
@@ -9,6 +10,9 @@ import { rollAbilityScoreSet } from "@/utils/dice";
 import { sumAbilityScores } from "@/utils/abilityScoreBonuses";
 import { AsiSlot, getAsiSlots, isValidAsiAllocation, sumAsiAllocations } from "@/utils/abilityScoreImprovements";
 import { calculateAbilityModifiers } from "@/utils/abilityModifiers";
+import { FeatSelection } from "@/interfaces/Feat";
+import { asiFeatSlotKey, asiSlotsNeedingAllocation, describeAbilityBonuses, sumFeatAbilityBonuses } from "@/utils/feats";
+import { AsiOrFeatToggle } from "./FeatsStep";
 import {
   POINT_BUY_COSTS,
   POINT_BUY_MAX_SCORE,
@@ -27,6 +31,9 @@ type AbilityScoresStepProps = {
   /** The player's chosen allocation of every earned Ability Score Improvement so far - see `AbilityScoreImprovementPicker` below and utils/abilityScoreImprovements.ts. */
   abilityScoreImprovements: Record<string, Partial<AbilityScores>>;
   onAbilityScoreImprovementsChange: (next: Record<string, Partial<AbilityScores>>) => void;
+  /** Feat picks - an ASI level can be switched to "take a feat" here (the feat itself is picked on the Feats step), and chosen feats' ability increases show in the final scores below. */
+  featSelections: Record<string, FeatSelection>;
+  onFeatSelectionsChange: (next: Record<string, FeatSelection>) => void;
 };
 
 const ABILITIES: { key: keyof AbilityScores; label: string; short: string }[] = [
@@ -74,10 +81,21 @@ export function AbilityScoresStep({
   classes,
   abilityScoreImprovements,
   onAbilityScoreImprovementsChange,
+  featSelections,
+  onFeatSelectionsChange,
 }: AbilityScoresStepProps) {
   const usesPool = state.method === "standard-array" || state.method === "roll";
   const asiSlots = getAsiSlots(classes);
-  const asiBonuses = sumAsiAllocations(asiSlots, abilityScoreImprovements);
+  const asiBonuses = sumAsiAllocations(asiSlotsNeedingAllocation(asiSlots, featSelections), abilityScoreImprovements);
+  const featBonuses = sumFeatAbilityBonuses(featSelections);
+
+  function toggleAsiFeat(slotKey: string, takeFeat: boolean) {
+    const key = asiFeatSlotKey(slotKey);
+    const next = { ...featSelections };
+    if (takeFeat) next[key] = featSelections[key] ?? { slot: key, featName: "" };
+    else delete next[key];
+    onFeatSelectionsChange(next);
+  }
 
   /** Assigns one pool value to `ability` - removes that value from the pool and, if `ability` already held a different value, returns it to the pool. */
   function assignPoolValue(ability: keyof AbilityScores, rawValue: string) {
@@ -124,7 +142,7 @@ export function AbilityScoresStep({
     onAbilityScoreImprovementsChange(next);
   }
 
-  const finalScores = sumAbilityScores(state.scores, race.abilityModifiers, backgroundAbilityBonuses, asiBonuses);
+  const finalScores = sumAbilityScores(state.scores, race.abilityModifiers, backgroundAbilityBonuses, asiBonuses, featBonuses);
   const finalModifiers = calculateAbilityModifiers(finalScores);
 
   return (
@@ -250,20 +268,46 @@ export function AbilityScoresStep({
 
       {asiSlots.length > 0 && (
         <div className="flex flex-col gap-3">
-          {asiSlots.map((slot) => (
-            <AbilityScoreImprovementPicker
-              key={slot.key}
-              slot={slot}
-              allocation={abilityScoreImprovements[slot.key]}
-              onChange={(allocation) => updateAsiSlot(slot.key, allocation)}
-            />
-          ))}
+          {asiSlots.map((slot) => {
+            const featSelection = featSelections[asiFeatSlotKey(slot.key)];
+            const toggle = (
+              <AsiOrFeatToggle takenAsFeat={Boolean(featSelection)} onChange={(takeFeat) => toggleAsiFeat(slot.key, takeFeat)} />
+            );
+            if (featSelection) {
+              const bonus = describeAbilityBonuses(featSelection.abilityBonuses);
+              return (
+                <div
+                  key={slot.key}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-(--radius) border border-border bg-background-elevated/20 p-4"
+                >
+                  <p className="text-sm text-fontcolor-secondary">
+                    <span className="font-medium text-fontcolor">
+                      {slot.className} level {slot.level}:
+                    </span>{" "}
+                    {featSelection.featName
+                      ? `${featSelection.featName}${bonus ? ` (${bonus})` : ""}`
+                      : "taking a feat - pick it on the Feats step"}
+                  </p>
+                  {toggle}
+                </div>
+              );
+            }
+            return (
+              <AbilityScoreImprovementPicker
+                key={slot.key}
+                slot={slot}
+                allocation={abilityScoreImprovements[slot.key]}
+                onChange={(allocation) => updateAsiSlot(slot.key, allocation)}
+                headerExtra={toggle}
+              />
+            );
+          })}
         </div>
       )}
 
       <div className="rounded-(--radius) border border-border-strong bg-background-elevated/40 p-4">
         <p className="mb-3 text-sm font-medium text-fontcolor-secondary">
-          Final ability scores (base + race + background + Ability Score Improvements)
+          Final ability scores (base + race + background + Ability Score Improvements + feats)
         </p>
         <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
           {ABILITIES.map(({ key, short }) => (
@@ -436,10 +480,13 @@ function AbilityScoreImprovementPicker({
   slot,
   allocation,
   onChange,
+  headerExtra,
 }: {
   slot: AsiSlot;
   allocation: Partial<AbilityScores> | undefined;
   onChange: (next: Partial<AbilityScores>) => void;
+  /** Rendered next to the status badge - the ASI/Feat toggle. */
+  headerExtra?: ReactNode;
 }) {
   const bonuses = allocation ?? {};
   const plusOneAbilities = (Object.entries(bonuses) as [keyof AbilityScores, number][]).filter(
@@ -470,7 +517,10 @@ function AbilityScoreImprovementPicker({
         <p className="text-sm font-medium text-fontcolor">
           {slot.className} - Ability Score Improvement (level {slot.level})
         </p>
-        <Badge variant={complete ? "solid" : "outline"}>{complete ? "Assigned" : "Choose +2, or two +1"}</Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          {headerExtra}
+          <Badge variant={complete ? "solid" : "outline"}>{complete ? "Assigned" : "Choose +2, or two +1"}</Badge>
+        </div>
       </div>
       <p className="mb-3 text-xs text-fontcolor-secondary">
         Increase one ability score by +2, or two different ability scores by +1 each.

@@ -41,6 +41,14 @@ export interface Ruleset {
    * data/magicItems/MagicArmor.ts.
    */
   magicArmor: Armor[];
+  /**
+   * Class name ("Wizard", "Cleric", ...) -> names of the spells on that
+   * class's list, both editions' lists merged (data/spellClassLists.json,
+   * generated from 5etools' spell data by scripts/feats/build_feat_mechanics.py).
+   * The compendium's `Spell` has no class list of its own; this exists for
+   * feat spell picks like Magic Initiate's "two Wizard cantrips".
+   */
+  spellClassLists: Record<string, string[]>;
 }
 
 // Weapon and armor stats (the mundane starting-equipment tables) don't
@@ -60,10 +68,11 @@ export interface Ruleset {
 const rulesetCache = new Map<Edition, Promise<Ruleset>>();
 
 async function buildRuleset(edition: Edition): Promise<Ruleset> {
-  const [editionData, magicData, { SPELLS }] = await Promise.all([
+  const [editionData, magicData, { SPELLS }, spellClassLists] = await Promise.all([
     edition === "2014" ? import("./2014") : import("./2024"),
     import("./magicItems"),
     import("./spells/Spells"),
+    import("./spellClassLists.json").then((module) => module.default as Record<string, string[]>),
   ]);
 
   return {
@@ -79,6 +88,7 @@ async function buildRuleset(edition: Edition): Promise<Ruleset> {
     magicItems: magicData.MAGIC_ITEMS,
     magicWeapons: magicData.MAGIC_WEAPONS,
     magicArmor: magicData.MAGIC_ARMOR,
+    spellClassLists,
   };
 }
 

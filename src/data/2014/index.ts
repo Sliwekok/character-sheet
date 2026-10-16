@@ -1,6 +1,7 @@
 import { RACES_2014 } from "./races/Races";
 import { BACKGROUNDS_2014 } from "./backgrounds/Backgrounds";
 import { FEATS_2014 } from "./feats/Feats";
+import { withFeatMechanics } from "../featMechanics";
 
 import { Artificer } from "./classes/Artificer";
 import { Barbarian } from "./classes/Barbarian";
@@ -42,7 +43,7 @@ import { WizardSubclasses } from "./subclasses/Wizard";
  */
 export const RACES = RACES_2014;
 export const BACKGROUNDS = BACKGROUNDS_2014;
-export const FEATS = FEATS_2014;
+export const FEATS = withFeatMechanics(FEATS_2014, "2014");
 
 export const CLASSES = [
   Artificer, Barbarian, Bard, Cleric, Druid, Fighter,

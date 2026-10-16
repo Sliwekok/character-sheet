@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Nav from "../../layout/nav";
 import { Button, Card, CardContent, Container, SectionHeading } from "@/components/ui";
 import { CharacterDraft, DraftClassEntry } from "@/interfaces/CharacterDraft";
+import { FeatSelection } from "@/interfaces/Feat";
 import { getRulesetAsync, Ruleset } from "@/data";
 import {
   createEmptyDraft,
@@ -17,6 +18,14 @@ import { isValidBackgroundAllocation, sumAbilityScores } from "@/utils/abilitySc
 import { areAsiSlotsComplete, getAsiSlots, sumAsiAllocations } from "@/utils/abilityScoreImprovements";
 import { getEffectiveCasterProgression } from "@/utils/spellcasting";
 import { areFeatureChoicesComplete, getAutoGrantedSpellNames, resolveSpellsByName } from "@/utils/grantedSpells";
+import {
+  areDraftFeatSlotsComplete,
+  asiSlotsNeedingAllocation,
+  getDraftFeatSpellNames,
+  reconcileFeatSelections,
+  resolveFeatSelections,
+  sumFeatAbilityBonuses,
+} from "@/utils/feats";
 import { saveCharacter } from "@/utils/storage";
 import { getCharacterSharing, sharingPatch } from "@/utils/campaigns";
 import { useStoredCharacter } from "@/components/auth/useStoredCharacter";
@@ -30,6 +39,7 @@ import { SkillsEquipmentStep } from "@/components/character/wizard/SkillsEquipme
 import { MagicItemsStep } from "@/components/character/wizard/MagicItemsStep";
 import { SpellsStep } from "@/components/character/wizard/SpellsStep";
 import { DetailsStep } from "@/components/character/wizard/DetailsStep";
+import { FeatsStep } from "@/components/character/wizard/FeatsStep";
 import { ReviewStep } from "@/components/character/wizard/ReviewStep";
 
 // Ability Scores sits after Background (not before it) because the 2024
@@ -45,10 +55,14 @@ import { ReviewStep } from "@/components/character/wizard/ReviewStep";
 // of the wizard's indices going stale. "Magic Items" itself is always
 // present (in BASE_STEPS) - unlike Spells it isn't gated on class, since
 // any character can carry a wand or a potion regardless of what they cast.
-const BASE_STEPS = ["Edition", "Race", "Class", "Background", "Ability Scores", "Skills & Equipment", "Magic Items"];
+//
+// "Feats" sits after Skills & Equipment so a feat's skill picks can skip the
+// skills the class step already granted, and after Ability Scores so feat
+// prerequisites ("Strength 13") see the real scores.
+const BASE_STEPS = ["Edition", "Race", "Class", "Background", "Ability Scores", "Skills & Equipment", "Feats", "Magic Items"];
 
 /** Whether the player can move past `stepName` via the Continue button - this is the one place the wizard's linear order is encoded. The step indicator (StepProgress) deliberately does NOT use this - it lets the player jump to any step at any time, see this component's `onSelect`. */
-function canProceed(stepName: string, draft: CharacterDraft): boolean {
+function canProceed(stepName: string, draft: CharacterDraft, ruleset: Ruleset | null): boolean {
   switch (stepName) {
     case "Edition":
       return Boolean(draft.edition);
@@ -70,8 +84,12 @@ function canProceed(stepName: string, draft: CharacterDraft): boolean {
       return (
         draft.abilityScores.unassignedPool.length === 0 &&
         isValidBackgroundAllocation(draft.background, draft.backgroundAbilityBonuses) &&
-        areAsiSlotsComplete(getAsiSlots(draft.classes), draft.abilityScoreImprovements)
+        areAsiSlotsComplete(asiSlotsNeedingAllocation(getAsiSlots(draft.classes), draft.featSelections), draft.abilityScoreImprovements)
       );
+    case "Feats":
+      // Every slot needs a feat and all of its choices (spells included -
+      // which is why this needs the loaded ruleset).
+      return Boolean(ruleset) && areDraftFeatSlotsComplete(draft, ruleset!);
     case "Skills & Equipment":
     case "Magic Items":
     case "Spells":
@@ -154,6 +172,22 @@ export default function ManualWizard() {
 
   function updateDraft(patch: Partial<CharacterDraft>) {
     setDraft((current) => ({ ...current, ...patch }));
+  }
+
+  /**
+   * Applies new feat selections and keeps what depends on them in sync:
+   * `draft.feats` (the resolved Feat objects finalizeDraft saves), and any
+   * ASI allocation for a level now taken as a feat (it would otherwise
+   * still be added on save).
+   */
+  function updateFeatSelections(featSelections: Record<string, FeatSelection>) {
+    setDraft((current) => {
+      const feats = ruleset ? resolveFeatSelections(featSelections, ruleset.feats).map((entry) => entry.feat) : current.feats;
+      const abilityScoreImprovements = Object.fromEntries(
+        Object.entries(current.abilityScoreImprovements).filter(([key]) => !featSelections[`asi:${key}`])
+      );
+      return { ...current, featSelections, feats, abilityScoreImprovements };
+    });
   }
 
   // The compendium (races/classes/subclasses/backgrounds/feats/spells/magic
@@ -288,8 +322,13 @@ export default function ManualWizard() {
   // re-runs when the actual resolved name SET could have changed, not on
   // every unrelated draft update.
   const grantedSpellNames = useMemo(
-    () => getAutoGrantedSpellNames(draft.classes, draft.featureChoices),
-    [draft.classes, draft.featureChoices]
+    () => [
+      ...getAutoGrantedSpellNames(draft.classes, draft.featureChoices),
+      // Spells from feats (Magic Initiate, Fey Touched, ...) - fixed ones and the player's picks.
+      ...(ruleset ? getDraftFeatSpellNames(draft, ruleset.feats) : []),
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [draft.classes, draft.featureChoices, draft.featSelections, ruleset]
   );
   useEffect(() => {
     if (!ruleset) return;
@@ -308,6 +347,30 @@ export default function ManualWizard() {
     });
   }, [grantedSpellNames, ruleset]);
 
+  // Keep feat slots in step with the build: the background's Origin feat is
+  // added (or swapped) automatically, a species feat slot comes and goes
+  // with the race, and `draft.feats` is re-resolved against the loaded
+  // ruleset (so a character loaded for editing picks up current feat data).
+  // Signature-guarded like the class revalidation above.
+  const featSignature = `${draft.background?.name ?? ""}|${draft.race?.name ?? ""}|${classesSignature(draft.classes)}|${Object.values(
+    draft.featSelections
+  )
+    .map((selection) => `${selection.slot}=${selection.featName}`)
+    .join(",")}`;
+  useEffect(() => {
+    if (!ruleset) return;
+    setDraft((current) => {
+      const featSelections = reconcileFeatSelections({ ...current, feats: ruleset.feats });
+      const feats = resolveFeatSelections(featSelections, ruleset.feats).map((entry) => entry.feat);
+      const sameSelections = JSON.stringify(featSelections) === JSON.stringify(current.featSelections);
+      const sameFeats = feats.map((feat) => feat.name).join("|") === current.feats.map((feat) => feat.name).join("|") &&
+        feats.every((feat, index) => feat.mechanics === current.feats[index]?.mechanics);
+      if (sameSelections && sameFeats) return current;
+      return { ...current, featSelections, feats };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [featSignature, ruleset]);
+
   function handleSave() {
     const finalized = finalizeDraft(draft);
     if (!finalized) return;
@@ -316,7 +379,7 @@ export default function ManualWizard() {
   }
 
   const currentStep = STEPS[stepIndex];
-  const canGoNext = canProceed(currentStep, draft);
+  const canGoNext = canProceed(currentStep, draft, ruleset);
   const isLastStep = stepIndex === STEPS.length - 1;
 
   const asiSlots = getAsiSlots(draft.classes);
@@ -324,7 +387,8 @@ export default function ManualWizard() {
     draft.abilityScores.scores,
     draft.race?.abilityModifiers ?? {},
     draft.backgroundAbilityBonuses,
-    sumAsiAllocations(asiSlots, draft.abilityScoreImprovements)
+    sumAsiAllocations(asiSlotsNeedingAllocation(asiSlots, draft.featSelections), draft.abilityScoreImprovements),
+    sumFeatAbilityBonuses(draft.featSelections)
   );
 
   return (
@@ -412,6 +476,8 @@ export default function ManualWizard() {
                   onAbilityScoreImprovementsChange={(abilityScoreImprovements) =>
                     updateDraft({ abilityScoreImprovements })
                   }
+                  featSelections={draft.featSelections}
+                  onFeatSelectionsChange={updateFeatSelections}
                 />
               ) : (
                 <PrerequisiteNotice
@@ -435,12 +501,10 @@ export default function ManualWizard() {
                   equippedArmor={draft.equippedArmor}
                   shield={draft.shield}
                   weapons={draft.weapons}
-                  feats={draft.feats}
                   onSkillsChange={(skillProficiencies) => updateDraft({ skillProficiencies })}
                   onArmorChange={(equippedArmor) => updateDraft({ equippedArmor })}
                   onShieldChange={(shield) => updateDraft({ shield })}
                   onWeaponsChange={(weapons) => updateDraft({ weapons })}
-                  onFeatsChange={(feats) => updateDraft({ feats })}
                 />
               ) : draft.edition && !ruleset && primaryClass && draft.background ? (
                 <RulesetLoadingNotice />
@@ -453,6 +517,19 @@ export default function ManualWizard() {
                   }
                   jumpLabel={!primaryClass ? "Go to Class" : "Go to Background"}
                   onJump={() => setStepIndex(STEPS.indexOf(!primaryClass ? "Class" : "Background"))}
+                />
+              ))}
+
+            {currentStep === "Feats" &&
+              (ruleset && primaryClass && draft.race && draft.background ? (
+                <FeatsStep ruleset={ruleset} draft={draft} onChange={updateFeatSelections} />
+              ) : draft.edition && !ruleset ? (
+                <RulesetLoadingNotice />
+              ) : (
+                <PrerequisiteNotice
+                  message="Choose a race, class and background first - they decide which feats you get."
+                  jumpLabel={!draft.race ? "Go to Race" : !primaryClass ? "Go to Class" : "Go to Background"}
+                  onJump={() => setStepIndex(STEPS.indexOf(!draft.race ? "Race" : !primaryClass ? "Class" : "Background"))}
                 />
               ))}
 

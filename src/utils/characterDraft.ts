@@ -14,6 +14,21 @@ import { classCanUseArmor, classCanUseWeapon } from "@/utils/proficiencyMatch";
 import { getSpellLimits, pruneSpellsToLimits } from "@/utils/spellcasting";
 import { areFeatureChoicesComplete, pruneFeatureChoices } from "@/utils/grantedSpells";
 import { getEquippedArmor, getEquippedShield, reconcileOwnedArmors } from "@/utils/armor";
+import {
+    areFeatSlotsComplete,
+    asiSlotsNeedingAllocation,
+    featClaimedSkills,
+    featContextForDraft,
+    featSelectionsFromCharacter,
+    getFeatGrants,
+    getFeatHpBonuses,
+    getFeatInitiativeBonuses,
+    reconcileFeatSelections,
+    resolveFeatSelections,
+    sumFeatAbilityBonuses,
+} from "@/utils/feats";
+import { calculateProficiencyBonus } from "@/utils/calculateProficiencyBonus";
+import { getCharacterLevel } from "@/interfaces/Characters";
 
 const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
 
@@ -64,6 +79,7 @@ export function createEmptyDraft(edition?: Edition): CharacterDraft {
         skillProficiencies: [],
         ownedArmors: [],
         weapons: [],
+        featSelections: {},
         feats: [],
         magicItems: [],
         currency: { copper: 0, silver: 0, electrum: 0, gold: 0, platinum: 0 },
@@ -157,11 +173,23 @@ export function draftFromCharacter(character: StoredCharacter): CharacterDraft {
     const asiSlots = getAsiSlots(classes.map((entry) => ({ characterClass: entry.characterClass, level: entry.level })));
     const asiBonuses = sumAsiAllocations(asiSlots, abilityScoreImprovements);
 
+    // Feat bonuses are subtracted from the SAVED selections' bookkeeping
+    // (exactly what finalizeDraft added) - a character saved before feats
+    // were selectable has no `featSelections`, so nothing is subtracted and
+    // its old feats land in slots with their choices still open (see
+    // featSelectionsFromCharacter), the same backfill route as a missing ASI.
+    const featSelections = featSelectionsFromCharacter(character);
+    const featBonuses = sumFeatAbilityBonuses(character.featSelections);
+    const resolvedFeats = resolveFeatSelections(character.featSelections ?? [], character.feats ?? []);
+    const featSkills = featClaimedSkills(resolvedFeats, character.skillExpertise ?? []);
+    const featGrants = getFeatGrants(resolvedFeats, []);
+
     const baseAbilityScores = subtractAbilityScores(
         character.abilityScores,
         character.race.abilityModifiers,
         backgroundAbilityBonuses,
-        asiBonuses
+        asiBonuses,
+        featBonuses
     );
 
     return {
@@ -174,7 +202,7 @@ export function draftFromCharacter(character: StoredCharacter): CharacterDraft {
         backgroundAbilityBonuses,
         abilityScoreImprovements,
         skillProficiencies: character.skillProficiencies.filter(
-            (skill) => !character.background.skillProficiencies.includes(skill)
+            (skill) => !character.background.skillProficiencies.includes(skill) && !featSkills.includes(skill)
         ),
         // The wizard step only ever lets the player edit one worn armor and
         // one worn shield at a time (see `equippedArmor`/`shield`'s header
@@ -186,12 +214,15 @@ export function draftFromCharacter(character: StoredCharacter): CharacterDraft {
         shield: getEquippedShield(character),
         ownedArmors: character.armors ?? [],
         weapons: character.weapons,
+        featSelections,
         feats: character.feats ?? [],
         magicItems: character.magicItems ?? [],
         currency: character.currency,
         name: character.name,
         alignment: character.alignment,
-        languages: character.languages.filter((language) => !character.race.languages.includes(language)),
+        languages: character.languages.filter(
+            (language) => !character.race.languages.includes(language) && !featGrants.languages.includes(language)
+        ),
         spellsKnown: character.spellsKnown,
         // Seeded from the stored character so it's not empty for a beat
         // before ManualWizard's ruleset-driven effect gets a chance to
@@ -221,8 +252,9 @@ export function isDraftReadyToFinalize(draft: CharacterDraft): boolean {
             draft.alignment &&
             draft.abilityScores.unassignedPool.length === 0 &&
             isValidBackgroundAllocation(draft.background, draft.backgroundAbilityBonuses) &&
-            areAsiSlotsComplete(getAsiSlots(draft.classes), draft.abilityScoreImprovements) &&
-            areFeatureChoicesComplete(draft.classes, draft.featureChoices)
+            areAsiSlotsComplete(asiSlotsNeedingAllocation(getAsiSlots(draft.classes), draft.featSelections), draft.abilityScoreImprovements) &&
+            areFeatureChoicesComplete(draft.classes, draft.featureChoices) &&
+            areFeatSlotsComplete(draft, (slotKey) => featContextForDraft(draft, { feats: draft.feats }, slotKey))
     );
 }
 
@@ -254,12 +286,24 @@ export function finalizeDraft(draft: CharacterDraft): StoredCharacter | null {
 
     const now = new Date().toISOString();
     const asiSlots = getAsiSlots(draft.classes);
-    const asiBonuses = sumAsiAllocations(asiSlots, draft.abilityScoreImprovements);
+    // An ASI level taken as a feat contributes through its feat selection instead.
+    const asiBonuses = sumAsiAllocations(asiSlotsNeedingAllocation(asiSlots, draft.featSelections), draft.abilityScoreImprovements);
+    const featSelectionList = Object.values(draft.featSelections).filter((selection) => selection.featName);
+    const featBonuses = sumFeatAbilityBonuses(featSelectionList);
     const abilityScores = sumAbilityScores(
         draft.abilityScores.scores,
         draft.race.abilityModifiers,
         draft.backgroundAbilityBonuses,
-        asiBonuses
+        asiBonuses,
+        featBonuses
+    );
+
+    const resolvedFeats = resolveFeatSelections(featSelectionList, draft.feats);
+    const baseSkills = [...draft.background.skillProficiencies, ...draft.skillProficiencies];
+    const featGrants = getFeatGrants(resolvedFeats, baseSkills, draft.classes);
+    const baseLanguages = [...draft.race.languages, ...draft.languages];
+    const abilityScoreImprovements = Object.fromEntries(
+        Object.entries(draft.abilityScoreImprovements).filter(([key]) => !draft.featSelections[`asi:${key}`])
     );
 
     const base: StoredCharacter = {
@@ -279,15 +323,19 @@ export function finalizeDraft(draft: CharacterDraft): StoredCharacter | null {
         })),
         race: draft.race,
         background: draft.background,
-        feats: draft.feats,
+        feats: resolvedFeats.map((entry) => entry.feat),
+        featSelections: featSelectionList.length > 0 ? featSelectionList : undefined,
+        skillExpertise: featGrants.expertise.length > 0 ? featGrants.expertise : undefined,
         alignment: draft.alignment,
         abilityScores,
         backgroundAbilityBonuses:
             Object.keys(draft.backgroundAbilityBonuses).length > 0 ? draft.backgroundAbilityBonuses : undefined,
-        abilityScoreImprovements:
-            Object.keys(draft.abilityScoreImprovements).length > 0 ? draft.abilityScoreImprovements : undefined,
-        skillProficiencies: [...draft.background.skillProficiencies, ...draft.skillProficiencies],
-        savingThrowProficiencies: primary.proficiencies.savingThrows,
+        abilityScoreImprovements: Object.keys(abilityScoreImprovements).length > 0 ? abilityScoreImprovements : undefined,
+        skillProficiencies: [...baseSkills, ...featGrants.skillProficiencies.filter((skill) => !baseSkills.includes(skill))],
+        savingThrowProficiencies: [
+            ...primary.proficiencies.savingThrows,
+            ...featGrants.savingThrows.filter((save) => !primary.proficiencies.savingThrows.includes(save)),
+        ],
         armors: reconcileOwnedArmors(draft.ownedArmors, draft.equippedArmor, draft.shield),
         weapons: draft.weapons,
         magicItems: draft.magicItems.length > 0 ? draft.magicItems : undefined,
@@ -302,13 +350,15 @@ export function finalizeDraft(draft: CharacterDraft): StoredCharacter | null {
         spellsKnown: draft.spellsKnown,
         grantedSpells: draft.grantedSpells.length > 0 ? draft.grantedSpells : undefined,
         featureChoices: Object.keys(draft.featureChoices).length > 0 ? draft.featureChoices : undefined,
-        languages: [...draft.race.languages, ...draft.languages],
+        languages: [...baseLanguages, ...featGrants.languages.filter((language) => !baseLanguages.includes(language))],
         details: cleanDetails(draft.details),
         visibility: draft.visibility ?? "private",
         campaignId: draft.visibility && draft.visibility !== "private" ? draft.campaignId ?? null : null,
     };
 
-    base.initiative = calculateAbilityModifiers(base.abilityScores).dexterity;
+    base.initiative =
+        calculateAbilityModifiers(base.abilityScores).dexterity +
+        getFeatInitiativeBonuses(base.feats, calculateProficiencyBonus(base)).reduce((total, bonus) => total + bonus.value, 0);
 
     const conModifier = calculateAbilityModifiers(base.abilityScores).constitution;
     const hpEntries: HpClassInput[] = draft.classes.map((entry) => ({
@@ -318,7 +368,10 @@ export function finalizeDraft(draft: CharacterDraft): StoredCharacter | null {
         rolls: entry.hpRolls,
     }));
     base.hpHistory = buildHpHistory(hpEntries, conModifier);
-    base.maxHP = base.hpHistory.reduce((total, entry) => total + entry.hpGained, 0);
+    // Tough / Boon of Fortitude raise max HP on top of the per-level history (see utils/calculateMaxHp.ts's getMaxHpBreakdown).
+    base.maxHP =
+        base.hpHistory.reduce((total, entry) => total + entry.hpGained, 0) +
+        getFeatHpBonuses(base.feats, getCharacterLevel(base)).reduce((total, bonus) => total + bonus.value, 0);
     base.currentHP = base.maxHP;
 
     return base;
@@ -353,7 +406,12 @@ export function revalidateDraftForClasses(draft: CharacterDraft): CharacterDraft
 
     const asiSlots = getAsiSlots(draft.classes);
     const abilityScoreImprovements = pruneAsiAllocations(asiSlots, draft.abilityScoreImprovements);
-    const asiBonuses = sumAsiAllocations(asiSlots, abilityScoreImprovements);
+
+    // Feat slots tied to a class level (an ASI level taken as a feat, an Epic
+    // Boon) disappear with that level - same reasoning as the ASI prune above.
+    const featSelections = reconcileFeatSelections({ ...draft, feats: draft.feats });
+    const feats = resolveFeatSelections(featSelections, draft.feats).map((entry) => entry.feat);
+    const asiBonuses = sumAsiAllocations(asiSlotsNeedingAllocation(asiSlots, featSelections), abilityScoreImprovements);
 
     // Drop any feature-choice pick (Pact Boon, Fighting Style, a Circle of
     // the Land terrain, etc. - see utils/grantedSpells.ts) the class change
@@ -364,7 +422,8 @@ export function revalidateDraftForClasses(draft: CharacterDraft): CharacterDraft
         draft.abilityScores.scores,
         draft.race?.abilityModifiers ?? {},
         draft.backgroundAbilityBonuses,
-        asiBonuses
+        asiBonuses,
+        sumFeatAbilityBonuses(featSelections)
     );
     const limits = getSpellLimits(draft.classes, abilityScores, featureChoices);
     const spellsKnown = pruneSpellsToLimits(draft.spellsKnown, limits);
@@ -376,6 +435,8 @@ export function revalidateDraftForClasses(draft: CharacterDraft): CharacterDraft
         shield,
         weapons,
         abilityScoreImprovements,
+        featSelections,
+        feats,
         featureChoices,
         spellsKnown,
     };

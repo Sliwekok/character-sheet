@@ -10,7 +10,7 @@ import { Armor } from "@/interfaces/Armor";
 import { Weapon } from "@/interfaces/Weapon";
 import { Currency } from "@/interfaces/Currency";
 import { Spell } from "@/interfaces/Spell";
-import { Feat } from "@/interfaces/Feat";
+import { Feat, FeatSelection } from "@/interfaces/Feat";
 import { CharacterDetails } from "@/interfaces/CharacterDetails";
 import { MagicItem } from "@/interfaces/MagicItem";
 import { HpMethod } from "@/interfaces/Hp";
@@ -133,12 +133,20 @@ export interface CharacterDraft {
     ownedArmors: Armor[];
     weapons: Weapon[];
     /**
-     * Feats picked on the Skills & Equipment step - currently only ever
-     * populated from the `"epic-boon"` category (see `SkillsEquipmentStep`'s
-     * epic boon combobox); other feat categories aren't offered by any
-     * wizard step yet. Always `[]` rather than undefined, same convention as
-     * `weapons`/`magicItems`; carried straight through to `Character.feats`
-     * by `finalizeDraft()`.
+     * The player's feat picks, keyed by slot (see interfaces/Feat.ts's
+     * `FeatSlotKind` and utils/feats.ts's `getFeatSlots`): the 2024
+     * background's Origin feat, a species feat, every ASI level switched to
+     * "take a feat", Epic Boons and bonus feats. Edited on the Feats step.
+     * An ASI slot's presence here (even with no feat picked yet) is what
+     * marks that level as "feat instead of +2/+1+1". Always a valid,
+     * possibly-empty object.
+     */
+    featSelections: Record<string, FeatSelection>;
+    /**
+     * The `Feat` objects for `featSelections`, in slot order - kept in sync
+     * by ManualWizard whenever the selections change (finalizeDraft can't
+     * look feats up itself - it has no ruleset). Carried straight through to
+     * `Character.feats`. Always `[]` rather than undefined.
      */
     feats: Feat[];
     /**

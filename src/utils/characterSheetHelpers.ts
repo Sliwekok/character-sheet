@@ -62,6 +62,11 @@ export function isProficientInSkill(character: Character, skill: SkillName): boo
   return character.skillProficiencies.includes(skill);
 }
 
+/** Expertise doubles the proficiency bonus for that skill (currently granted by feats - see `Character.skillExpertise`). */
+export function hasSkillExpertise(character: Character, skill: SkillName): boolean {
+  return character.skillExpertise?.includes(skill) ?? false;
+}
+
 export function skillModifier(
   character: Character,
   skill: SkillName,
@@ -69,6 +74,7 @@ export function skillModifier(
   proficiencyBonus: number
 ): number {
   const ability = SKILL_ABILITIES[skill];
+  if (hasSkillExpertise(character, skill)) return modifiers[ability] + proficiencyBonus * 2;
   return modifiers[ability] + (isProficientInSkill(character, skill) ? proficiencyBonus : 0);
 }
 

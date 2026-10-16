@@ -6,7 +6,8 @@ import { SkillName, SKILL_ABILITIES } from "@/interfaces/Skill";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Tooltip, formatModifier } from "@/components/ui";
 import { calculateAbilityModifiers } from "@/utils/abilityModifiers";
 import { calculateProficiencyBonus } from "@/utils/calculateProficiencyBonus";
-import { SKILL_LIST, isProficientInSkill, skillModifier } from "@/utils/characterSheetHelpers";
+import { SKILL_LIST, hasSkillExpertise, isProficientInSkill, skillModifier } from "@/utils/characterSheetHelpers";
+import { getFeatPassiveBonus, totalFeatBonus } from "@/utils/featBonuses";
 import { formatSigned } from "@/utils/statLine";
 import { DiceRollResult, describeDiceRoll, rollD20 } from "@/utils/dice";
 import { cn } from "@/utils/cn";
@@ -46,7 +47,9 @@ export function SkillsPanel({
 
   const modifiers = calculateAbilityModifiers(character.abilityScores);
   const proficiencyBonus = calculateProficiencyBonus(character);
-  const passivePerception = 10 + skillModifier(character, "Perception", modifiers, proficiencyBonus);
+  // 2014 Observant: +5 to passive Perception.
+  const passiveFeatBonuses = getFeatPassiveBonus(character.feats ?? [], "perception");
+  const passivePerception = 10 + skillModifier(character, "Perception", modifiers, proficiencyBonus) + totalFeatBonus(passiveFeatBonuses);
 
   function rollSkill(skill: SkillName) {
     const modifier = skillModifier(character, skill, modifiers, proficiencyBonus);
@@ -66,6 +69,7 @@ export function SkillsPanel({
             lines={[
               { label: "Base", value: "10" },
               { label: "Perception modifier", value: formatSigned(skillModifier(character, "Perception", modifiers, proficiencyBonus)) },
+              ...passiveFeatBonuses.map((bonus) => ({ label: `${bonus.featName} feat`, value: formatSigned(bonus.value) })),
               { label: "Total", value: `${passivePerception}` },
             ]}
           />
@@ -75,13 +79,18 @@ export function SkillsPanel({
         <div className="flex flex-col divide-y divide-border">
           {SKILL_LIST.map((skill) => {
             const ability = SKILL_ABILITIES[skill];
-            const proficient = isProficientInSkill(character, skill);
+            const expertise = hasSkillExpertise(character, skill);
+            const proficient = expertise || isProficientInSkill(character, skill);
             const total = skillModifier(character, skill, modifiers, proficiencyBonus);
             const result = rolled[skill];
 
             const tooltipLines = [
               { label: `${abilityAbbrev(ability)} modifier`, value: formatSigned(modifiers[ability]) },
-              ...(proficient ? [{ label: "Proficiency bonus", value: formatSigned(proficiencyBonus) }] : []),
+              ...(expertise
+                ? [{ label: "Proficiency bonus x2 (Expertise)", value: formatSigned(proficiencyBonus * 2) }]
+                : proficient
+                  ? [{ label: "Proficiency bonus", value: formatSigned(proficiencyBonus) }]
+                  : []),
               { label: "Total", value: formatSigned(total) },
             ];
 
@@ -89,10 +98,14 @@ export function SkillsPanel({
               <div key={skill} className="flex flex-wrap items-center gap-x-2 gap-y-1 py-1.5 text-xs">
                 <span
                   aria-hidden
-                  title={proficient ? "Proficient" : "Not proficient"}
+                  title={expertise ? "Expertise" : proficient ? "Proficient" : "Not proficient"}
                   className={cn(
                     "h-2 w-2 shrink-0 rounded-full border",
-                    proficient ? "border-foreground-hover bg-foreground" : "border-border-strong"
+                    expertise
+                      ? "border-foreground bg-foreground ring-2 ring-foreground/40"
+                      : proficient
+                        ? "border-foreground-hover bg-foreground"
+                        : "border-border-strong"
                   )}
                 />
                 <span className="flex-1 min-w-[5rem] truncate text-fontcolor">{skill}</span>

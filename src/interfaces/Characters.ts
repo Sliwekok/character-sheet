@@ -2,7 +2,7 @@ import { Race } from "@/interfaces/Race";
 import { CharacterClass } from "@/interfaces/CharacterClass";
 import { Subclass } from "@/interfaces/Subclass";
 import { Background } from "@/interfaces/Background";
-import { Feat } from "@/interfaces/Feat";
+import { Feat, FeatSelection } from "@/interfaces/Feat";
 import { Armor } from "./Armor";
 import { Weapon } from "@/interfaces/Weapon";
 import { Currency } from "@/interfaces/Currency";
@@ -57,7 +57,26 @@ export interface Character {
     classes: CharacterClassLevel[];
     race: Race;
     background: Background;
+    /**
+     * Every feat the character has, from every source (Origin feat, species
+     * feat, ASI levels taken as a feat, Epic Boons, DM-granted bonus feats) -
+     * one entry per pick, so a repeatable feat taken twice appears twice.
+     * Each keeps the `mechanics` it was saved with (see interfaces/Feat.ts).
+     */
     feats: Feat[];
+    /**
+     * Which slot each of `feats` fills and the player's picks for it
+     * (ability, skills, spells, ...) - see interfaces/Feat.ts's
+     * `FeatSelection`. `abilityScores` already includes every selection's
+     * `abilityBonuses`, and `skillProficiencies`/`savingThrowProficiencies`/
+     * `languages`/`skillExpertise`/`grantedSpells` already include what the
+     * feats grant - this is the bookkeeping that lets editing take them back
+     * out (utils/characterDraft.ts), same idea as `abilityScoreImprovements`.
+     * Undefined for a character saved before feats were selectable.
+     */
+    featSelections?: FeatSelection[];
+    /** Skills with Expertise (proficiency bonus doubled) - currently only granted by feats. Undefined = none. */
+    skillExpertise?: SkillName[];
     alignment: string;
     abilityScores: AbilityScores;
     skillProficiencies: SkillName[];

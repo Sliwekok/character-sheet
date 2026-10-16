@@ -3,6 +3,7 @@ import { calculateAbilityModifiers } from './abilityModifiers';
 import { StatLine, formatSigned } from './statLine';
 import { getChosenFightingStyleEffects } from './fightingStyles';
 import { getEquippedArmor, getEquippedShield } from './armor';
+import { getFeatArmoredAcBonuses, getFeatMediumArmorDexCap, getFeatUnarmoredBaseAc } from './featBonuses';
 
 export type ArmorClassBreakdown = {
     lines: StatLine[];
@@ -29,11 +30,15 @@ export function getArmorClassBreakdown(character: Character): ArmorClassBreakdow
         lines.push({ label: `${armor.name} base AC`, value: `${armor.baseAC}` });
 
         if (armor.dexterityModifier?.enabled) {
-            const dexCap = armor.dexterityModifier.max;
+            let dexCap = armor.dexterityModifier.max;
+            // Medium Armor Master: medium armor's +2 cap becomes +3 (only matters at Dex 16+).
+            const masterCap = armor.category === "medium" ? getFeatMediumArmorDexCap(character.feats ?? []) : undefined;
+            const raisedByFeat = masterCap !== undefined && dexCap !== undefined && masterCap.cap > dexCap;
+            if (raisedByFeat) dexCap = masterCap!.cap;
             const applied = dexCap !== undefined ? Math.min(dexMod, dexCap) : dexMod;
             total += applied;
             lines.push({
-                label: `Dexterity modifier${dexCap !== undefined ? ` (capped at +${dexCap})` : ""}`,
+                label: `Dexterity modifier${dexCap !== undefined ? ` (capped at +${dexCap}${raisedByFeat ? `, ${masterCap!.featName}` : ""})` : ""}`,
                 value: formatSigned(applied),
             });
         }
@@ -46,8 +51,10 @@ export function getArmorClassBreakdown(character: Character): ArmorClassBreakdow
         // unarmored: 10 + full Dex modifier. (Previously added the raw Dex
         // SCORE here instead of the modifier - a second bug alongside the
         // getModifiers() one below, found while fixing this file.)
-        total = 10 + dexMod;
-        lines.push({ label: "Unarmored base", value: "10" });
+        const featBase = getFeatUnarmoredBaseAc(character.feats ?? []);
+        const base = featBase && featBase.base > 10 ? featBase.base : 10;
+        total = base + dexMod;
+        lines.push({ label: base > 10 ? `Unarmored base (${featBase!.featName})` : "Unarmored base", value: `${base}` });
         lines.push({ label: "Dexterity modifier", value: formatSigned(dexMod) });
     }
 
@@ -64,6 +71,10 @@ export function getArmorClassBreakdown(character: Character): ArmorClassBreakdow
     // +1 AC) only applies while actually wearing armor - matches RAW, and
     // means switching `equippedArmor` off correctly drops this bonus too.
     if (armor) {
+        for (const bonus of getFeatArmoredAcBonuses(character.feats ?? [])) {
+            total += bonus.value;
+            lines.push({ label: `${bonus.featName} feat`, value: formatSigned(bonus.value) });
+        }
         for (const effect of getChosenFightingStyleEffects(character)) {
             if (effect.armorClassBonusWhileArmored) {
                 total += effect.armorClassBonusWhileArmored;

@@ -2,6 +2,7 @@ import { Character } from "@/interfaces/Characters";
 import { HpLevelEntry, HpMethod } from "@/interfaces/Hp";
 import { calculateAbilityModifiers } from "./abilityModifiers";
 import { StatLine, formatEquationTerm } from "./statLine";
+import { getFeatHpBonuses } from "./featBonuses";
 
 export type MaxHpBreakdown = {
     lines: StatLine[];
@@ -167,6 +168,14 @@ export function getMaxHpBreakdown(character: Character): MaxHpBreakdown {
         total += entry.hpGained;
         lines.push(describeLevel(entry, className));
     });
+
+    // Tough (+2 per character level) / Boon of Fortitude (+40) - live, so
+    // levelling up keeps Tough's bonus right without a resave.
+    const characterLevel = character.classes.reduce((sum, entry) => sum + entry.level, 0);
+    for (const bonus of getFeatHpBonuses(character.feats ?? [], characterLevel)) {
+        total += bonus.value;
+        lines.push({ label: `${bonus.featName} feat`, value: `+${bonus.value}` });
+    }
 
     lines.push({ label: "Max HP", value: `${total}` });
     return { lines, total };

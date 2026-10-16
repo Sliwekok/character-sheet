@@ -7,6 +7,7 @@ import { calculateArmorClass } from "@/utils/calculateArmorClass";
 import { levelLabel } from "@/components/character/wizard/SpellsStep";
 import { SharingPicker } from "@/components/campaigns/SharingPicker";
 import { CharacterSharing, isSharingComplete } from "@/utils/campaigns";
+import { describeAbilityBonuses } from "@/utils/feats";
 
 type ReviewStepProps = {
   draft: CharacterDraft;
@@ -30,7 +31,8 @@ export function ReviewStep({ draft, isEditing, onSave, extraActions, sharing }: 
           class (including any Fighting Style or other feature choice your class/subclass
           requires), background, ability scores (including the background&apos;s ability score
           bonus for a 2024 character, and any Ability Score Improvements your class levels
-          have earned), name, and alignment before reviewing.
+          have earned), feats (a feat for every feat slot, with all of its choices made), name,
+          and alignment before reviewing.
         </CardContent>
       </Card>
     );
@@ -95,7 +97,19 @@ export function ReviewStep({ draft, isEditing, onSave, extraActions, sharing }: 
                   .join(", ")}
               </p>
             )}
+            {preview.featSelections && preview.featSelections.length > 0 && (
+              <p className="sm:col-span-2">
+                Feats:{" "}
+                {preview.featSelections
+                  .map((selection) => {
+                    const bonus = describeAbilityBonuses(selection.abilityBonuses);
+                    return `${selection.featName}${bonus ? ` (${bonus})` : ""}`;
+                  })
+                  .join(", ")}
+              </p>
+            )}
             <p>Skills: {preview.skillProficiencies.join(", ") || "None"}</p>
+            {preview.skillExpertise && <p>Expertise: {preview.skillExpertise.join(", ")}</p>}
             <p>Armor: {preview.equippedArmor?.name ?? "Unarmored"}{preview.shield ? ` + ${preview.shield.name}` : ""}</p>
             <p>Weapons: {preview.weapons.map((w) => w.name).join(", ") || "None"}</p>
             {preview.magicItems && preview.magicItems.length > 0 && (

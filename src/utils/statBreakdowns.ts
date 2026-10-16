@@ -3,6 +3,8 @@ import { calculateAbilityModifiers } from "@/utils/abilityModifiers";
 import { subtractAbilityScores } from "@/utils/abilityScoreBonuses";
 import { getAsiSlots, sumAsiAllocations } from "@/utils/abilityScoreImprovements";
 import { StatLine, formatSigned } from "@/utils/statLine";
+import { getFeatInitiativeBonuses, getFeatSpeedBonuses, totalFeatBonus } from "@/utils/featBonuses";
+import { calculateProficiencyBonus } from "@/utils/calculateProficiencyBonus";
 
 export const ABILITY_LABELS: Record<keyof AbilityScores, string> = {
   strength: "Strength",
@@ -27,17 +29,23 @@ export type AbilityScoreBreakdown = {
  * interfaces/Characters.ts), so this recovers the pre-bonus base the same
  * way utils/characterDraft.ts's `draftFromCharacter` does when re-opening a
  * character for editing - purely to show the breakdown back to the player
- * here, not to change any stored data. Doesn't account for a chosen FEAT's
- * own ability increase (e.g. picking Resilient instead of the Ability Score
- * Improvement feat at a 2024 ASI level), since `Character.feats` isn't
- * wired up to actually modify scores anywhere yet
- * (utils/characterDraft.ts's finalizeDraft always saves `feats: []`) - only
- * the classic class-level Ability Score Improvement is.
+ * here, not to change any stored data. Feat increases come from each saved
+ * `featSelections` entry's `abilityBonuses` (one line per feat), and an ASI
+ * level taken as a feat contributes through that feat rather than the ASI
+ * line.
  */
 export function getAbilityScoreBreakdown(character: Character, key: keyof AbilityScores): AbilityScoreBreakdown {
   const backgroundBonuses = character.backgroundAbilityBonuses ?? {};
-  const asiSlots = getAsiSlots(character.classes.map((entry) => ({ characterClass: entry.class, level: entry.level })));
+  const featSelections = character.featSelections ?? [];
+  const featAsiKeys = new Set(featSelections.map((selection) => selection.slot));
+  const asiSlots = getAsiSlots(character.classes.map((entry) => ({ characterClass: entry.class, level: entry.level }))).filter(
+    (slot) => !featAsiKeys.has(`asi:${slot.key}`)
+  );
   const asiBonuses = sumAsiAllocations(asiSlots, character.abilityScoreImprovements ?? {});
+  const featLines = featSelections
+    .filter((selection) => selection.abilityBonuses?.[key])
+    .map((selection) => ({ label: `${selection.featName} feat`, value: selection.abilityBonuses![key]! }));
+  const featBonusTotal: Partial<AbilityScores> = { [key]: featLines.reduce((total, line) => total + line.value, 0) };
   const raceBonus = character.race.abilityModifiers[key] ?? 0;
   const backgroundBonus = backgroundBonuses[key] ?? 0;
   const asiBonus = asiBonuses[key] ?? 0;
@@ -46,7 +54,8 @@ export function getAbilityScoreBreakdown(character: Character, key: keyof Abilit
     character.abilityScores,
     character.race.abilityModifiers,
     backgroundBonuses,
-    asiBonuses
+    asiBonuses,
+    featBonusTotal
   )[key];
   const modifier = calculateAbilityModifiers(character.abilityScores)[key];
 
@@ -54,6 +63,7 @@ export function getAbilityScoreBreakdown(character: Character, key: keyof Abilit
   if (raceBonus) lines.push({ label: `${character.race.name} bonus`, value: formatSigned(raceBonus) });
   if (backgroundBonus) lines.push({ label: `${character.background.name} bonus`, value: formatSigned(backgroundBonus) });
   if (asiBonus) lines.push({ label: "Ability Score Improvement", value: formatSigned(asiBonus) });
+  for (const line of featLines) lines.push({ label: line.label, value: formatSigned(line.value) });
   lines.push({ label: "Final score", value: `${finalScore}` });
   lines.push({ label: "Modifier", value: `${formatSigned(modifier)}` });
 
@@ -61,19 +71,37 @@ export function getAbilityScoreBreakdown(character: Character, key: keyof Abilit
 }
 
 /**
- * Breakdown for the Initiative badge - always just the Dexterity modifier,
- * but shown as a tooltip for consistency with every other derived stat on
- * the sheet. `character.initiative` is set once at creation (see
- * finalizeDraft) rather than recomputed live, so both the live formula and
- * the stored value are shown - they should always agree, but showing both
- * keeps this honest if a character's Dex ever changes without a resave.
+ * Breakdown for the Initiative badge: the Dexterity modifier plus any feat
+ * bonus (2014 Alert +5, 2024 Alert + proficiency bonus). Computed live -
+ * `total` is what the sheet shows - so a Dex change or level-up is
+ * reflected without a resave (`character.initiative` is only the value as
+ * of the last save, see finalizeDraft).
  */
-export function getInitiativeBreakdown(character: Character): { lines: StatLine[] } {
+export function getInitiativeBreakdown(character: Character): { lines: StatLine[]; total: number } {
   const dexMod = calculateAbilityModifiers(character.abilityScores).dexterity;
+  const featBonuses = getFeatInitiativeBonuses(character.feats ?? [], calculateProficiencyBonus(character));
+  const total = dexMod + totalFeatBonus(featBonuses);
   return {
     lines: [
       { label: "Dexterity modifier", value: formatSigned(dexMod) },
-      { label: "Initiative", value: formatSigned(character.initiative) },
+      ...featBonuses.map((bonus) => ({ label: `${bonus.featName} feat`, value: formatSigned(bonus.value) })),
+      { label: "Initiative", value: formatSigned(total) },
     ],
+    total,
+  };
+}
+
+/** Walking speed: the species' base speed plus feat bonuses (Mobile, Speedy, Boon of Speed, ...). */
+export function getSpeedBreakdown(character: Character): { lines: StatLine[]; total: number } {
+  const base = character.race.speed;
+  const featBonuses = getFeatSpeedBonuses(character.feats ?? []);
+  const total = base + totalFeatBonus(featBonuses);
+  return {
+    lines: [
+      { label: `${character.race.name} base speed`, value: `${base} ft.` },
+      ...featBonuses.map((bonus) => ({ label: `${bonus.featName} feat`, value: `+${bonus.value} ft.` })),
+      { label: "Speed", value: `${total} ft.` },
+    ],
+    total,
   };
 }
