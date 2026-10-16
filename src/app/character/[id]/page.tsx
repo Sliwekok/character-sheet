@@ -30,7 +30,7 @@ import { getArmorClassBreakdown } from "@/utils/calculateArmorClass";
 import { getMaxHpBreakdown } from "@/utils/calculateMaxHp";
 import { getInitiativeBreakdown, getSpeedBreakdown } from "@/utils/statBreakdowns";
 import { describeFeatSlot, getFeatGrants, pairFeatsWithSelections, resolveFeatSelections } from "@/utils/feats";
-import { getSpellcastingInfo, getUnarmedStrikeWeapon } from "@/utils/attackCalculations";
+import { getSpellcastingInfo, getSpellcastingInfoForAbility, getUnarmedStrikeWeapon } from "@/utils/attackCalculations";
 import { getPactMagicSlots, getSpellSlots } from "@/utils/spellcasting";
 import { levelLabel } from "@/components/character/wizard/SpellsStep";
 import { WeaponEntry } from "@/components/character/WeaponEntry";
@@ -1173,7 +1173,7 @@ export default function CharacterDetailsPage() {
                         <p>No spells cast as {activeSpellActionLabel}.</p>
                       )
                     ) : spellGroups.length === 0 ? (
-                      <p>
+                      (character.grantedSpells?.length ?? 0) === 0 && <p>
                         {character.classes.some(
                           (entry) => entry.class.casterProgression !== "none" || entry.subclass?.casterProgressionOverride
                         )
@@ -1215,25 +1215,45 @@ export default function CharacterDetailsPage() {
                         </p>
                         <p className="text-xs">
                           Always known and castable without expending a spell slot, on top of the spells above - see
-                          the granting class/subclass feature (under &quot;Features &amp; Traits&quot;) for its own
-                          free-cast limit.
+                          the granting class/subclass feature or feat (under &quot;Features &amp; Traits&quot;) for its
+                          own free-cast limit. Feat spells use the spellcasting ability chosen for that feat.
                         </p>
                         <div className="flex flex-col gap-2">
-                          {visibleGrantedSpells.map((spell) => (
-                            <SpellEntry
-                              key={spell.name}
-                              spell={spell}
-                              mechanics={resolveSpellMechanics(spell)}
-                              spellcasting={spellcasting}
-                              characterLevel={characterLevel}
-                              maxSlotLevel={maxSlotLevel}
-                              castableSlotLevels={castableLevels(spell.level, remainingSpellSlots, remainingPactSlots)}
-                              onCast={hasAnySlots && !readOnly ? handleCastSpell : undefined}
-                              concentratingOn={character.details?.concentratingOn}
-                              onToggleConcentration={readOnly ? undefined : handleToggleConcentration}
-                              onRoll={recordRoll}
-                            />
-                          ))}
+                          {visibleGrantedSpells.map((spell) => {
+                            const source = character.grantedSpellSources?.[spell.name];
+                            // A feat spell is cast with the feat's own ability (and works even for a non-caster).
+                            const spellSpellcasting = source?.ability
+                              ? getSpellcastingInfoForAbility(character, source.ability, source.source)
+                              : spellcasting;
+                            return (
+                              <div key={spell.name} className="flex flex-col gap-1">
+                                {source && (
+                                  <p className="flex flex-wrap items-center gap-2 text-xs">
+                                    <Badge variant="outline">From feat: {source.source}</Badge>
+                                    {source.frequency && <Badge variant="muted">{source.frequency}</Badge>}
+                                    {source.ability && (
+                                      <span>
+                                        Spellcasting ability: {source.ability[0].toUpperCase()}
+                                        {source.ability.slice(1)}
+                                      </span>
+                                    )}
+                                  </p>
+                                )}
+                                <SpellEntry
+                                  spell={spell}
+                                  mechanics={resolveSpellMechanics(spell)}
+                                  spellcasting={spellSpellcasting}
+                                  characterLevel={characterLevel}
+                                  maxSlotLevel={maxSlotLevel}
+                                  castableSlotLevels={castableLevels(spell.level, remainingSpellSlots, remainingPactSlots)}
+                                  onCast={hasAnySlots && !readOnly ? handleCastSpell : undefined}
+                                  concentratingOn={character.details?.concentratingOn}
+                                  onToggleConcentration={readOnly ? undefined : handleToggleConcentration}
+                                  onRoll={recordRoll}
+                                />
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}

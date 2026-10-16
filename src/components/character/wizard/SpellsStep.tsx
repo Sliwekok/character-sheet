@@ -48,20 +48,25 @@ function pillClass(selected: boolean): string {
   );
 }
 
-function SpellDetailPanel({
+/** Full details of one spell (level, school, casting time, range, components, duration, description) - the right-hand panel of this step, also reused by the Feats step's spell picks. */
+export function SpellDetailPanel({
   spell,
   selected,
   className,
+  selectedLabel = "Known",
+  unselectedLabel = "Not known",
 }: {
   spell: Spell | undefined;
   selected: boolean;
   className?: string;
+  selectedLabel?: string;
+  unselectedLabel?: string;
 }) {
   return (
     <Card className={cn("flex flex-col", className)}>
       <CardHeader>
         <CardTitle>{spell ? spell.name : "Spell details"}</CardTitle>
-        {spell && <Badge variant={selected ? "solid" : "muted"}>{selected ? "Known" : "Not known"}</Badge>}
+        {spell && <Badge variant={selected ? "solid" : "muted"}>{selected ? selectedLabel : unselectedLabel}</Badge>}
       </CardHeader>
       <CardContent className="flex flex-col gap-3 text-sm text-fontcolor-secondary">
         {!spell && <p>Click a spell to see its full details here.</p>}

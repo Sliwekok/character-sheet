@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { Ruleset } from "@/data";
 import { CharacterDraft } from "@/interfaces/CharacterDraft";
 import { Feat, FeatCategory, FeatSelection } from "@/interfaces/Feat";
+import { Spell } from "@/interfaces/Spell";
+import { SpellDetailPanel, actionLabel, levelLabel } from "./SpellsStep";
 import { Badge, Button, Card, CardContent, Combobox, TextInput } from "@/components/ui";
 import { cn } from "@/utils/cn";
 import { getAsiSlots } from "@/utils/abilityScoreImprovements";
@@ -220,7 +222,7 @@ function FeatSlotCard({
                     <FeatPicker slot={slot} ruleset={ruleset} draft={draft} ctx={ctx} value={feat} onPick={pickFeat} />
                 )}
 
-                {feat && selection && <FeatDetails feat={feat} selection={selection} ctx={ctx} onChange={onChange} />}
+                {feat && selection && <FeatDetails feat={feat} selection={selection} ctx={ctx} spells={ruleset.spells} onChange={onChange} />}
             </CardContent>
         </Card>
     );
@@ -295,11 +297,14 @@ function FeatDetails({
     feat,
     selection,
     ctx,
+    spells,
     onChange,
 }: {
     feat: Feat;
     selection: FeatSelection;
     ctx: FeatContext;
+    /** The compendium - spell picks ("spells:<n>" requirements) get the full Spells-step style browser. */
+    spells: Spell[];
     onChange: (selection: FeatSelection) => void;
 }) {
     const [showDescription, setShowDescription] = useState(false);
@@ -336,14 +341,24 @@ function FeatDetails({
             </button>
             {showDescription && <p className="whitespace-pre-line text-xs text-fontcolor-secondary">{feat.description}</p>}
 
-            {requirements.map((requirement) => (
-                <ChoicePicker
-                    key={requirement.key}
-                    requirement={requirement}
-                    picked={selection.choices?.[requirement.key] ?? []}
-                    onChange={(values) => onChange(updateFeatChoice(feat, selection, requirement.key, values))}
-                />
-            ))}
+            {requirements.map((requirement) =>
+                requirement.key.startsWith("spells:") ? (
+                    <FeatSpellPicker
+                        key={requirement.key}
+                        requirement={requirement}
+                        spells={spells}
+                        picked={selection.choices?.[requirement.key] ?? []}
+                        onChange={(values) => onChange(updateFeatChoice(feat, selection, requirement.key, values))}
+                    />
+                ) : (
+                    <ChoicePicker
+                        key={requirement.key}
+                        requirement={requirement}
+                        picked={selection.choices?.[requirement.key] ?? []}
+                        onChange={(values) => onChange(updateFeatChoice(feat, selection, requirement.key, values))}
+                    />
+                )
+            )}
         </div>
     );
 }
@@ -402,6 +417,157 @@ function ChoicePicker({
                         <p className="text-xs text-fontcolor-secondary">Showing {MAX_VISIBLE} of {filtered.length} - type to narrow it down.</p>
                     )}
                 </>
+            )}
+        </div>
+    );
+}
+
+/**
+ * A feat's "choose N spells" pick, laid out like the Spells step: search,
+ * level and casting-time filters, a scrollable list with level/school
+ * badges, the chosen spells as removable pills, and a detail panel with
+ * the full spell text. Only spells matching the feat's filter (class list,
+ * school, level, ritual, ...) are offered - see `requirement.options`.
+ */
+function FeatSpellPicker({
+    requirement,
+    spells,
+    picked,
+    onChange,
+}: {
+    requirement: FeatChoiceRequirement;
+    spells: Spell[];
+    picked: string[];
+    onChange: (values: string[]) => void;
+}) {
+    const options = useMemo(() => {
+        const allowed = new Set(requirement.options);
+        return spells.filter((spell) => allowed.has(spell.name)).sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+    }, [spells, requirement.options]);
+    const [search, setSearch] = useState("");
+    const [levelFilter, setLevelFilter] = useState<number | "all">("all");
+    const [actionFilter, setActionFilter] = useState<string | "all">("all");
+    const [previewSpell, setPreviewSpell] = useState<Spell | undefined>(() => options.find((spell) => picked.includes(spell.name)));
+
+    const needed = Math.min(requirement.count, options.length);
+    const levels = [...new Set(options.map((spell) => spell.level))].sort((a, b) => a - b);
+    const actions = [...new Set(options.map((spell) => spell.castingTime))];
+    const query = search.trim().toLowerCase();
+    const filtered = options
+        .filter((spell) => levelFilter === "all" || spell.level === levelFilter)
+        .filter((spell) => actionFilter === "all" || spell.castingTime === actionFilter)
+        .filter((spell) => !query || spell.name.toLowerCase().includes(query));
+
+    const isSelected = (spell: Spell) => picked.includes(spell.name);
+    const isCapped = (spell: Spell) => !isSelected(spell) && requirement.count > 1 && picked.length >= requirement.count;
+
+    function toggle(spell: Spell) {
+        setPreviewSpell(spell);
+        if (isSelected(spell)) onChange(picked.filter((name) => name !== spell.name));
+        else if (requirement.count === 1) onChange([spell.name]);
+        else if (!isCapped(spell)) onChange([...picked, spell.name]);
+    }
+
+    return (
+        <div className="flex flex-col gap-2">
+            <p className="text-xs font-medium text-fontcolor-secondary">
+                {requirement.label} - {picked.length}/{needed} chosen
+            </p>
+            {options.length === 0 ? (
+                <p className="text-xs text-fontcolor-secondary">No spells in the compendium match this feat&apos;s list.</p>
+            ) : (
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
+                    <div className="flex flex-col gap-3">
+                        <div className="flex flex-wrap items-center gap-3">
+                            <TextInput value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search spells..." className="max-w-xs" />
+                            {levels.length > 1 && (
+                                <div className="flex flex-wrap gap-2">
+                                    <button type="button" onClick={() => setLevelFilter("all")} className={pillClass(levelFilter === "all")}>
+                                        All
+                                    </button>
+                                    {levels.map((level) => (
+                                        <button key={level} type="button" onClick={() => setLevelFilter(level)} className={pillClass(levelFilter === level)}>
+                                            {levelLabel(level)}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                            {actions.length > 1 && (
+                                <div className="flex flex-wrap gap-2">
+                                    <button type="button" onClick={() => setActionFilter("all")} className={pillClass(actionFilter === "all")}>
+                                        All
+                                    </button>
+                                    {actions.map((action) => (
+                                        <button key={action} type="button" onClick={() => setActionFilter(action)} className={pillClass(actionFilter === action)}>
+                                            {actionLabel(action)}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        <p className="text-xs text-fontcolor-secondary">{filtered.length} shown</p>
+                        <div className="flex max-h-[22rem] flex-col gap-1 overflow-y-auto pr-1">
+                            {filtered.map((spell) => {
+                                const selected = isSelected(spell);
+                                const capped = isCapped(spell);
+                                return (
+                                    <button
+                                        key={spell.name}
+                                        type="button"
+                                        disabled={capped}
+                                        onClick={() => toggle(spell)}
+                                        onMouseEnter={() => setPreviewSpell(spell)}
+                                        className={cn(
+                                            "flex cursor-pointer items-center justify-between gap-3 rounded-(--radius-sm) border px-3 py-2 text-left text-sm transition-colors",
+                                            selected
+                                                ? "border-foreground bg-foreground/10 text-fontcolor"
+                                                : "border-transparent text-fontcolor-secondary hover:border-border-strong",
+                                            capped && "cursor-not-allowed opacity-40 hover:border-transparent"
+                                        )}
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            {selected && <span aria-hidden>✓</span>}
+                                            {spell.name}
+                                        </span>
+                                        <span className="flex shrink-0 gap-2 text-xs">
+                                            <Badge variant="muted">{levelLabel(spell.level)}</Badge>
+                                            <Badge variant="outline">{spell.school}</Badge>
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                            {filtered.length === 0 && (
+                                <p className="px-3 py-6 text-center text-sm text-fontcolor-secondary">No spells match your search.</p>
+                            )}
+                        </div>
+                        {picked.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                                {picked.map((name) => {
+                                    const spell = options.find((option) => option.name === name);
+                                    return (
+                                        <button
+                                            key={name}
+                                            type="button"
+                                            className={pillClass(true)}
+                                            title="Remove"
+                                            onClick={() => (spell ? toggle(spell) : onChange(picked.filter((value) => value !== name)))}
+                                        >
+                                            {name}
+                                            {spell ? ` (${levelLabel(spell.level)})` : ""} &times;
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                    <SpellDetailPanel
+                        spell={previewSpell}
+                        selected={previewSpell ? isSelected(previewSpell) : false}
+                        selectedLabel="Chosen"
+                        unselectedLabel="Not chosen"
+                        className="lg:sticky lg:top-24"
+                    />
+                </div>
             )}
         </div>
     );

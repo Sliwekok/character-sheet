@@ -10,6 +10,7 @@ import { Spell } from "@/interfaces/Spell";
 import { getAsiSlots, sumAsiAllocations } from "@/utils/abilityScoreImprovements";
 import { sumAbilityScores } from "@/utils/abilityScoreBonuses";
 import type { CharacterDraft } from "@/interfaces/CharacterDraft";
+import type { GrantedSpellSource } from "@/interfaces/Characters";
 import { getAvailableSpellLevelsForClasses, getEffectiveCasterProgression } from "@/utils/spellcasting";
 
 /**
@@ -1126,4 +1127,49 @@ export function pairFeatsWithSelections(feats: Feat[], featSelections: FeatSelec
         const selection = index >= 0 ? remaining.splice(index, 1)[0] : undefined;
         return { feat, selection };
     });
+}
+
+/** The spellcasting ability a feat's spell option uses, given the player's picks (fixed, "inherit" = the ability the feat increased, or the picked one). */
+export function resolveFeatSpellAbility(feat: Feat, option: FeatSpellOption, choices: Record<string, string[]> = {}): keyof AbilityScores | undefined {
+    if (option.abilityChoice) {
+        const picked = choices.spellAbility?.[0] as keyof AbilityScores | undefined;
+        return picked && option.abilityChoice.includes(picked) ? picked : undefined;
+    }
+    if (option.ability && option.ability !== "inherit") return option.ability;
+    if (option.ability === "inherit") {
+        const increased = (choices.ability?.[0] as keyof AbilityScores | undefined) ?? (Object.keys(feat.mechanics?.abilityIncrease?.fixed ?? {})[0] as keyof AbilityScores | undefined);
+        return increased;
+    }
+    return undefined;
+}
+
+/**
+ * For every spell the selected feats grant (fixed ones reached + the
+ * player's picks): which feat, how often it's free, and its spellcasting
+ * ability - saved as `Character.grantedSpellSources` so the sheet can label
+ * feat spells and roll them with the right ability.
+ */
+export function getFeatSpellSources(resolved: ResolvedFeatSelection[], classes: FeatClassInput[] = []): Record<string, GrantedSpellSource> {
+    const sources: Record<string, GrantedSpellSource> = {};
+    for (const { feat, selection } of resolved) {
+        const choices = selection.choices ?? {};
+        const option = getChosenSpellOption(feat, choices);
+        if (!option) continue;
+        const ability = resolveFeatSpellAbility(feat, option, choices);
+        const sourceName = option.name && (feat.mechanics?.spellOptions?.length ?? 0) > 1 ? `${feat.name} (${option.name})` : feat.name;
+        option.grants.forEach((grant, index) => {
+            if (classes.length > 0 && !grantReached(grant, classes)) return;
+            const names = grant.spell ? [grant.spell] : choices[`spells:${index}`] ?? [];
+            for (const name of names) {
+                if (sources[name]) continue;
+                sources[name] = {
+                    source: sourceName,
+                    ...(grant.frequency ? { frequency: grant.frequency } : {}),
+                    usage: grant.usage,
+                    ...(ability ? { ability } : {}),
+                };
+            }
+        });
+    }
+    return sources;
 }

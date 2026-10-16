@@ -21,6 +21,7 @@ import {
     featContextForDraft,
     featSelectionsFromCharacter,
     getFeatGrants,
+    getFeatSpellSources,
     getFeatHpBonuses,
     getFeatInitiativeBonuses,
     reconcileFeatSelections,
@@ -349,6 +350,11 @@ export function finalizeDraft(draft: CharacterDraft): StoredCharacter | null {
         // `draft.spellsKnown`, but nothing ever read it back out.
         spellsKnown: draft.spellsKnown,
         grantedSpells: draft.grantedSpells.length > 0 ? draft.grantedSpells : undefined,
+        // Which granted spells come from feats (and with what ability/frequency) - see GrantedSpellSource.
+        grantedSpellSources: (() => {
+            const sources = getFeatSpellSources(resolvedFeats, draft.classes);
+            return Object.keys(sources).length > 0 ? sources : undefined;
+        })(),
         featureChoices: Object.keys(draft.featureChoices).length > 0 ? draft.featureChoices : undefined,
         languages: [...baseLanguages, ...featGrants.languages.filter((language) => !baseLanguages.includes(language))],
         details: cleanDetails(draft.details),

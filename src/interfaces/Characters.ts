@@ -15,6 +15,22 @@ import { HpLevelEntry, HpMethod } from "@/interfaces/Hp";
 import { GearItem } from "@/interfaces/GearItem";
 import {useState} from "react";
 
+/**
+ * Where one of `Character.grantedSpells` came from, when it isn't a class
+ * feature - currently feats (Magic Initiate, Fey Touched, ...). Keyed by
+ * spell name in `Character.grantedSpellSources`.
+ */
+export interface GrantedSpellSource {
+    /** e.g. "Magic Initiate (Wizard Spells)". */
+    source: string;
+    /** How often it can be cast for free - "1/long rest", "At will", ... */
+    frequency?: string;
+    /** "known" (cantrip learned), "prepared" (always prepared), "innate" (cast without a slot). */
+    usage?: "known" | "prepared" | "innate";
+    /** Spellcasting ability for this spell (the feat's own, not the class's). */
+    ability?: keyof AbilityScores;
+}
+
 /** One stack of carried mundane gear (see GearItem.ts) - `quantity` lets e.g. "50 ft. of rope" or "5 rations" live as a single entry rather than several identical ones. */
 export interface InventoryEntry {
     item: GearItem;
@@ -137,6 +153,13 @@ export interface Character {
      * utils/grantedSpells.ts.
      */
     featureChoices?: Record<string, string>;
+    /**
+     * Source details for granted spells that come from a feat rather than a
+     * class feature (see `GrantedSpellSource`) - which feat, how often it's
+     * free, and which ability it's cast with. Rebuilt by finalizeDraft from
+     * `featSelections` on every save; undefined when no feat grants a spell.
+     */
+    grantedSpellSources?: Record<string, GrantedSpellSource>;
     languages: string[];
     /**
      * Magic items carried/owned that aren't one of `armors` or `weapons`

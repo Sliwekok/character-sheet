@@ -21,7 +21,9 @@ import {
     findFeatByName,
     getFeatChoiceRequirements,
     getFeatSlots,
+    getFeatSpellSources,
     getRaceFeatGrant,
+    resolveFeatSelections,
     resolveOriginFeat,
     updateFeatChoice,
 } from "@/utils/feats";
@@ -274,5 +276,41 @@ describe("finalizeDraft / draftFromCharacter with feats", () => {
         const selections = featSelectionsFromCharacter(legacy);
         expect(selections.origin?.featName).toBe("Alert");
         expect(Object.keys(selections).filter((key) => key.startsWith("bonus:"))).toHaveLength(2);
+    });
+});
+
+describe("feat spells", () => {
+    it("records source, frequency and the chosen ability for feat spells", () => {
+        const resolved = resolveFeatSelections(
+            [
+                {
+                    slot: "species",
+                    featName: "Magic Initiate; Wizard",
+                    choices: { spellAbility: ["intelligence"], "spells:0": ["Fire Bolt", "Light"], "spells:1": ["Shield"] },
+                },
+                { slot: "asi:0:4", featName: "Fey-Touched", abilityBonuses: { wisdom: 1 }, choices: { ability: ["wisdom"], "spells:1": ["Command"] } },
+            ],
+            FEATS_2024
+        );
+        const sources = getFeatSpellSources(resolved);
+        expect(sources["Fire Bolt"]).toEqual({ source: "Magic Initiate; Wizard", usage: "known", ability: "intelligence" });
+        expect(sources["Shield"]).toMatchObject({ frequency: "1/long rest", ability: "intelligence" });
+        // Fey-Touched's spells use the ability it increased ("inherit"), and Misty Step is always granted.
+        expect(sources["Misty Step"]).toMatchObject({ source: "Fey-Touched", ability: "wisdom" });
+        expect(sources["Command"]).toMatchObject({ ability: "wisdom" });
+    });
+
+    it("saves grantedSpellSources on the character", () => {
+        const draft = withSelections(fighterDraft(), [
+            { slot: "origin", featName: "Alert" },
+            {
+                slot: "species",
+                featName: "Magic Initiate; Wizard",
+                choices: { spellAbility: ["intelligence"], "spells:0": ["Fire Bolt", "Light"], "spells:1": ["Shield"] },
+            },
+            { slot: "asi:0:4", featName: "Bomber", abilityBonuses: { dexterity: 1 } },
+        ]);
+        const character = finalizeDraft(draft)!;
+        expect(Object.keys(character.grantedSpellSources ?? {}).sort()).toEqual(["Fire Bolt", "Light", "Shield"]);
     });
 });

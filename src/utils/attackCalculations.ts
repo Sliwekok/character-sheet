@@ -483,6 +483,39 @@ export type SpellcastingInfo = {
  * simplification SpellsStep already lives with. Returns `null` for a
  * character with no spellcasting class at all.
  */
+/**
+ * Spellcasting numbers for a spell cast with a specific ability rather than
+ * the class's - feat spells (Magic Initiate, Fey Touched, ...) use the
+ * ability chosen for the feat, and a non-caster with such a feat has no
+ * class spellcasting at all. `sourceName` fills `className` (e.g. "Magic
+ * Initiate") so tooltips say where the numbers come from.
+ */
+export function getSpellcastingInfoForAbility(
+  character: Character,
+  ability: keyof AbilityScores,
+  sourceName: string
+): SpellcastingInfo {
+  const abilityModifier = calculateAbilityModifiers(character.abilityScores)[ability];
+  const proficiencyBonus = calculateProficiencyBonus(character);
+  const spellAttackBonus = abilityModifier + proficiencyBonus;
+  const spellSaveDC = 8 + abilityModifier + proficiencyBonus;
+  return {
+    className: sourceName,
+    ability,
+    abilityLabel: ABILITY_LABELS[ability],
+    abilityModifier,
+    proficiencyBonus,
+    spellAttackBonus,
+    spellSaveDC,
+    lines: [
+      { label: `${ABILITY_LABELS[ability]} modifier (${sourceName})`, value: formatSigned(abilityModifier) },
+      { label: "Proficiency bonus", value: formatSigned(proficiencyBonus) },
+      { label: "Spell attack bonus", value: `${formatSigned(abilityModifier)} ${formatEquationTerm(proficiencyBonus)} = ${formatSigned(spellAttackBonus)}` },
+      { label: "Spell save DC", value: `8 ${formatEquationTerm(abilityModifier)} ${formatEquationTerm(proficiencyBonus)} = ${spellSaveDC}` },
+    ],
+  };
+}
+
 export function getSpellcastingInfo(character: Character): SpellcastingInfo | null {
   const entry = character.classes.find((classEntry) => classEntry.class.spellcasting);
   const spellcasting = entry?.class.spellcasting;
