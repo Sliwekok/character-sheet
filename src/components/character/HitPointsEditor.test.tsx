@@ -2,7 +2,7 @@ import { useState } from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { HitPointsEditor } from "./HitPointsEditor";
+import { HitPointsEditor, heartColors } from "./HitPointsEditor";
 import { applyCurrentHp, getSheetMaxHp } from "@/utils/hitDice";
 import type { Character } from "@/interfaces/Characters";
 import { makeCharacter } from "../../../tests/fixtures/characters";
@@ -27,7 +27,7 @@ async function enter(user: ReturnType<typeof userEvent.setup>, input: HTMLElemen
 }
 
 describe("HitPointsEditor", () => {
-  it("shows current and max HP as a button, with no input until edited", () => {
+  it("shows current and max HP as a heart button, with no input until edited", () => {
     setup(7, 12);
     expect(screen.getByRole("button", { name: "HP 7/12" })).toBeInTheDocument();
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
@@ -173,5 +173,21 @@ describe("HitPointsEditor", () => {
       await enter(user, await openEditor(user), "+999{Enter}");
       expect(screen.getByRole("button", { name: `HP ${max}/${max}` })).toBeInTheDocument();
     });
+  });
+});
+
+describe("heart visuals", () => {
+  it("read-only renders an img labelled with HP and no button", () => {
+    render(<HitPointsEditor currentHp={3} maxHp={9} />);
+    expect(screen.getByRole("img", { name: "HP 3/9" })).toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+  it("heartColors fades and reddens as HP drops", () => {
+    const full = heartColors(20, 20), low = heartColors(2, 20), dead = heartColors(0, 20);
+    expect(full.fill).toBe("hsl(120 65% 28%)");
+    expect(full.fillOpacity).toBe(1);
+    expect(low.fillOpacity).toBeLessThan(full.fillOpacity);
+    expect(dead.fillOpacity).toBe(0.12);
+    expect(dead.fill).toBe("hsl(0 65% 28%)");
   });
 });

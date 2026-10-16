@@ -47,6 +47,7 @@ import { PdfExportPanel } from "@/components/character/PdfExportPanel";
 import { RollHistoryEntry, RollHistoryWidget } from "@/components/character/RollHistoryWidget";
 import { Shop } from "@/components/character/Shop";
 import { HitPointsEditor } from "@/components/character/HitPointsEditor";
+import { ArmorClassShield } from "@/components/character/ArmorClassShield";
 import { ShortRestDialog } from "@/components/character/ShortRestDialog";
 import { applyCurrentHp, formatHitDicePools, getHitDicePools, getSheetMaxHp, hitDiceAfterLongRest, spendHitDice } from "@/utils/hitDice";
 import { calculateAbilityModifiers } from "@/utils/abilityModifiers";
@@ -80,21 +81,22 @@ function HeaderFieldLabel({ children }: { children: ReactNode }) {
 }
 
 /**
- * One headline number in the header's "Character" card (AC / Initiative /
- * Proficiency) - same dark tile treatment as the sidebar's ability scores,
- * so the two read as one family. The tooltip sits beside the value so its
+ * One headline value in the header's "Character" card (HP heart / AC shield /
+ * Initiative / Proficiency) - same dark tile treatment as the sidebar's ability scores,
+ * so the two read as one family. The tooltip sits in the tile's corner so its
  * breakdown is one hover away, as everywhere else on the sheet.
  */
 function HeaderStatTile({ label, value, tooltip }: { label: string; value: ReactNode; tooltip: ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-1.5 rounded-(--radius-sm) bg-background-darken/60 px-2 py-3 text-center">
+    <div className="relative flex flex-col items-center justify-center gap-1.5 rounded-(--radius-sm) bg-background-darken/60 px-2 py-3 text-center">
       <span className="text-[11px] font-semibold uppercase leading-tight tracking-wide text-fontcolor-secondary">
         {label}
       </span>
-      <span className="flex items-center gap-1">
-        <span className="text-2xl font-bold leading-none text-fontcolor">{value}</span>
-        {tooltip}
-      </span>
+      <span className="flex flex-1 items-center text-2xl font-bold leading-none text-fontcolor">{value}</span>
+      {/* Pinned to the bottom-right corner rather than inline, so the wide HP
+          heart / AC shield shapes still fit four tiles to a row (the heart and
+          shield both taper to a point there, leaving the corner free). */}
+      <span className="absolute bottom-1.5 right-1.5 flex">{tooltip}</span>
     </div>
   );
 }
@@ -940,10 +942,25 @@ export default function CharacterDetailsPage() {
                 <CardTitle>Character</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-1 flex-col gap-4">
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2 2xl:grid-cols-4">
+                  {/* `hp.total` (the tooltip's own sum), not the stored `character.maxHP` -
+                      they agree for anything saved since per-level HP history/the minimum-1-per-level
+                      fix, but this keeps a character saved before either existed from showing a
+                      heart that disagrees with its own tooltip breakdown. Double-click to edit. */}
+                  <HeaderStatTile
+                    label="HP"
+                    value={
+                      <HitPointsEditor
+                        currentHp={character.currentHP}
+                        maxHp={hp.total}
+                        onChange={readOnly ? undefined : handleSetCurrentHp}
+                      />
+                    }
+                    tooltip={<Tooltip title="Max HP" lines={hp.lines} />}
+                  />
                   <HeaderStatTile
                     label="AC"
-                    value={ac.total}
+                    value={<ArmorClassShield value={ac.total} />}
                     tooltip={<Tooltip title="Armor Class" lines={ac.lines} />}
                   />
                   <HeaderStatTile
@@ -958,18 +975,6 @@ export default function CharacterDetailsPage() {
                   />
                 </div>
                 <div className="mt-auto flex flex-wrap items-center gap-3 border-t border-border pt-4">
-                  <span className="flex items-center gap-1">
-                    {/* `hp.total` (the tooltip's own sum), not the stored `character.maxHP` -
-                        they agree for anything saved since per-level HP history/the minimum-1-per-level
-                        fix, but this keeps a character saved before either existed from showing a
-                        badge that disagrees with its own tooltip breakdown. Double-click to edit. */}
-                    <HitPointsEditor
-                      currentHp={character.currentHP}
-                      maxHp={hp.total}
-                      onChange={readOnly ? undefined : handleSetCurrentHp}
-                    />
-                    <Tooltip title="Max HP" lines={hp.lines} />
-                  </span>
                   <span className="flex items-center gap-1">
                     <Badge variant="muted">Speed {speed.total} ft.</Badge>
                     <Tooltip title="Speed" lines={speed.lines} />

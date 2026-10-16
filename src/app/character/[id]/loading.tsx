@@ -79,14 +79,16 @@ export default function CharacterSheetLoading() {
         {/* Header row: Character / Actions / Miscellaneous - one row of three equal-height cards. */}
         <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-3">
           <HeaderCardSkeleton titleWidth="w-24">
-            <div className="grid grid-cols-3 gap-2">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-[68px]" />
+            {/* HP heart / AC shield / Initiative / Proficiency tiles. */}
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2 2xl:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-[112px]" />
               ))}
             </div>
             <div className="mt-auto flex flex-wrap items-center gap-3 border-t border-border pt-4">
               <Skeleton className="h-6 w-24 rounded-full" />
               <Skeleton className="h-6 w-28 rounded-full" />
+              <Skeleton className="h-6 w-20 rounded-full" />
             </div>
           </HeaderCardSkeleton>
 
