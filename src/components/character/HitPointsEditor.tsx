@@ -9,18 +9,17 @@ const HEART_PATH =
     "M12 21.2 C11.6 21.2 11.2 21 10.9 20.8 C5.2 16.1 1 12.3 1 7.4 C1 3.9 3.7 1.2 7.1 1.2 C9 1.2 10.8 2.1 12 3.6 C13.2 2.1 15 1.2 16.9 1.2 C20.3 1.2 23 3.9 23 7.4 C23 12.3 18.8 16.1 13.1 20.8 C12.8 21 12.4 21.2 12 21.2 Z";
 
 /**
- * Heart fill/stroke for a given HP ratio. Hue slides from green (full HP)
- * through amber to red (almost down) at a dark lightness so the gold numbers
- * stay legible, and the fill fades out as HP drains - a nearly empty heart
- * reads as "nearly dead" at a glance.
+ * Heart styling for a given HP ratio, kept to the sheet's own palette: a
+ * maroon fill (the theme's danger tone) with the same muted gold outline as
+ * the AC shield. The fill fades as HP drains - a nearly empty heart reads as
+ * "nearly dead" at a glance - and only once HP is critical (25% or less)
+ * does the outline switch to red.
  */
-export function heartColors(currentHp: number, maxHp: number) {
+export function heartStyle(currentHp: number, maxHp: number) {
     const ratio = maxHp > 0 ? Math.min(1, Math.max(0, currentHp / maxHp)) : 0;
-    const hue = Math.round(120 * ratio);
     return {
-        fill: `hsl(${hue} 65% 28%)`,
-        stroke: `hsl(${hue} 70% 50%)`,
-        fillOpacity: currentHp <= 0 ? 0.12 : 0.3 + 0.7 * ratio,
+        fillOpacity: currentHp <= 0 ? 0.1 : 0.25 + 0.75 * ratio,
+        critical: ratio <= 0.25,
     };
 }
 
@@ -45,7 +44,7 @@ export function HitPointsEditor({
 }) {
     const [editing, setEditing] = useState(false);
     const [draft, setDraft] = useState("");
-    const colors = heartColors(currentHp, maxHp);
+    const style = heartStyle(currentHp, maxHp);
     const label = `HP ${currentHp}/${maxHp}`;
 
     function startEditing() {
@@ -63,12 +62,13 @@ export function HitPointsEditor({
         <svg viewBox="0 0 24 22" aria-hidden="true" className="absolute inset-0 h-full w-full overflow-visible">
             <path
                 d={HEART_PATH}
-                fill={colors.fill}
-                fillOpacity={colors.fillOpacity}
-                stroke={colors.stroke}
+                fillOpacity={style.fillOpacity}
                 strokeWidth={1.1}
                 strokeLinejoin="round"
-                className="transition-[fill,fill-opacity,stroke] duration-500"
+                className={cn(
+                    "fill-foreground-danger transition-[fill-opacity,stroke] duration-500",
+                    style.critical ? "stroke-fontcolor-danger/70" : "stroke-border-strong",
+                )}
             />
         </svg>
     );

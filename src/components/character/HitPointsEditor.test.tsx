@@ -2,7 +2,7 @@ import { useState } from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { HitPointsEditor, heartColors } from "./HitPointsEditor";
+import { HitPointsEditor, heartStyle } from "./HitPointsEditor";
 import { applyCurrentHp, getSheetMaxHp } from "@/utils/hitDice";
 import type { Character } from "@/interfaces/Characters";
 import { makeCharacter } from "../../../tests/fixtures/characters";
@@ -182,12 +182,12 @@ describe("heart visuals", () => {
     expect(screen.getByRole("img", { name: "HP 3/9" })).toBeInTheDocument();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
-  it("heartColors fades and reddens as HP drops", () => {
-    const full = heartColors(20, 20), low = heartColors(2, 20), dead = heartColors(0, 20);
-    expect(full.fill).toBe("hsl(120 65% 28%)");
-    expect(full.fillOpacity).toBe(1);
-    expect(low.fillOpacity).toBeLessThan(full.fillOpacity);
-    expect(dead.fillOpacity).toBe(0.12);
-    expect(dead.fill).toBe("hsl(0 65% 28%)");
+  it("heartStyle fades the fill as HP drops and flags critical HP", () => {
+    const full = heartStyle(20, 20), half = heartStyle(10, 20), low = heartStyle(5, 20), dead = heartStyle(0, 20);
+    expect(full).toEqual({ fillOpacity: 1, critical: false });
+    expect(half.fillOpacity).toBeLessThan(full.fillOpacity);
+    expect(half.critical).toBe(false);
+    expect(low.critical).toBe(true);
+    expect(dead.fillOpacity).toBe(0.1);
   });
 });
